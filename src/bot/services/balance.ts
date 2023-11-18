@@ -4,7 +4,7 @@ import  { _return } from "../components/mainMenu";
 import { bot } from "..";
 
 let balance:number = 593.54;
-let mode:string|null = null;
+let mode:string = null;
 
 export async function show_balance(chatId:number, userId:number) {
     await bot.sendMessage(chatId, `Saldo atual: ${balance}`);
@@ -12,7 +12,7 @@ export async function show_balance(chatId:number, userId:number) {
 
 export async function deposit_instructions(chatId:number, userId:number) {
         await bot.sendMessage(chatId, "Digite corretamente a quantia que deseja depositar, ultilize somente numeros e para separar os centavos use virgula:", {
-            reply_markup: _return,
+            reply_markup: await _return(chatId),
           });
         mode = "deposit";
 }
@@ -50,7 +50,7 @@ export async function deposit_callbacks(query:any) {
 
 export async function withdraw_instructions(chatId:number, userId:number) {
     await bot.sendMessage(chatId, `Digite corretamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$${balance.toString().replace('.', ',')}), ultilize somente numeros e para separar os centavos use virgula:`, {
-        reply_markup: _return,
+        reply_markup: await _return(chatId),
       });
     mode = "withdraw";
 }
@@ -76,7 +76,7 @@ if(mode == "confirm-withdraw"){
     const params = new URLSearchParams(query.data);
     if(params.get("for") == "confirm-withdraw-value"){
         if(params.get("choice") == "yes"){
-            const value:string|null = params.get("value");
+            const value:string = params.get("value");
             if(value && parseFloat(value.replace(',', '.')) <= balance){
                 await bot.sendMessage(query.message.chat.id, "Por onde deseja receber seu pagamento?", callback([{ text: 'PIX', callback_data: "choice=pix&for=receive-payment"}, { text: 'TED', callback_data: "choice=ted&for=receive-payment" }]));
                 mode = "receive-payment";

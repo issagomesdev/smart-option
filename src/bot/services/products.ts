@@ -62,7 +62,7 @@ export const plans:any = {
   🤖 Smart Bot – R$197,00 (MENSAL)
   Smart Bot – R$1.297,00 (VITALÍCIO)
   • Gerenciamento avançado.
-  • Analisa mais de 12 estratégias e
+  • Analisa mais de 17 estratégias e
   encontra as melhores oportunidades.
   • Operações automatizadas.
   • Opera no mercado aberto e OTC.
@@ -77,6 +77,13 @@ export const plans:any = {
   Aumente em até 5 vezes o valor de sua
   banca em uma sessão individual com um
   Trader de nossa equipe.
+
+  *Embora nossa Equipe tenha um
+  histórico de êxito nas operações,
+  o mercado de renda variável não
+  possibilita garantias que ganhos
+  passados representarão resultados
+  futuros.
   `,
 };
 
@@ -87,7 +94,7 @@ export async function to_go_back(msg:any) {
 
 export async function choose_services(chatId:number) {
     await bot.sendMessage(chatId, "Escolha um de nossos serviços abaixo: ", {
-      reply_markup: _return,
+      reply_markup: await _return(chatId),
     });
     await bot.sendMessage(chatId, plans.bronze, callback([{ text: 'COMPRAR', callback_data: "choice=bronze&for=choose-plan" }]));
     await bot.sendMessage(chatId, plans.silver, callback([{ text: 'COMPRAR', callback_data: "choice=silver&for=choose-plan" }]));

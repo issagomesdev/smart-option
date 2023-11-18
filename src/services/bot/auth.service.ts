@@ -1,0 +1,41 @@
+import conn from "../../db";
+import { SHA1 } from "crypto-js";
+
+export class AuthenticationService {
+
+  static async login(email: string, password: string, userId:number): Promise<any> {
+    try {
+        const user = (
+            await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
+        )[0][0];
+        if(!user) throw Error("Usuário e/ou senha inválidos");
+        if (user.password != SHA1(password)) throw Error("Usuário e/ou senha inválidos");
+
+        await conn.query(`UPDATE bot_users SET telegram_user_id='${userId}', last_activity='${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')} ${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}' WHERE id = '${user.id}'`);
+
+        return user;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async isLoggedIn(userId:number): Promise<any> {
+    try {
+        const user = (
+            await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+        )[0][0];
+
+        return user
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async logout(userId: number){
+    const user = (
+      await conn.query(`UPDATE bot_users SET telegram_user_id=NULL WHERE telegram_user_id = '${userId}'`)
+    )[0][0];
+  }
+
+}
+

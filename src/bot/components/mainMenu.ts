@@ -1,8 +1,12 @@
 import { choose_services, products_callbacks, to_go_back } from "../services/products";
 import { register_instructions, fields, register_callbacks } from "../services/register";
+import { AuthenticationService } from "../../services/bot/auth.service";
 import { affiliate_link } from "../services/affiliateLink";
 import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks } from "../services/balance";
 import { show_network_level } from "../services/network";
+import { show_rules } from "../services/rules";
+import { suport } from "../services/suport";
+import { isLoggedIn, logIn } from "./auth";
 import { bot } from "..";
 
 
@@ -37,22 +41,25 @@ export const main_menu:any = {
     ['🪪 CADASTRO', '🔗 LINK DE AFILIADO'],
     ['💰 SALDO', '🚻 REDE'],
     ['💵 DEPÓSITO', '💵 SAQUE'],
-    ['DÚVIDAS FREQUENTES'],
+    ['REGRAS DE USO E DÚVIDAS GERAIS'],
     ['📝 SUPORTE & ATENDIMENTO AO CLIENTE 🆘'],
+    ['🔚SAIR DA CONTA'],
   ],
   one_time_keyboard: false, 
 };
 
-export const _return:any = {
+export const _return:any = async(userId:number) => {
+ return {
   keyboard: [
-    ['VOLTAR AO MENU PRINCIPAL'],
-  ],
-  one_time_keyboard: false, 
+    await isLoggedIn(userId)? ['VOLTAR AO MENU PRINCIPAL'] : ['VOLTAR'],
+ ],
+ one_time_keyboard: false, 
+ }
 };
 
-let section:number|null;
+let section:number;
 
-export function goTo(msg:any) {
+export async function goTo(msg:any) {
   switch (msg.text) {
     case "🎯 PRODUTOS E SERVIÇOS":
       section = 1;
@@ -90,8 +97,24 @@ export function goTo(msg:any) {
       bot.on('message', make_withdraw);
       bot.on('callback_query', withdraw_callbacks);
     break;
+    case "REGRAS DE USO E DÚVIDAS GERAIS":
+      section = 8;
+      show_rules(msg.chat.id)
+    break;
+    case "📝 SUPORTE & ATENDIMENTO AO CLIENTE 🆘":
+      suport(msg.chat.id)
+    break;
     case "VOLTAR AO MENU PRINCIPAL":
       return_main_menu(msg.chat.id)
+    break;
+    case "🔚SAIR DA CONTA":
+    await AuthenticationService.logout(msg.from.id)
+    .then(async() => {
+      logIn(msg)
+    })
+    .catch(async(error) => {
+      await bot.sendMessage(msg.chat.id, `*${error}*`, { parse_mode: 'Markdown' });
+    });
     break;
 }
 }
