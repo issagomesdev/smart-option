@@ -8,7 +8,6 @@ export async function start() {
 
 
   bot.on('message', async(msg) => {
-    console.log(msg)
     if(await isLoggedIn(msg.from.id)){
 
         if(/\/start/.test(msg.text)){
@@ -17,10 +16,18 @@ export async function start() {
           });
         }
 
-      goTo(msg)
+        goTo(msg)
       
     } else {
-      logIn(msg)
+
+      let affiliateId:number = null;
+
+      if (/^\/start (.+)/.test(msg.text)) {
+        const match = msg.text.match(/^\/start (.+)/);
+        affiliateId = Number(match[1]);
+      }
+      
+      logIn(msg, affiliateId)
     }
   });
 

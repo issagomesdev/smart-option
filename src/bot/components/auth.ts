@@ -42,7 +42,7 @@ export const option:any = {
 
   export let section:number;
 
-  export async function logIn(msg:any) {
+  export async function logIn(msg:any, affiliateId:number = null) {
     switch (msg.text) {
       case "CADASTRO":
         section = 1;
@@ -60,7 +60,12 @@ export const option:any = {
         return_(msg.chat.id)
       break;
       default:
-      if(!section){
+        if(affiliateId){
+          section = 1;
+          register_instructions(msg.chat.id, affiliateId);
+          bot.on('message', fields);
+          bot.on('callback_query', register_callbacks);
+        } else if(!section){
         bot.sendMessage(msg.chat.id, 'Entre em sua conta para continuar ou se ainda não possue uma conta cadastre-se agora', {
             reply_markup: option,
           });

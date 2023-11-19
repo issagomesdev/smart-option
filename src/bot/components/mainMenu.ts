@@ -83,7 +83,7 @@ export async function goTo(msg:any) {
     break;
     case "🚻 REDE":
       section = 5;
-      show_network_level(msg.chat.id, msg.from.id)
+      show_network_level(msg.chat.id, await isLoggedIn(msg.from.id))
     break;
     case "💵 DEPÓSITO":
       section = 6;

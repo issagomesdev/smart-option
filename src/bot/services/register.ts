@@ -18,6 +18,10 @@ const questions:Array<any> = [
         text: 'Senha',
     },
     {
+        field: 'confirm_password',
+        text: 'Confirme sua senha',
+    },
+    {
         field: 'phone_number',
         text: 'Telefone',
     },
@@ -45,10 +49,12 @@ const questions:Array<any> = [
 
 let current_field:number = 0;
 let answers:any = {};
-let field_correction:number|null = null;
+let field_correction:number = null;
+let affiliate:number = null
 
-export async function register_instructions(chatId:number) {
-     bot.sendMessage(chatId, 'Para realizar seu cadastro em nosso sistema, digite corretamente a resposta para os seguintes campos', {
+export async function register_instructions(chatId:number, affiliateId:number = null) {
+    if(affiliateId) affiliate = affiliateId
+      await bot.sendMessage(chatId, 'Para realizar seu cadastro em nosso sistema, digite corretamente a resposta para os seguintes campos', {
         reply_markup: await _return(chatId),
       });
       await bot.sendMessage(chatId, questions[current_field].text + ":");
@@ -58,20 +64,35 @@ export async function fields(msg:any) {
     if(msg.text !== "VOLTAR AO MENU PRINCIPAL" && msg.text !== "VOLTAR" ){
         if(field_correction || field_correction == 0){
             answers[questions[field_correction].field] = msg.text;
-            field_correction = null;
-            confirm_fields(msg.chat.id)
+
+            if(field_correction == 2){
+                field_correction = 3;
+                await bot.sendMessage(msg.chat.id, questions[field_correction].text + ":");
+            } else if(field_correction == 3 && answers.password !== answers.confirm_password){
+                await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
+                field_correction = 2;
+            } else {
+                field_correction = null;
+                confirm_fields(msg.chat.id)
+            }
         } else {
             answers[questions[current_field].field] = msg.text;
             if (current_field < questions.length - 1) {
-                current_field++;
-                if(current_field == 5) await bot.sendMessage(msg.chat.id, "Para terminar, agora responda com seus dados bancários");
-                await bot.sendMessage(msg.chat.id, questions[current_field].text + ":");
+                if(current_field == 3 && answers.password !== answers.confirm_password){
+                    current_field = 2;
+                    await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
+                } else{
+                    current_field++;
+                    if(current_field == 6) await bot.sendMessage(msg.chat.id, "Para terminar, agora responda com seus dados bancários");
+                    await bot.sendMessage(msg.chat.id, questions[current_field].text + ":");
+                }
             } else {
                 confirm_fields(msg.chat.id)
             }
         } 
     } else {
         current_field = 0;
+        field_correction = null;
         answers = {};
     }
 }
@@ -80,23 +101,24 @@ export async function register_callbacks(query:any) {
     const params:any = new URLSearchParams(query.data)
         if(params.get("for") == "confirm-user-infos"){
             if(params.get("choice") == "yes"){
-                RegisterService.registerUser(answers, query.message.chat.id)
-                .then(() => {
-                    bot.sendMessage(query.message.chat.id, 'Cadastro realizado com sucesso! ✅');
+                RegisterService.registerUser(answers, affiliate)
+                .then(async() => {
+                    await bot.sendMessage(query.message.chat.id, 'Cadastro realizado com sucesso! ✅');
                     current_field = 0;
+                    field_correction = null;
                     answers = {};
                   })
                   .catch(async(error) => {
                     await bot.sendMessage(query.message.chat.id, `*${error}*`, { parse_mode: 'Markdown' });
-                    await bot.sendMessage(query.message.chat.id, "Para realizar seu cadastro em nosso sistema, digite novamente o valor do campo " + questions[1].text + ":");
-                    field_correction = 1
                   });
                 return;
             } else {
                 await bot.sendMessage(query.message.chat.id, "qual informação deseja corrigir?");
                 await bot.sendMessage(query.message.chat.id, "Tudo", callback([{ text: "Editar", callback_data: `choice=all&for=correction-user-infos`}]));
                 questions.forEach(async(question, index) => {
-                    await bot.sendMessage(query.message.chat.id, question.text, callback([{ text: "Editar", callback_data: `choice=${index}&for=correction-user-infos`}]));
+                    if(question.field !== "confirm_password"){
+                        await bot.sendMessage(query.message.chat.id, question.text, callback([{ text: "Editar", callback_data: `choice=${index}&for=correction-user-infos`}]));
+                    }
                 });
                 
             }
@@ -115,8 +137,11 @@ export async function register_callbacks(query:any) {
 }
 
 function show_answers() {
-    const response = questions.map(function(question) {
-        return question.text+': '+answers[question.field]
+
+    let response = questions.filter(question => question.field !== "confirm_password");
+    response = response.map(function(question) {
+        return question.field == "password"? question.text+': '+'*'.repeat(answers[question.field].length) : 
+        question.text+': '+answers[question.field];
     });
 
     return response.join('\n');
