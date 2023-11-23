@@ -18,7 +18,7 @@ export async function deposit_instructions(chatId:number, userId:number) {
 }
 
 export async function make_deposit(msg:any) {
-    if(msg.text !== "VOLTAR AO MENU PRINCIPAL"){
+    if(msg.text !== "🔄 VOLTAR AO MENU PRINCIPAL"){
         if(mode == "deposit"){
             if(validate_value(msg.text)){
                 await bot.sendMessage(msg.chat.id, `o valor a ser depositado é ${msg.text}`);
@@ -56,7 +56,7 @@ export async function withdraw_instructions(chatId:number, userId:number) {
 }
 
 export async function make_withdraw(msg:any) {
-if(msg.text !== "VOLTAR AO MENU PRINCIPAL"){
+if(msg.text !== "🔄 VOLTAR AO MENU PRINCIPAL"){
     if(mode == "withdraw"){
         if(validate_value(msg.text)){
             await bot.sendMessage(msg.chat.id, `o valor a ser sacado é ${msg.text}`);

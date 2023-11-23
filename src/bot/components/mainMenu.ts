@@ -41,8 +41,8 @@ export const main_menu:any = {
     ['🪪 CADASTRO', '🔗 LINK DE AFILIADO'],
     ['💰 SALDO', '🚻 REDE'],
     ['💵 DEPÓSITO', '💵 SAQUE'],
-    ['REGRAS DE USO E DÚVIDAS GERAIS'],
-    ['📝 SUPORTE & ATENDIMENTO AO CLIENTE 🆘'],
+    ['📃 REGRAS DE USO E DÚVIDAS GERAIS'],
+    ['🆘 SUPORTE & ATENDIMENTO AO CLIENTE'],
     ['🔚SAIR DA CONTA'],
   ],
   one_time_keyboard: false, 
@@ -51,7 +51,7 @@ export const main_menu:any = {
 export const _return:any = async(userId:number) => {
  return {
   keyboard: [
-    await isLoggedIn(userId)? ['VOLTAR AO MENU PRINCIPAL'] : ['VOLTAR'],
+    await isLoggedIn(userId)? ['🔄 VOLTAR AO MENU PRINCIPAL'] : ['🔄 VOLTAR'],
  ],
  one_time_keyboard: false, 
  }
@@ -60,6 +60,9 @@ export const _return:any = async(userId:number) => {
 let section:number;
 
 export async function goTo(msg:any) {
+
+  const user:any = await isLoggedIn(msg.from.id);
+  
   switch (msg.text) {
     case "🎯 PRODUTOS E SERVIÇOS":
       section = 1;
@@ -69,7 +72,7 @@ export async function goTo(msg:any) {
     break;
     case "🪪 CADASTRO":
       section = 2;
-      register_instructions(msg.chat.id);
+      register_instructions(msg.chat.id, user?.id);
       bot.on('message', fields);
       bot.on('callback_query', register_callbacks);
     break;
@@ -97,14 +100,14 @@ export async function goTo(msg:any) {
       bot.on('message', make_withdraw);
       bot.on('callback_query', withdraw_callbacks);
     break;
-    case "REGRAS DE USO E DÚVIDAS GERAIS":
+    case "📃 REGRAS DE USO E DÚVIDAS GERAIS":
       section = 8;
       show_rules(msg.chat.id)
     break;
-    case "📝 SUPORTE & ATENDIMENTO AO CLIENTE 🆘":
+    case "🆘 SUPORTE & ATENDIMENTO AO CLIENTE":
       suport(msg.chat.id)
     break;
-    case "VOLTAR AO MENU PRINCIPAL":
+    case "🔄 VOLTAR AO MENU PRINCIPAL":
       return_main_menu(msg.chat.id)
     break;
     case "🔚SAIR DA CONTA":

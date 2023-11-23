@@ -88,7 +88,7 @@ export const plans:any = {
 };
 
 export async function to_go_back(msg:any) {
-  if(msg.text == "VOLTAR AO MENU PRINCIPAL"){
+  if(msg.text == "🔄 VOLTAR AO MENU PRINCIPAL"){
   }
 }
 

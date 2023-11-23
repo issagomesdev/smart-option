@@ -11,7 +11,7 @@ export async function isLoggedIn(userId:number) {
 
 export const option:any = {
     keyboard: [
-      ['LOGIN', 'CADASTRO']
+      ['📲LOGIN', '🆕 CADASTRO']
     ],
     one_time_keyboard: false, 
   };
@@ -44,19 +44,19 @@ export const option:any = {
 
   export async function logIn(msg:any, affiliateId:number = null) {
     switch (msg.text) {
-      case "CADASTRO":
+      case "🆕 CADASTRO":
         section = 1;
         register_instructions(msg.chat.id);
         bot.on('message', fields);
         bot.on('callback_query', register_callbacks);
       break;
-      case "LOGIN":
+      case "📲LOGIN":
         section = 2;
         login_instructions(msg.chat.id);
         bot.on('message', login);
         bot.on('callback_query', login_callbacks);
       break;
-      case "VOLTAR":
+      case "🔄 VOLTAR":
         return_(msg.chat.id)
       break;
       default:

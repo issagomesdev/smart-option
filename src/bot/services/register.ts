@@ -3,6 +3,7 @@ import { callback } from "./index";
 import { bot } from "..";
 import  { _return } from "../components/mainMenu";
 import { RegisterService } from "../../services/bot/register.service";
+import { isLoggedIn} from "../components/auth";
 
 const questions:Array<any> = [
     {
@@ -61,7 +62,7 @@ export async function register_instructions(chatId:number, affiliateId:number = 
 }
 
 export async function fields(msg:any) {
-    if(msg.text !== "VOLTAR AO MENU PRINCIPAL" && msg.text !== "VOLTAR" ){
+    if(msg.text !== "🔄 VOLTAR AO MENU PRINCIPAL" && msg.text !== "🔄 VOLTAR" ){
         if(field_correction || field_correction == 0){
             answers[questions[field_correction].field] = msg.text;
 
@@ -104,12 +105,13 @@ export async function register_callbacks(query:any) {
                 RegisterService.registerUser(answers, affiliate)
                 .then(async() => {
                     await bot.sendMessage(query.message.chat.id, 'Cadastro realizado com sucesso! ✅');
+                    await bot.sendMessage(query.message.chat.id, 'Antes de tudo é necessario validar o email de cadastro, um link de validação foi enviado agora mesmo, acesse o link para liberar o acesso');
                     current_field = 0;
                     field_correction = null;
                     answers = {};
                   })
                   .catch(async(error) => {
-                    await bot.sendMessage(query.message.chat.id, `*${error}*`, { parse_mode: 'Markdown' });
+                    await bot.sendMessage(query.message.chat.id, `*${error.message}*`, { parse_mode: 'Markdown' });
                   });
                 return;
             } else {
