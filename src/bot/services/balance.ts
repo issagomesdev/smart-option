@@ -38,7 +38,7 @@ export async function deposit_callbacks(query:any) {
         const params = new URLSearchParams(query.data);
         if(params.get("for") == "confirm-deposit-value"){
             if(params.get("choice") == "yes"){
-                generatePaymentLink(query.message.chat.id);
+                generatePaymentLink(query.message.chat.id, parseFloat(params.get("value").replace(',', '.')));
                 mode = null;
             } else {
                 await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");

@@ -111,7 +111,7 @@ export async function register_callbacks(query:any) {
                     answers = {};
                   })
                   .catch(async(error) => {
-                    await bot.sendMessage(query.message.chat.id, `*${error.message}*`, { parse_mode: 'Markdown' });
+                    await bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
                   });
                 return;
             } else {
