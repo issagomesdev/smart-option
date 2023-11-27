@@ -3,6 +3,7 @@ import { callback, generatePaymentLink } from "./index";
 import { bot } from "..";
 import  { _return } from "../components/mainMenu";
 import { ProductsService } from "../../services/bot/products.service";
+import { RequestsService } from "../../services/bot/requests.service";
  
 export let plans:any = []
 let chosenPlan:number;
@@ -10,11 +11,6 @@ let chosenPlan:number;
 ProductsService.products().then((data)=> {
   plans = data;
 })
-
-export async function to_go_back(msg:any) {
-  if(msg.text == "🔄 VOLTAR AO MENU PRINCIPAL"){
-  }
-}
 
 export async function choose_services(chatId:number) {
     await bot.sendMessage(chatId, "Escolha um de nossos serviços abaixo: ", {
@@ -49,7 +45,13 @@ export function products_callbacks(query:any){
       if(plans[chosenPlan].purchase_type == "auto"){
         generatePaymentLink(query.message.chat.id, plans[chosenPlan].price, plans[chosenPlan]);
       } else {
-        bot.sendMessage(query.message.chat.id, '_Pedido realizado com sucesso. Em breve o suporte entrará em contato._', { parse_mode: 'Markdown' });
+
+        RequestsService.request('service', query.message.chat.id, plans[chosenPlan].id)
+        .then(() => bot.sendMessage(query.message.chat.id, '_Pedido realizado com sucesso. Em breve nosso suporte entrará em contato._', { parse_mode: 'Markdown' }))
+        .catch((error) =>{
+          bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+        })
+        
       }
       return;
     } else {

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 26-Nov-2023 às 10:33
+-- Tempo de geração: 27-Nov-2023 às 05:28
 -- Versão do servidor: 8.0.31
 -- versão do PHP: 8.1.13
 
@@ -36,7 +36,15 @@ CREATE TABLE IF NOT EXISTS `balance` (
   `origin` enum('deposit','withdraw','gain','product') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Extraindo dados da tabela `balance`
+--
+
+INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `created_at`) VALUES
+(19, '230.30', 10, 'sum', 'deposit', '2023-11-27 01:09:06'),
+(18, '63.70', 10, 'sum', 'deposit', '2023-11-27 01:02:12');
 
 -- --------------------------------------------------------
 
@@ -69,8 +77,8 @@ CREATE TABLE IF NOT EXISTS `bot_users` (
 --
 
 INSERT INTO `bot_users` (`id`, `name`, `email`, `password`, `phone_number`, `adress`, `bank_name`, `bank_agency_number`, `bank_account_number`, `pix_code`, `status`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
-(10, 'issa gomes', 'issagomes2002@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', 'hgtvrfcd', 'hbtgvrfc', 'dhtgvrfc', 'hbgvfcdx', 1, NULL, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-11-26 09:30:18'),
-(25, 'liza', 'liza@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'gtvrfcdx', 'hbgvfcd', 'bgvfcdx', 'vfdcxs', 1, 1743885934, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 10:04:05'),
+(10, 'issa gomes', 'issagomes2002@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', 'hgtvrfcd', 'hbtgvrfc', 'dhtgvrfc', 'hbgvfcdx', 1, 1743885934, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-11-27 05:28:13'),
+(25, 'liza', 'liza@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'gtvrfcdx', 'hbgvfcd', 'bgvfcdx', 'vfdcxs', 1, NULL, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 16:49:30'),
 (24, 'lilian barros', 'gvfrcd', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hgfd', 'hbtgvrfcd', 'hbgvfcdx', 'hbgvfcd', 1, NULL, '2023-11-19 21:46:43', '2023-11-01 21:53:05', '2023-11-20 19:53:56'),
 (23, 'leandro henrique', 'leo_hen@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'bvfcd', 'vfcdx', 'gvfcd', 'gvfcd', 1, NULL, '2023-11-19 21:41:38', '2023-11-19 21:43:24', '2023-11-19 21:43:58'),
 (26, 'Hayssa gomes', 'Haygomes1@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '827372828272', 'Hehehshsh', 'Gegsgsgs', 'Egsgsgsg', 'Eggsgshshs', 'Sggsshsh', 1, NULL, '2023-11-20 19:56:53', NULL, '2023-11-20 19:56:53'),
@@ -102,20 +110,23 @@ CREATE TABLE IF NOT EXISTS `checkouts` (
   `reference_id` varchar(255) NOT NULL,
   `type` enum('deposit','product') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `value` decimal(10,2) NOT NULL,
-  `status` enum('pending','paid','expired','denied') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'pending',
+  `status` enum('PENDING','AUTHORIZED','PAID','IN_ANALYSIS','DECLINED','CANCELED') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'PENDING',
   `transaction_id` varchar(255) DEFAULT NULL,
   `user_id` bigint DEFAULT NULL,
   `product_id` bigint DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=76 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `checkouts`
 --
 
 INSERT INTO `checkouts` (`id`, `reference_id`, `type`, `value`, `status`, `transaction_id`, `user_id`, `product_id`, `created_at`) VALUES
-(50, 'a0214c5d-9fc6-44d9-a5f7-1d5863810e61', 'product', '297.00', 'pending', 'CHEC_9A2AFAFD-D861-45B2-B047-80CD142E18A1', 10, 3, '2023-11-26 08:27:28');
+(74, '207d3dc1-78bb-44fb-97c4-7e2bc64b8372', 'deposit', '230.30', 'PAID', 'CHEC_C399E6F9-4E7C-4ADE-AA06-1166EBE05905', 10, NULL, '2023-11-27 01:06:29'),
+(72, 'c365ab09-63ab-4f6f-b8e5-9f6f7027420e', 'product', '97.00', 'PAID', 'CHEC_557ABC1F-D3BC-45C5-B8D4-F482A10CA984', 10, 1, '2023-11-27 00:58:39'),
+(73, 'b15540f3-767f-41c9-a103-b2ec252c01e9', 'deposit', '63.70', 'PAID', 'CHEC_349DAE32-2166-49D7-B119-CA20E4566C3E', 10, NULL, '2023-11-27 01:01:00'),
+(75, 'afa14d4f-f047-4e26-a0b7-34dab4bb9704', 'deposit', '544.50', 'DECLINED', 'CHEC_8D220F4E-444D-438F-BAAC-322F04C4CC59', 10, NULL, '2023-11-27 01:09:42');
 
 -- --------------------------------------------------------
 
@@ -180,6 +191,7 @@ CREATE TABLE IF NOT EXISTS `products` (
   `name` varchar(255) NOT NULL,
   `description` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `price` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `monthly_profit` decimal(5,2) NOT NULL,
   `purchase_type` enum('auto','manual') NOT NULL DEFAULT 'auto',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -188,12 +200,12 @@ CREATE TABLE IF NOT EXISTS `products` (
 -- Extraindo dados da tabela `products`
 --
 
-INSERT INTO `products` (`id`, `name`, `description`, `price`, `purchase_type`) VALUES
-(1, 'bronze', '  🥉Smart Bronze (até 5% ao mês) – R$ 97,00\n\n  Bônus de ADESÃO (Ilimitado)\n  ╔═════════╗\n  ║ Nível 1- 30% \n  ║ Nível 2- 7%     ╠ 40% 💵\n  ║ Nível 3- 3%  \n  ╚═════════╝\n  \n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\n  ╔═════════════════╗\n  ║ Nível 1- (2,33% * 3) = 7%  \n  ║ Nível 2- (1,66% * 3) = 5%     ╠ 15% 💵\n  ║ Nível 3- (1,00% * 3) = 3%   \n  ╚═════════════════╝', '97.00', 'auto'),
-(2, 'silver', '  🥈Smart silver (até 7% ao mês) – R$ 197,00\r\n\r\n  Bônus de ADESÃO (Ilimitado)\r\n  ╔═════════╗\r\n  ║ Nível 1- 33%  \r\n  ║ Nível 2- 8%     ╠ 45% 💵\r\n  ║ Nível 3- 4% \r\n  ╚═════════╝\r\n  \r\n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\r\n  ╔═════════════════╗\r\n  ║ Nível 1- (3,33% * 3) = 9%  \r\n  ║ Nível 2- (2,33% * 3) = 7%     ╠ 20% 💵\r\n  ║ Nível 3- (1,33% * 3) = 4%   \r\n  ╚═════════════════╝', '197.00', 'auto'),
-(3, 'gold', '  🥇Smart gold (até 10% ao mês) – R$ 297,00\r\n\r\n  Bônus de ADESÃO (Ilimitado)\r\n  ╔═════════╗\r\n  ║ Nível 1 - 35%  \r\n  ║ Nível 2 - 10%  ╠ 50% 💵\r\n  ║ Nível 3 - 5%  \r\n  ╚═════════╝\r\n  \r\n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\r\n  ╔═════════════════╗\r\n  ║ Nível 1- (4,00% * 3) = 12%  \r\n  ║ Nível 2- (2,66% * 3) = 8%     ╠ 25% 💵\r\n  ║ Nível 3- (1,66% * 3) = 5%   \r\n  ╚═════════════════╝', '297.00', 'auto'),
-(4, 'advanced management', '  🤖 Smart Bot – R$197,00 (MENSAL)\r\n  Smart Bot – R$1.297,00 (VITALÍCIO)\r\n  • Gerenciamento avançado.\r\n  • Analisa mais de 17 estratégias e\r\n  encontra as melhores oportunidades.\r\n  • Operações automatizadas.\r\n  • Opera no mercado aberto e OTC.\r\n  • Stop WIN/LOSS.\r\n  • Martin Gale e Soros.\r\n  • Mais de 90% de assertividade.', '0.00', 'manual'),
-(5, 'bank leverage', '  🎰 Alavancagem de banca:\r\n  \r\n  Aumente em até 5 vezes o valor de sua\r\n  banca em uma sessão individual com um\r\n  Trader de nossa equipe.\r\n\r\n  *Embora nossa Equipe tenha um\r\n  histórico de êxito nas operações,\r\n  o mercado de renda variável não\r\n  possibilita garantias que ganhos\r\n  passados representarão resultados\r\n  futuros.', '0.00', 'manual');
+INSERT INTO `products` (`id`, `name`, `description`, `price`, `monthly_profit`, `purchase_type`) VALUES
+(1, 'bronze', '  🥉Smart Bronze (até 5% ao mês) – R$ 97,00\n\n  Bônus de ADESÃO (Ilimitado)\n  ╔═════════╗\n  ║ Nível 1- 30% \n  ║ Nível 2- 7%     ╠ 40% 💵\n  ║ Nível 3- 3%  \n  ╚═════════╝\n  \n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\n  ╔═════════════════╗\n  ║ Nível 1- (2,33% * 3) = 7%  \n  ║ Nível 2- (1,66% * 3) = 5%     ╠ 15% 💵\n  ║ Nível 3- (1,00% * 3) = 3%   \n  ╚═════════════════╝', '97.00', '5.00', 'auto'),
+(2, 'silver', '  🥈Smart silver (até 7% ao mês) – R$ 197,00\r\n\r\n  Bônus de ADESÃO (Ilimitado)\r\n  ╔═════════╗\r\n  ║ Nível 1- 33%  \r\n  ║ Nível 2- 8%     ╠ 45% 💵\r\n  ║ Nível 3- 4% \r\n  ╚═════════╝\r\n  \r\n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\r\n  ╔═════════════════╗\r\n  ║ Nível 1- (3,33% * 3) = 9%  \r\n  ║ Nível 2- (2,33% * 3) = 7%     ╠ 20% 💵\r\n  ║ Nível 3- (1,33% * 3) = 4%   \r\n  ╚═════════════════╝', '197.00', '7.00', 'auto'),
+(3, 'gold', '  🥇Smart gold (até 10% ao mês) – R$ 297,00\r\n\r\n  Bônus de ADESÃO (Ilimitado)\r\n  ╔═════════╗\r\n  ║ Nível 1 - 35%  \r\n  ║ Nível 2 - 10%  ╠ 50% 💵\r\n  ║ Nível 3 - 5%  \r\n  ╚═════════╝\r\n  \r\n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\r\n  ╔═════════════════╗\r\n  ║ Nível 1- (4,00% * 3) = 12%  \r\n  ║ Nível 2- (2,66% * 3) = 8%     ╠ 25% 💵\r\n  ║ Nível 3- (1,66% * 3) = 5%   \r\n  ╚═════════════════╝', '297.00', '10.00', 'auto'),
+(4, 'advanced management', '  🤖 Smart Bot – R$197,00 (MENSAL)\r\n  Smart Bot – R$1.297,00 (VITALÍCIO)\r\n  • Gerenciamento avançado.\r\n  • Analisa mais de 17 estratégias e\r\n  encontra as melhores oportunidades.\r\n  • Operações automatizadas.\r\n  • Opera no mercado aberto e OTC.\r\n  • Stop WIN/LOSS.\r\n  • Martin Gale e Soros.\r\n  • Mais de 90% de assertividade.', '0.00', '0.00', 'manual'),
+(5, 'bank leverage', '  🎰 Alavancagem de banca:\r\n  \r\n  Aumente em até 5 vezes o valor de sua\r\n  banca em uma sessão individual com um\r\n  Trader de nossa equipe.\r\n\r\n  *Embora nossa Equipe tenha um\r\n  histórico de êxito nas operações,\r\n  o mercado de renda variável não\r\n  possibilita garantias que ganhos\r\n  passados representarão resultados\r\n  futuros.', '0.00', '0.00', 'manual');
 
 -- --------------------------------------------------------
 
@@ -238,6 +250,36 @@ INSERT INTO `product_gains` (`id`, `product_id`, `level`, `type`, `percentage`) 
 -- --------------------------------------------------------
 
 --
+-- Estrutura da tabela `requests`
+--
+
+DROP TABLE IF EXISTS `requests`;
+CREATE TABLE IF NOT EXISTS `requests` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `type` enum('support','service') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `subject` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `user_id` bigint NOT NULL,
+  `telegram_user_id` bigint NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Extraindo dados da tabela `requests`
+--
+
+INSERT INTO `requests` (`id`, `type`, `subject`, `user_id`, `telegram_user_id`, `created_at`) VALUES
+(1, 'service', '4', 10, 1743885934, '2023-11-27 01:44:06'),
+(5, 'support', 'gfds', 10, 1743885934, '2023-11-27 02:09:09'),
+(3, 'support', 'estou com problemas para realizar saques', 10, 1743885934, '2023-11-27 02:04:11'),
+(4, 'support', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. ', 10, 1743885934, '2023-11-27 02:04:56'),
+(6, 'support', 'gvfcdxs', 10, 1743885934, '2023-11-27 02:09:38'),
+(7, 'support', 'vfcdxs', 10, 1743885934, '2023-11-27 02:09:40'),
+(8, 'support', 'vcxz', 10, 1743885934, '2023-11-27 02:11:01');
+
+-- --------------------------------------------------------
+
+--
 -- Estrutura da tabela `users_plans`
 --
 
@@ -251,7 +293,14 @@ CREATE TABLE IF NOT EXISTS `users_plans` (
   `acquired_in` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expired_in` timestamp NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Extraindo dados da tabela `users_plans`
+--
+
+INSERT INTO `users_plans` (`id`, `user_id`, `product_id`, `checkout_id`, `status`, `acquired_in`, `expired_in`) VALUES
+(9, 10, 1, 72, 1, '2023-11-27 00:59:33', '2023-12-27 00:59:33');
 
 -- --------------------------------------------------------
 
@@ -267,25 +316,6 @@ CREATE TABLE IF NOT EXISTS `verification_email` (
   `status` enum('pending','expired','checked') NOT NULL DEFAULT 'pending',
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Extraindo dados da tabela `verification_email`
---
-
-INSERT INTO `verification_email` (`id`, `user_id`, `token`, `status`) VALUES
-(32, 46, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJndmZjZHgiLCJpYXQiOjE3MDA5OTEzMjIsImV4cCI6MTcwMDk5NDkyMn0.71CnqOHJWnzT9G82QCgA-TfoQKGdZuaXNuqLkQB-gts', 'pending'),
-(31, 45, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImxpemFAbWFpbC5jbyIsImlhdCI6MTcwMDk5MTA4OSwiZXhwIjoxNzAwOTk0Njg5fQ.txzmSsjnnmw_XkPxUHakmINPqEuB8BPYhDQAHjrBesM', 'pending'),
-(30, 44, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lc0BnbWFpbC5jb20iLCJpYXQiOjE3MDA5OTA4NzcsImV4cCI6MTcwMDk5NDQ3N30.QaV-KMbAmw4Q_rDBT-Jun2jvPHqjDK66PbAtXsVPp6g', 'pending'),
-(29, 43, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imd0dnJmZCIsImlhdCI6MTcwMDk5MDczOSwiZXhwIjoxNzAwOTk0MzM5fQ.wlAxJcc6ZklbjdQ-V10FHEGiMMO60TKei_Sjtb8P4kQ', 'pending'),
-(28, 42, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImVtYWlsQG1haWwuY29tIiwiaWF0IjoxNzAwOTkwNTk2LCJleHAiOjE3MDA5OTQxOTZ9.L7d8r_RQOgjv_wWPgoGcwJZybDrP-hDWcKJo_8_EnPw', 'pending'),
-(27, 41, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImNvZGVkYnlpc3NhQGdtYWlsLmNvbSIsImlhdCI6MTcwMDk3OTg3MywiZXhwIjoxNzAwOTgzNDczfQ.kdomQuGgcaUbIYLSX1wq6S5LqrReIBvqzbhvBBjES_Y', 'checked'),
-(26, 40, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImNvZGVkYnlpc3NhQGdtYWlsLmNvbSIsImlhdCI6MTcwMDk3OTA2MCwiZXhwIjoxNzAwOTgyNjYwfQ.Clb7QtSoGhP6GlA-i8g0r1r9COXwxQRKRjGo0fLxiEU', 'pending'),
-(25, 39, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFuYWVwYXBhaXppbmhvQGdtYWlsLmNvbSIsImlhdCI6MTcwMDg1NTQ0NiwiZXhwIjoxNzAwODU5MDQ2fQ.mk2dl8NqiVUrt0tDTJrnBwrq9xTkK5kcCS9zVCImzmo', 'checked'),
-(24, 39, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFuYWVwYXBhaXppbmhvQGdtYWlsLmNvbSIsImlhdCI6MTcwMDg1NTM4OSwiZXhwIjoxNzAwODU4OTg5fQ.kEfhopEwCWhYfnztDEIvltWQMpxhEDZ1qJXp_NAOoNc', 'checked'),
-(23, 38, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAwNzAyNTgxLCJleHAiOjE3MDA3MDYxODF9.158ETf_3ebAY0kTBNmvz_kcUCoPlCH6WGVt6qS6lQZw', 'checked'),
-(22, 38, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAwNzAyNTUyLCJleHAiOjE3MDA3MDYxNTJ9.LOH1vsFpFBIPE2j25Fv9SHCKCkj4w_b-s-Fei4XTXAc', 'checked'),
-(21, 38, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAwNzAyNDYxLCJleHAiOjE3MDA3MDYwNjF9.ZJUQZKt8zSNJTfFg71XgboICg4M5QTo11CggYlG_9eM', 'checked'),
-(20, 37, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImhheXNzYWdvbWVzMjAwMkBnbWFpbC5jb20iLCJpYXQiOjE3MDA3MDIzMzAsImV4cCI6MTcwMDcwNTkzMH0.uVNvRzpoFtLXYjntpD3_27VuoKk5b7zbqljsf-Z432Y', 'checked');
 
 -- --------------------------------------------------------
 

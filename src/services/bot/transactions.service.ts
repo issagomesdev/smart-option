@@ -22,7 +22,6 @@ export class TransactionsService {
         await conn.query(`SELECT reference_id FROM checkouts WHERE id = '${checkout.insertId}'`)
       )[0][0];
 
-
       let item:any;
       
       product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
@@ -37,7 +36,7 @@ export class TransactionsService {
         body: JSON.stringify({
           items: [item],
           reference_id: checkout.insertId.toString(),
-          redirect_url: `https://www.smartoptionea.com/transactions/checkout-successful/${ref_checkout.reference_id}`
+          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkout-successful/${ref_checkout.reference_id}`]
         })
       };
 
@@ -52,29 +51,29 @@ export class TransactionsService {
     }
   }
 
-  static async checkoutSuccessful(reference_id:string){
+  static async finishCheckout(reference_id:string, status:string){
     try {
 
       const ref_checkout = (
-        await conn.query(`SELECT * FROM checkouts WHERE reference_id = '${reference_id}'`)
+        await conn.query(`SELECT * FROM checkouts WHERE reference_id = '${reference_id}' AND status != '${status}'`)
       )[0][0];
 
       if(ref_checkout){
-        await conn.query(`UPDATE checkouts SET status='paid' WHERE id = '${ref_checkout.id}'`);
-        if(ref_checkout.type == "deposit"){
-          await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}')`)
+        await conn.query(`UPDATE checkouts SET status='${status}' WHERE id = '${ref_checkout.id}'`);
+
+        if(status == "PAID"){
+          if(ref_checkout.type == "deposit"){
+            await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}')`)
+          } else if(ref_checkout.type == "product"){
+            const today: moment.Moment = moment();
+            const monthLater: moment.Moment = today.add(1, 'months');
+            const expired_in: string = monthLater.format('YYYY-MM-DD HH:mm:ss')
+            await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${ref_checkout.user_id}'`);
+            await conn.execute(`INSERT INTO users_plans(user_id, product_id, checkout_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${ref_checkout.id}', '${expired_in}')`)
+          }
+  
+          NetworkService.accession(ref_checkout.user_id, ref_checkout.value);
         }
-
-        if(ref_checkout.type == "product"){
-
-          const today: moment.Moment = moment();
-          const monthLater: moment.Moment = today.add(1, 'months');
-          const expired_in: string = monthLater.format('YYYY-MM-DD HH:mm:ss')
-          await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${ref_checkout.user_id}'`);
-          await conn.execute(`INSERT INTO users_plans(user_id, product_id, checkout_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${ref_checkout.id}', '${expired_in}')`)
-        }
-
-        NetworkService.accession(ref_checkout.user_id, ref_checkout.value)
       }
 
     } catch (error) {

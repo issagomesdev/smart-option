@@ -27,7 +27,7 @@ export class NetworkService {
             )[0][0];
 
             if(L1HasPlan) {
-                NetworkService.productGain(L1HasPlan.product_id, 'profitability', 1)
+                NetworkService.productGains(L1HasPlan.product_id, 'accession', 1)
                 .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', 'gain')`))
              } 
 
@@ -42,7 +42,7 @@ export class NetworkService {
                 )[0][0];
     
                 if(L2HasPlan) {
-                    NetworkService.productGain(L2HasPlan.product_id, 'profitability', 2)
+                    NetworkService.productGains(L2HasPlan.product_id, 'accession', 2)
                     .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', 'gain')`))
                 }
 
@@ -57,7 +57,7 @@ export class NetworkService {
                     )[0][0];
         
                     if(L3HasPlan) {
-                        NetworkService.productGain(L3HasPlan.product_id, 'profitability', 3)
+                        NetworkService.productGains(L3HasPlan.product_id, 'accession', 3)
                         .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', 'gain')`))
                     }
                 }
@@ -65,13 +65,12 @@ export class NetworkService {
             }
         }
         
-        
     } catch (error) {
         throw error;
     }
   }
 
-  static async productGain(id: number, type:string, level:number){
+  static async productGains(id: number, type:string, level:number){
     try {
 
         const gain = (

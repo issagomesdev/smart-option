@@ -1,11 +1,11 @@
-import { choose_services, products_callbacks, to_go_back } from "../services/products";
+import { choose_services, products_callbacks } from "../services/products";
 import { register_instructions, fields, register_callbacks } from "../services/register";
 import { AuthenticationService } from "../../services/bot/auth.service";
 import { affiliate_link } from "../services/affiliateLink";
 import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks } from "../services/balance";
 import { show_network_level } from "../services/network";
 import { show_rules } from "../services/rules";
-import { suport } from "../services/suport";
+import { suport, message } from "../services/suport";
 import { isLoggedIn, logIn } from "./auth";
 import { bot } from "..";
 
@@ -13,7 +13,6 @@ import { bot } from "..";
 export function return_main_menu(chatId:number) {
   switch (section) {
     case 1:
-      bot.removeListener('message', to_go_back);
       bot.removeListener('callback_query', products_callbacks);
     break;
     case 2:
@@ -27,6 +26,9 @@ export function return_main_menu(chatId:number) {
     case 7:
       bot.removeListener('message', make_withdraw);
       bot.removeListener('callback_query', withdraw_callbacks);
+    break;
+    case 9:
+      bot.removeListener('message', message);
     break;
   }
   section = null;
@@ -67,7 +69,6 @@ export async function goTo(msg:any) {
     case "🎯 PRODUTOS E SERVIÇOS":
       section = 1;
       choose_services(msg.chat.id);
-      bot.on('message', to_go_back);
       bot.on('callback_query', products_callbacks);
     break;
     case "🪪 CADASTRO":
@@ -105,7 +106,9 @@ export async function goTo(msg:any) {
       show_rules(msg.chat.id)
     break;
     case "🆘 SUPORTE & ATENDIMENTO AO CLIENTE":
-      suport(msg.chat.id)
+      section = 9;
+      suport(msg.chat.id);
+      bot.on('message', message);
     break;
     case "🔄 VOLTAR AO MENU PRINCIPAL":
       return_main_menu(msg.chat.id)
