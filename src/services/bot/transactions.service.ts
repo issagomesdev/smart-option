@@ -7,6 +7,82 @@ import { NetworkService } from "./network.service";
 
 export class TransactionsService {
 
+  static async balance(userId:number){
+    try {
+
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+      )[0][0];
+
+      const balance:any = (
+        await conn.query(`SELECT * FROM balance WHERE user_id = ${user.id} ORDER BY created_at`)
+      )[0];
+
+      let result:number = 0;
+
+      if(balance){
+        balance.map((item) => {
+          result += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
+        });
+      }
+
+      return result.toFixed(2)
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async extract(userId:number){
+    try {
+
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+      )[0][0];
+
+      const balance:any = (
+        await conn.query(`SELECT value, type, origin, created_at FROM balance WHERE user_id = ${user.id} ORDER BY created_at`)
+      )[0];
+
+      return balance
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async checkoutsRequests(userId:number, type:string){
+    try {
+
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+      )[0][0];
+
+      const requests:any = (
+        await conn.query(`SELECT ${type == 'product'? 'checkouts.*, products.name' : '*'} FROM checkouts ${type == 'product'? 'JOIN products ON checkouts.product_id = products.id' : ''} WHERE checkouts.user_id = ${user.id} AND checkouts.type = '${type}' ORDER BY created_at`)
+      )[0];
+
+      return requests
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async withdrawalRequests(userId:number){
+    try {
+
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+      )[0][0];
+
+      const requests:any = (
+        await conn.query(`SELECT * FROM withdrawals WHERE user_id = ${user.id} ORDER BY created_at`)
+      )[0];
+
+      return requests
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async checkout(userId: number, value:number, product:any = null){
     try {
 
@@ -15,7 +91,7 @@ export class TransactionsService {
       )[0][0];
 
       const checkout:any = (
-        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'product' : 'deposit'}', '${value}', '${user.id}', ${product? product.id : null})`)
+        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'product' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
         )[0];
 
       const ref_checkout = (
@@ -53,7 +129,6 @@ export class TransactionsService {
 
   static async finishCheckout(reference_id:string, status:string){
     try {
-
       const ref_checkout = (
         await conn.query(`SELECT * FROM checkouts WHERE reference_id = '${reference_id}' AND status != '${status}'`)
       )[0][0];
@@ -63,19 +138,60 @@ export class TransactionsService {
 
         if(status == "PAID"){
           if(ref_checkout.type == "deposit"){
-            await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}')`)
+            await conn.execute(`INSERT INTO balance(value, user_id, type, origin, transaction_id) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}', '${ref_checkout.id}')`);
+            
           } else if(ref_checkout.type == "product"){
+
             const today: moment.Moment = moment();
             const monthLater: moment.Moment = today.add(1, 'months');
-            const expired_in: string = monthLater.format('YYYY-MM-DD HH:mm:ss')
-            await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${ref_checkout.user_id}'`);
-            await conn.execute(`INSERT INTO users_plans(user_id, product_id, checkout_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${ref_checkout.id}', '${expired_in}')`)
+
+            const hasPlan = (
+              await conn.query(`SELECT * FROM users_plans WHERE user_id = '${ref_checkout.user_id}'`)
+            )[0][0];
+
+            if(hasPlan){
+              await conn.query(`UPDATE users_plans SET product_id='${ref_checkout.product_id}', checkout_id='${ref_checkout.id}', status='1', acquired_in='${today.format('YYYY-MM-DD HH:mm:ss')}', expired_in='${monthLater.format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${ref_checkout.user_id}'`);
+            } else {
+            await conn.execute(`INSERT INTO users_plans(user_id, product_id, checkout_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${ref_checkout.id}', '${monthLater.format('YYYY-MM-DD HH:mm:ss')}')`)
+            }
           }
   
-          NetworkService.accession(ref_checkout.user_id, ref_checkout.value);
+          NetworkService.earnings(ref_checkout.user_id, ref_checkout.value, "accession");
         }
       }
 
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async newWithdrawalRequests(userId: number, value:number){
+    try {
+
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
+      )[0][0];
+
+      await conn.execute(`INSERT INTO withdrawals(user_id, value, reference_id) VALUES ('${user.id}', '${value}', '${uuidv4()}')`);
+
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async hasWithdrawalPendingRequests(userId: number){
+    try {
+
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
+      )[0][0];
+
+
+      const hasWithdrawal = (
+        await conn.query(`SELECT COUNT(*) AS has FROM withdrawals WHERE user_id = ${user.id} AND status = 'pending'`)
+      )[0][0];
+
+      return hasWithdrawal.has;
     } catch (error) {
       throw error;
     }

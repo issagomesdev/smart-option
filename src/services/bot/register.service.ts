@@ -18,7 +18,7 @@ export class RegisterService {
 
        user = (
         await conn.execute(
-          `INSERT INTO bot_users(name, email, password, phone_number, adress, bank_name, bank_agency_number, bank_account_number, pix_code) VALUES ('${body.name}','${body.email}','${SHA1(body.password).toString()}','${body.phone_number}','${body.adress}','${body.bank_name}','${body.bank_agency_number}','${body.bank_account_number}','${body.pix_code}')`
+          `INSERT INTO bot_users(name, email, password, phone_number, adress, pix_code) VALUES ('${body.name}','${body.email}','${SHA1(body.password).toString()}','${body.phone_number}','${body.adress}','${body.pix_code}')`
         ))[0]; 
         
         if(affiliateId) NetworkService.upNetwork(affiliateId, user.insertId);

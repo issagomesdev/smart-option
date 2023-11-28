@@ -5,7 +5,8 @@ import http from "http";
 import { errorHandler } from "./middlewares/error.handler";
 import cors from "cors";
 import path from "path";
- 
+import { cronStart } from "./cron";
+
 const app = express();
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -36,6 +37,7 @@ export default class ExpressServer {
 		const welcome = (port) => () => console.log(`Up and running on port: ${port}!`);
 		this.server = http.createServer(app);
 		this.server.listen(p, welcome(p));
+		cronStart.start();
 		return app;
 	}
 }

@@ -2,33 +2,38 @@ import conn from "../../db";
 
 export class NetworkService {
 
-  static async affiliateNetwork(telegramUserId: number, level:string){
+  static async affiliateNetwork(userId: number){
     try {
+
         const user = (
-        await conn.query(`SELECT name FROM bot_users INNER JOIN network ON bot_users.id = network.guest_user_id WHERE network.affiliate_user_id = ${telegramUserId} AND network.level = ${level}`)
+            await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+          )[0][0];
+          
+        const network = (
+        await conn.query(`SELECT bot_users.name, network.level, CASE WHEN users_plans.status = 1 THEN 1 ELSE 0 END AS status FROM bot_users INNER JOIN network ON bot_users.id = network.guest_user_id LEFT JOIN users_plans ON bot_users.id = users_plans.user_id WHERE network.affiliate_user_id = ${user.id} ORDER BY level;`)
         )[0];
 
-        return user
+        return network
     } catch (error) {
         throw error;
     }
   }
 
-  static async accession(userId: number, value:number){
+  static async earnings(userId: number, value:number, type:string){
     try {
         const L1 = (
             await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '1' AND profitability = 1`)
         )[0][0];
 
         if(L1) {
-
+            
             const L1HasPlan = (
                 await conn.query(`SELECT * FROM users_plans WHERE user_id = ${L1.affiliate_user_id} AND status = 1`)
             )[0][0];
 
             if(L1HasPlan) {
-                NetworkService.productGains(L1HasPlan.product_id, 'accession', 1)
-                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', 'gain')`))
+                NetworkService.productEarnings(L1HasPlan.product_id, type, 1)
+                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', 'earning')`))
              } 
 
             const L2 = (
@@ -42,8 +47,8 @@ export class NetworkService {
                 )[0][0];
     
                 if(L2HasPlan) {
-                    NetworkService.productGains(L2HasPlan.product_id, 'accession', 2)
-                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', 'gain')`))
+                    NetworkService.productEarnings(L2HasPlan.product_id, type, 2)
+                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', 'earning')`))
                 }
 
                 const L3 = (
@@ -57,8 +62,8 @@ export class NetworkService {
                     )[0][0];
         
                     if(L3HasPlan) {
-                        NetworkService.productGains(L3HasPlan.product_id, 'accession', 3)
-                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', 'gain')`))
+                        NetworkService.productEarnings(L3HasPlan.product_id, type, 3)
+                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', 'earning')`))
                     }
                 }
                 
@@ -70,14 +75,14 @@ export class NetworkService {
     }
   }
 
-  static async productGains(id: number, type:string, level:number){
+  static async productEarnings(id: number, type:string, level:number){
     try {
 
-        const gain = (
-            await conn.query(`SELECT percentage FROM product_gains WHERE product_id = ${id} AND level = '${level}' AND type = '${type}'`)
+        const earning = (
+            await conn.query(`SELECT percentage FROM product_earnings WHERE product_id = ${id} AND level = '${level}' AND type = '${type}'`)
         )[0][0].percentage;
 
-        return gain;
+        return earning;
         
     } catch (error) {
         throw error;

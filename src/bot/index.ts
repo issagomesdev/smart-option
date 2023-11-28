@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 const token = '6962207233:AAEDOQOTowtq8wrVABjLpdvLxvmiJZkwtkI';
 export const bot = new TelegramBot(token, { polling: true });
 import { goTo, main_menu } from "./components/mainMenu"
-import { isLoggedIn, option, logIn } from "./components/auth";
+import { isLoggedIn, logIn } from "./components/auth";
 
 export async function start() {
 

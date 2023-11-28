@@ -31,18 +31,6 @@ const questions:Array<any> = [
         text: 'Endereço',
     },
     {
-        field: 'bank_name',
-        text: 'Banco',
-    },
-    {
-        field: 'bank_agency_number',
-        text: 'Agência',
-    },
-    {
-        field: 'bank_account_number',
-        text: 'Conta',
-    },
-    {
         field: 'pix_code',
         text: 'Código Pix',
     },
@@ -84,7 +72,7 @@ export async function fields(msg:any) {
                     await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
                 } else{
                     current_field++;
-                    if(current_field == 6) await bot.sendMessage(msg.chat.id, "Para terminar, agora responda com seus dados bancários");
+                    // if(current_field == 6) await bot.sendMessage(msg.chat.id, "Para terminar, agora responda com seus dados bancários");
                     await bot.sendMessage(msg.chat.id, questions[current_field].text + ":");
                 }
             } else {

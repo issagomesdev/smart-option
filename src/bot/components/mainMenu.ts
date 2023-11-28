@@ -2,7 +2,8 @@ import { choose_services, products_callbacks } from "../services/products";
 import { register_instructions, fields, register_callbacks } from "../services/register";
 import { AuthenticationService } from "../../services/bot/auth.service";
 import { affiliate_link } from "../services/affiliateLink";
-import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks } from "../services/balance";
+import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks, extract, depositRequests, withdrawalRequests, accessionsRequests } from "../services/balance";
+import { TransactionsService } from "../../services/bot/transactions.service";
 import { show_network_level } from "../services/network";
 import { show_rules } from "../services/rules";
 import { suport, message } from "../services/suport";
@@ -19,14 +20,6 @@ export function return_main_menu(chatId:number) {
       bot.removeListener('message', fields);
       bot.removeListener('callback_query', register_callbacks);
     break;
-    case 6:
-      bot.removeListener('message', make_deposit);
-      bot.removeListener('callback_query', deposit_callbacks);
-    break;
-    case 7:
-      bot.removeListener('message', make_withdraw);
-      bot.removeListener('callback_query', withdraw_callbacks);
-    break;
     case 9:
       bot.removeListener('message', message);
     break;
@@ -37,23 +30,50 @@ export function return_main_menu(chatId:number) {
   });
 }
 
+export function return_financial_options(chatId:number) {
+  switch (section) {
+    case 6:
+      bot.removeListener('message', make_deposit);
+      bot.removeListener('callback_query', deposit_callbacks);
+    break;
+    case 7:
+      bot.removeListener('message', make_withdraw);
+      bot.removeListener('callback_query', withdraw_callbacks);
+    break;
+  }
+  section = null;
+  bot.sendMessage(chatId, 'Você retornou ao menu financeiro', {
+    reply_markup: financial_options,
+  });
+}
+
 export const main_menu:any = {
   keyboard: [
     ['🎯 PRODUTOS E SERVIÇOS'],
     ['🪪 CADASTRO', '🔗 LINK DE AFILIADO'],
-    ['💰 SALDO', '🚻 REDE'],
-    ['💵 DEPÓSITO', '💵 SAQUE'],
-    ['📃 REGRAS DE USO E DÚVIDAS GERAIS'],
+    ['🚻 REDE', '💲FINANCEIRO'],
     ['🆘 SUPORTE & ATENDIMENTO AO CLIENTE'],
+    ['📃 REGRAS DE USO E DÚVIDAS GERAIS'],
     ['🔚SAIR DA CONTA'],
   ],
   one_time_keyboard: false, 
 };
 
-export const _return:any = async(userId:number) => {
+export const financial_options:any = {
+  keyboard: [
+    ['➕💵 DEPÓSITO', '➖💵 SAQUE'],
+    ['💰 SALDO', '🧾 EXTRATO'],
+    ['📥 SOLICITAÇÕES DE DEPÓSITO', '📤 SOLICITAÇÕES DE SAQUE'],
+    ['🛒 SOLICITAÇÕES DE ADESÃO'],
+    ['🔄 VOLTAR AO MENU PRINCIPAL'],
+  ],
+  one_time_keyboard: false, 
+};
+
+export const _return:any = async(userId:number, financial:boolean = false) => {
  return {
   keyboard: [
-    await isLoggedIn(userId)? ['🔄 VOLTAR AO MENU PRINCIPAL'] : ['🔄 VOLTAR'],
+    financial? ['🔄 VOLTAR AO MENU FINANCEIRO'] : await isLoggedIn(userId)? ['🔄 VOLTAR AO MENU PRINCIPAL'] : ['🔄 VOLTAR'],
  ],
  one_time_keyboard: false, 
  }
@@ -78,31 +98,50 @@ export async function goTo(msg:any) {
       bot.on('callback_query', register_callbacks);
     break;
     case "🔗 LINK DE AFILIADO":
-      section = 3;
       affiliate_link(msg.chat.id, msg.from.id);
     break;
     case "💰 SALDO":
-      section = 4;
       show_balance(msg.chat.id, msg.from.id)
     break;
     case "🚻 REDE":
-      section = 5;
-      show_network_level(msg.chat.id, await isLoggedIn(msg.from.id))
+      show_network_level(msg.chat.id, msg.from.id)
     break;
-    case "💵 DEPÓSITO":
+    case "💲FINANCEIRO":
+      bot.sendMessage(msg.chat.id, 'Você está dentro do menu financeiro', {
+        reply_markup: financial_options,
+      });
+    break;
+    case "➕💵 DEPÓSITO":
       section = 6;
       deposit_instructions(msg.chat.id, msg.from.id)
       bot.on('message', make_deposit);
       bot.on('callback_query', deposit_callbacks);
     break;
-    case "💵 SAQUE":
-      section = 7;
-      withdraw_instructions(msg.chat.id, msg.from.id)
-      bot.on('message', make_withdraw);
-      bot.on('callback_query', withdraw_callbacks);
+    case "➖💵 SAQUE":
+      TransactionsService.hasWithdrawalPendingRequests(msg.from.id).then((has) => {
+        if(has){
+          bot.sendMessage(msg.chat.id, "Já existe um pedido de saque sendo analisado pela nossa equipe, acompanhe o andamento em *Solicitações de saque* dentro do menu financeiro.", { parse_mode: 'Markdown' }); 
+        } else {
+          section = 7;
+          withdraw_instructions(msg.chat.id, msg.from.id)
+          bot.on('message', make_withdraw);
+          bot.on('callback_query', withdraw_callbacks);
+        }
+      });
+    break; 
+    case "🧾 EXTRATO":
+      extract(msg.from.id)
+    break;
+    case "📥 SOLICITAÇÕES DE DEPÓSITO":
+      depositRequests(msg.from.id)
+    break;
+    case "📤 SOLICITAÇÕES DE SAQUE":
+      withdrawalRequests(msg.from.id)
+    break;
+    case "🛒 SOLICITAÇÕES DE ADESÃO":
+      accessionsRequests(msg.from.id)
     break;
     case "📃 REGRAS DE USO E DÚVIDAS GERAIS":
-      section = 8;
       show_rules(msg.chat.id)
     break;
     case "🆘 SUPORTE & ATENDIMENTO AO CLIENTE":
@@ -112,6 +151,9 @@ export async function goTo(msg:any) {
     break;
     case "🔄 VOLTAR AO MENU PRINCIPAL":
       return_main_menu(msg.chat.id)
+    break;
+    case "🔄 VOLTAR AO MENU FINANCEIRO":
+      return_financial_options(msg.chat.id)
     break;
     case "🔚SAIR DA CONTA":
     await AuthenticationService.logout(msg.from.id)
