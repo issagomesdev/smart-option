@@ -144,7 +144,7 @@ export async function goTo(msg:any) {
     case "📃 REGRAS DE USO E DÚVIDAS GERAIS":
       show_rules(msg.chat.id)
     break;
-    case "🆘 SUPORTE & ATENDIMENTO AO CLIENTE":
+    case "📱 SUPORTE & ATENDIMENTO AO CLIENTE":
       section = 9;
       suport(msg.chat.id);
       bot.on('message', message);
