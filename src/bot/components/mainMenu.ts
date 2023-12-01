@@ -2,7 +2,7 @@ import { choose_services, products_callbacks } from "../services/products";
 import { register_instructions, fields, register_callbacks } from "../services/register";
 import { AuthenticationService } from "../../services/bot/auth.service";
 import { affiliate_link } from "../services/affiliateLink";
-import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks, extract, depositRequests, withdrawalRequests, accessionsRequests } from "../services/balance";
+import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests } from "../services/balance";
 import { TransactionsService } from "../../services/bot/transactions.service";
 import { show_network_level } from "../services/network";
 import { show_rules } from "../services/rules";
@@ -52,8 +52,8 @@ export const main_menu:any = {
     ['🎯 PRODUTOS E SERVIÇOS'],
     ['🪪 CADASTRO', '🔗 LINK DE AFILIADO'],
     ['🚻 REDE', '💲FINANCEIRO'],
-    ['🆘 SUPORTE & ATENDIMENTO AO CLIENTE'],
     ['📃 REGRAS DE USO E DÚVIDAS GERAIS'],
+    ['📱 SUPORTE & ATENDIMENTO AO CLIENTE'],
     ['🔚SAIR DA CONTA'],
   ],
   one_time_keyboard: false, 
@@ -139,7 +139,7 @@ export async function goTo(msg:any) {
       withdrawalRequests(msg.from.id)
     break;
     case "🛒 SOLICITAÇÕES DE ADESÃO":
-      accessionsRequests(msg.from.id)
+      subscriptionRequests(msg.from.id)
     break;
     case "📃 REGRAS DE USO E DÚVIDAS GERAIS":
       show_rules(msg.chat.id)

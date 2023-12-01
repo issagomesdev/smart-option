@@ -1,5 +1,4 @@
 import conn from "../../db";
-import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import moment from 'moment';
 import { NetworkService } from "./network.service";
@@ -7,7 +6,7 @@ import { NetworkService } from "./network.service";
 
 export class TransactionsService {
 
-  static async balance(userId:number){
+  static async balance(userId:number, earnings:boolean = true){
     try {
 
       const user = (
@@ -15,7 +14,7 @@ export class TransactionsService {
       )[0][0];
 
       const balance:any = (
-        await conn.query(`SELECT * FROM balance WHERE user_id = ${user.id} ORDER BY created_at`)
+        await conn.query(`SELECT * FROM balance WHERE user_id = ${user.id} ${!earnings? "AND origin != 'earnings'" : ""} ORDER BY created_at`)
       )[0];
 
       let result:number = 0;
@@ -26,7 +25,7 @@ export class TransactionsService {
         });
       }
 
-      return result.toFixed(2)
+      return Math.floor(result * 100) / 100;
     } catch (error) {
       throw error;
     }
@@ -57,7 +56,7 @@ export class TransactionsService {
       )[0][0];
 
       const requests:any = (
-        await conn.query(`SELECT ${type == 'product'? 'checkouts.*, products.name' : '*'} FROM checkouts ${type == 'product'? 'JOIN products ON checkouts.product_id = products.id' : ''} WHERE checkouts.user_id = ${user.id} AND checkouts.type = '${type}' ORDER BY created_at`)
+        await conn.query(`SELECT ${type == 'subscription'? 'checkouts.*, products.name' : '*'} FROM checkouts ${type == 'subscription'? 'JOIN products ON checkouts.product_id = products.id' : ''} WHERE checkouts.user_id = ${user.id} AND checkouts.type = '${type}' ORDER BY created_at`)
       )[0];
 
       return requests
@@ -91,16 +90,12 @@ export class TransactionsService {
       )[0][0];
 
       const checkout:any = (
-        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'product' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
+        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
         )[0];
-
-      const ref_checkout = (
-        await conn.query(`SELECT reference_id FROM checkouts WHERE id = '${checkout.insertId}'`)
-      )[0][0];
 
       let item:any;
       
-      product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
+      product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano Smart ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
 
       const options = {
         method: 'POST',
@@ -112,7 +107,7 @@ export class TransactionsService {
         body: JSON.stringify({
           items: [item],
           reference_id: checkout.insertId.toString(),
-          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkout-successful/${ref_checkout.reference_id}`]
+          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkout-successful/${checkout.insertId}`]
         })
       };
 
@@ -137,26 +132,29 @@ export class TransactionsService {
         await conn.query(`UPDATE checkouts SET status='${status}' WHERE id = '${ref_checkout.id}'`);
 
         if(status == "PAID"){
+
           if(ref_checkout.type == "deposit"){
+
             await conn.execute(`INSERT INTO balance(value, user_id, type, origin, transaction_id) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}', '${ref_checkout.id}')`);
             
-          } else if(ref_checkout.type == "product"){
-
-            const today: moment.Moment = moment();
-            const monthLater: moment.Moment = today.add(1, 'months');
+          } else if(ref_checkout.type == "subscription"){
 
             const hasPlan = (
               await conn.query(`SELECT * FROM users_plans WHERE user_id = '${ref_checkout.user_id}'`)
             )[0][0];
 
             if(hasPlan){
-              await conn.query(`UPDATE users_plans SET product_id='${ref_checkout.product_id}', checkout_id='${ref_checkout.id}', status='1', acquired_in='${today.format('YYYY-MM-DD HH:mm:ss')}', expired_in='${monthLater.format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${ref_checkout.user_id}'`);
+
+              await conn.query(`UPDATE users_plans SET product_id='${ref_checkout.product_id}', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${ref_checkout.user_id}'`);
+              
             } else {
-            await conn.execute(`INSERT INTO users_plans(user_id, product_id, checkout_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${ref_checkout.id}', '${monthLater.format('YYYY-MM-DD HH:mm:ss')}')`)
+              
+              await conn.execute(`INSERT INTO users_plans(user_id, product_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}')`);
+
             }
-          }
   
-          NetworkService.earnings(ref_checkout.user_id, ref_checkout.value, "accession");
+            NetworkService.networkRepass(ref_checkout.user_id, ref_checkout.value, "subscription");
+          }
         }
       }
 
@@ -195,6 +193,12 @@ export class TransactionsService {
     } catch (error) {
       throw error;
     }
+  }
+
+  static async renewTuition(user:any, product:any){
+    await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${product.price}','${user.user_id}', 'subtract', 'tuition')`);
+			
+			await conn.query(`UPDATE users_plans SET product_id='${user.product_id}', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${user.user_id}'`);
   }
 
 }

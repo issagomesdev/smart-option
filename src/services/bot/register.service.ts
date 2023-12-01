@@ -3,7 +3,7 @@ import { SHA1 } from "crypto-js";
 import { NetworkService } from "./network.service";
 import * as nodemailer from 'nodemailer';
 import * as jwt from 'jsonwebtoken';
-import * as express from 'express';
+import moment from 'moment';
 
 export class RegisterService {
 
@@ -115,7 +115,6 @@ export class RegisterService {
     });
   }
 
-
   static async verificationEmail(token:string){
 
   if (!token) throw Error("Token ausente");
@@ -145,16 +144,12 @@ export class RegisterService {
     } else {
 
         await conn.query(`UPDATE verification_email SET status='checked' WHERE user_id = '${user.user_id}'`)
-        await conn.query(`UPDATE bot_users SET verified_email_at='${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')} ${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}' WHERE id = '${user.user_id}'`);
+        await conn.query(`UPDATE bot_users SET verified_email_at='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.user_id}'`);
     }
     
   } else {
     throw Error("Token inválido");
   }
-  
-  
-
-
 }
 
 }

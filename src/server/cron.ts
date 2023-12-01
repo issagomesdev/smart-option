@@ -4,10 +4,29 @@ import moment from 'moment';
 import { TransactionsService } from "../services/bot/transactions.service";
 import { NetworkService } from "../services/bot/network.service";
 
-export const cronStart = cron.schedule(
+export const dailyCron = cron.schedule(
 	"0 0 * * 1-5",
 	async () => {
-	 checkExpiredUsers();
+	  try {
+		await checkExpiredUsers();
+		await applyEarningsDaily();
+	  } catch (error) {
+		console.log("Erro:", error);
+	  }
+	},
+	{
+	  timezone: "America/Sao_Paulo",
+	}
+  );
+
+export const everyMinuteCron = cron.schedule(
+	"1-59 0,10 * * *",
+	async () => {
+		try {
+			await checkExpiredUsers();
+		  } catch (error) {
+			console.log("Erro:", error);
+		  }
 	},
 	{
 		timezone: "America/Sao_Paulo",
@@ -25,43 +44,35 @@ async function checkExpiredUsers() {
 			await conn.query(`SELECT price FROM products WHERE id = ${user.product_id}`)
 		  )[0][0];
 
-		  if(product.price <= balance){
-			
-            await conn.execute(`INSERT INTO balance(value, user_id, type, origin, transaction_id) VALUES ('${product.price}','${user.user_id}', 'subtract', 'product', 'auto_renovation')`);
-
-            const today: moment.Moment = moment();
-            const monthLater: moment.Moment = today.add(1, 'months');
-			
-			await conn.query(`UPDATE users_plans SET product_id='${user.product_id}', checkout_id='auto', status='1', acquired_in='${today.format('YYYY-MM-DD HH:mm:ss')}', expired_in='${monthLater.format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${user.user_id}'`);
-			
+		  if(product.price <= balance){	
+            await TransactionsService.renewTuition(user, product)
 		  } else {
-
-			await conn.query(`UPDATE users_plans SET status='0', checkout_id=null WHERE user_id = '${user.user_id}'`);
-
+			await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${user.user_id}'`);
 		  }
 	  });
 
-	  await applyEarnings();
+	  
 }
 
-async function applyEarnings() {
+async function applyEarningsDaily() {
 
 	const users:any = (
 		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE status = 1`)
 	  )[0];
 
 	  await users.map(async(user) => {
-		const balance:any = await TransactionsService.balance(user.user_id);
+		const balance:any = await TransactionsService.balance(user.user_id, false);
+		
 		const product:any = (
-			await conn.query(`SELECT monthly_earnings FROM products WHERE id = ${user.product_id}`)
+			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = ${user.product_id}`)
 		  )[0][0];
 
-		const daily_earnings:any = (product.monthly_earnings / 22).toFixed(2);
-		const today_earnings:any = ((daily_earnings / 100) * balance).toFixed(2);
+		const daily_earnings:any = Math.floor((product.monthly_earnings / 22) * 100) / 100;
+		const today_earnings:any = Math.floor(((daily_earnings / 100) * balance) * 100) / 100;
 
-		await conn.execute(`INSERT INTO balance(value, user_id, type, origin, transaction_id) VALUES ('${today_earnings}','${user.user_id}', 'sum', 'earning', 'auto')`);
+		await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${today_earnings}','${user.user_id}', 'sum', 'earnings')`);
 
-		NetworkService.earnings(user.user_id, today_earnings, "profitability")
+		NetworkService.networkRepass(user.user_id, today_earnings, "earnings")
 
 	  });
 

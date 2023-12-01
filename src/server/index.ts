@@ -5,7 +5,7 @@ import http from "http";
 import { errorHandler } from "./middlewares/error.handler";
 import cors from "cors";
 import path from "path";
-import { cronStart } from "./cron";
+import { dailyCron, everyMinuteCron } from "./cron";
 
 const app = express();
 
@@ -37,7 +37,8 @@ export default class ExpressServer {
 		const welcome = (port) => () => console.log(`Up and running on port: ${port}!`);
 		this.server = http.createServer(app);
 		this.server.listen(p, welcome(p));
-		cronStart.start();
+		dailyCron.start();
+		everyMinuteCron.start();
 		return app;
 	}
 }

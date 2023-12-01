@@ -19,10 +19,10 @@ export class NetworkService {
     }
   }
 
-  static async earnings(userId: number, value:number, type:string){
+  static async networkRepass(userId: number, value:number, type:string){
     try {
         const L1 = (
-            await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '1' AND profitability = 1`)
+            await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '1' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
         )[0][0];
 
         if(L1) {
@@ -32,27 +32,26 @@ export class NetworkService {
             )[0][0];
 
             if(L1HasPlan) {
-                NetworkService.productEarnings(L1HasPlan.product_id, type, 1)
-                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', 'earning')`))
+                NetworkService.earningsPercentage(L1HasPlan.product_id, type, 1)
+                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', '${type}')`))
              } 
 
             const L2 = (
-                await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '2' AND profitability = 1`)
+                await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '2' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
             )[0][0];
 
             if(L2){
-
                 const L2HasPlan = (
                     await conn.query(`SELECT * FROM users_plans WHERE user_id = ${L2.affiliate_user_id} AND status = 1`)
                 )[0][0];
     
                 if(L2HasPlan) {
-                    NetworkService.productEarnings(L2HasPlan.product_id, type, 2)
-                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', 'earning')`))
+                    NetworkService.earningsPercentage(L2HasPlan.product_id, type, 2)
+                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', '${type}')`))
                 }
 
                 const L3 = (
-                    await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '3' AND profitability = 1`)
+                    await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '3' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
                 )[0][0];
 
                 if(L3){
@@ -62,8 +61,8 @@ export class NetworkService {
                     )[0][0];
         
                     if(L3HasPlan) {
-                        NetworkService.productEarnings(L3HasPlan.product_id, type, 3)
-                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', 'earning')`))
+                        NetworkService.earningsPercentage(L3HasPlan.product_id, type, 3)
+                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', '${type}')`))
                     }
                 }
                 
@@ -75,7 +74,7 @@ export class NetworkService {
     }
   }
 
-  static async productEarnings(id: number, type:string, level:number){
+  static async earningsPercentage(id: number, type:string, level:number){
     try {
 
         const earning = (
@@ -92,35 +91,36 @@ export class NetworkService {
   static async upNetwork(affiliateId: number, guestId: number){
     try {
 
-        const countL1 = (
-            await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliateId} AND level = '1' AND profitability = 1`)
+        const earningsUsersL1 = (
+            await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliateId} AND level = '1' AND earnings = 1`)
        )[0][0];
 
-            await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, profitability) VALUES ('${affiliateId}','${guestId}','1', ${countL1.amount < 3? 1 : 0 })`);
+            await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, earnings) VALUES ('${affiliateId}','${guestId}','1', ${earningsUsersL1.amount < 3? 1 : 0 })`);
 
-            const isL1Guest = (
+            const affiliateIsGuest = (
                 await conn.query(`SELECT * FROM network WHERE guest_user_id = ${affiliateId} AND level = '1'`)
             )[0][0];
 
-            if(isL1Guest){
+            if(affiliateIsGuest){
 
-                const countL2 = (
-                    await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${isL1Guest.affiliate_user_id} AND level = '2' AND profitability = 1`)
+                const earningsUsersL2 = (
+                    await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliateIsGuest.affiliate_user_id} AND level = '2' AND earnings = 1`)
                )[0][0];
 
-                    await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, profitability) VALUES ('${isL1Guest.affiliate_user_id}','${guestId}','2', ${countL2.amount < 3? 1 : 0 })`);
+                    await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, earnings) VALUES ('${affiliateIsGuest.affiliate_user_id}','${guestId}','2', ${earningsUsersL2.amount < 3? 1 : 0 })`);
 
-                    const isL2Guest = (
-                        await conn.query(`SELECT * FROM network WHERE guest_user_id = ${isL1Guest.affiliate_user_id} AND level = '1'`)
+                    const affiliate2IsGuest = (
+                        await conn.query(`SELECT * FROM network WHERE guest_user_id = ${affiliateIsGuest.affiliate_user_id} AND level = '1'`)
                     )[0][0];
+                    
 
-                    if(isL2Guest){
+                    if(affiliate2IsGuest){
 
-                        const countL3 = (
-                            await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${isL2Guest.affiliate_user_id} AND level = '3' AND profitability = 1`)
+                        const earningsUsersL3 = (
+                            await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliate2IsGuest.affiliate_user_id} AND level = '3' AND earnings = 1`)
                        )[0][0];
 
-                        await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, profitability) VALUES ('${isL2Guest.affiliate_user_id}','${guestId}','3', ${countL3.amount < 3? 1 : 0 })`);
+                        await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, earnings) VALUES ('${affiliate2IsGuest.affiliate_user_id}','${guestId}','3', ${earningsUsersL3.amount < 3? 1 : 0 })`);
                     }
                 }
 

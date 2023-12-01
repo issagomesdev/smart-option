@@ -62,7 +62,7 @@ export async function depositRequests(userId:number) {
     TransactionsService.checkoutsRequests(userId, "deposit").then(data => {
        let items:any = [];
         data.map((item) => {
-            items.push([`${item.value}`, `${item.status == "PENDING"? "Pendente" : item.status == "AUTHORIZED"? "Pre-Autorizado" : item.status == "PAID"? "Pago" : item.status == "IN_ANALYSIS"? "Em análise" : item.status == "DECLINED"? "Recusado" : item.status == "CANCELED"? "Cancelado" : "Não Pago"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([`${item.value}`, `${item.status == "PENDING"? "Pendente" : item.status == "AUTHORIZED"? "Pre-Autorizado" : item.status == "PAID"? "Concluído" : item.status == "IN_ANALYSIS"? "Em análise" : item.status == "DECLINED"? "Recusado" : item.status == "CANCELED"? "Cancelado" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
 
         var extract = 
@@ -133,7 +133,7 @@ export async function withdrawalRequests(userId:number) {
     TransactionsService.withdrawalRequests(userId).then(data => {
         let items:any = [];
          data.map((item) => {
-             items.push([`${item.value}`, `${item.status == "pending"? "Pendente" : item.status == "authorized"? "Liberado" : item.status == "refused"? "Negado" : "Não Liberado"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+             items.push([`${item.value}`, `${item.status == "pending"? "Pendente" : item.status == "authorized"? "Concluído" : item.status == "refused"? "Negado" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
          })
  
          var extract = 
@@ -155,7 +155,7 @@ export async function extract(userId:number) {
     TransactionsService.extract(userId).then(data => {
        let items:any = [];
         data.map((item) => {
-            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdraw"? "Saque" : item.origin == "earning"? "Ganhos" : item.origin == "product"? "Adesão" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdraw"? "Saque" : item.origin == "earnings"? "Rentabilidade" : item.origin == "subscription"? "Adesão" : item.origin == "tuition"? "Mensalidade" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
 
         var extract = 
@@ -173,11 +173,11 @@ export async function extract(userId:number) {
     })
 }
 
-export async function accessionsRequests(userId:number) {
-    TransactionsService.checkoutsRequests(userId, "product").then(data => {
+export async function subscriptionRequests(userId:number) {
+    TransactionsService.checkoutsRequests(userId, "subscription").then(data => {
        let items:any = [];
         data.map(async(item) => {
-            items.push([item.name, `${item.status == "PENDING"? "Pendente" : item.status == "AUTHORIZED"? "Pre-Autorizado" : item.status == "PAID"? "Pago" : item.status == "IN_ANALYSIS"? "Em análise" : item.status == "DECLINED"? "Recusado" : item.status == "CANCELED"? "Cancelado" : "Não Pago"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([item.name, `${item.status == "PENDING"? "Pendente" : item.status == "AUTHORIZED"? "Pre-Autorizado" : item.status == "PAID"? "Concluído" : item.status == "IN_ANALYSIS"? "Em análise" : item.status == "DECLINED"? "Recusado" : item.status == "CANCELED"? "Cancelado" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
         var extract = 
         new AsciiTable3("Solicitações De Adesão")

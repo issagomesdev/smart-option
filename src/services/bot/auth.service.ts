@@ -1,5 +1,6 @@
 import conn from "../../db";
 import { SHA1 } from "crypto-js";
+import moment from 'moment';
 
 export class AuthenticationService {
 
@@ -11,7 +12,7 @@ export class AuthenticationService {
         if(!user || user.password != SHA1(password)) throw Error("Email e/ou senha inválidos");
         if(!user.verified_email_at) throw Error("Email não validado");
 
-        await conn.query(`UPDATE bot_users SET telegram_user_id='${userId}', last_activity='${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')} ${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}' WHERE id = '${user.id}'`);
+        await conn.query(`UPDATE bot_users SET telegram_user_id='${userId}', last_activity='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.id}'`);
 
         return user;
     } catch (error) {
@@ -25,7 +26,7 @@ export class AuthenticationService {
             await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
         )[0][0];
 
-        if(user) await conn.query(`UPDATE bot_users SET last_activity='${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getDate().toString().padStart(2, '0')} ${new Date().getHours().toString().padStart(2, '0')}:${new Date().getMinutes().toString().padStart(2, '0')}:${new Date().getSeconds().toString().padStart(2, '0')}' WHERE id = '${user.id}'`);
+        if(user) await conn.query(`UPDATE bot_users SET last_activity='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.id}'`);
 
         return user
     } catch (error) {
