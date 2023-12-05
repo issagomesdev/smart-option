@@ -1,7 +1,7 @@
 
 import { AuthenticationService } from "../../services/bot/auth.service";
 import { RegisterService } from "../../services/bot/register.service";
-import { callback } from "./index";
+import { callback } from "../components/index";
 import  { _return } from "../components/mainMenu";
 import  { return_ } from "../components/auth";
 import { bot } from "..";

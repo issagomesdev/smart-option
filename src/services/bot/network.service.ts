@@ -10,7 +10,7 @@ export class NetworkService {
           )[0][0];
           
         const network = (
-        await conn.query(`SELECT bot_users.name, network.level, CASE WHEN users_plans.status = 1 THEN 1 ELSE 0 END AS status FROM bot_users INNER JOIN network ON bot_users.id = network.guest_user_id LEFT JOIN users_plans ON bot_users.id = users_plans.user_id WHERE network.affiliate_user_id = ${user.id} ORDER BY level;`)
+        await conn.query(`SELECT bot_users.name, bot_users.id, network.level, CASE WHEN users_plans.status = 1 THEN 1 ELSE 0 END AS status FROM bot_users INNER JOIN network ON bot_users.id = network.guest_user_id LEFT JOIN users_plans ON bot_users.id = users_plans.user_id WHERE network.affiliate_user_id = ${user.id} ORDER BY level;`)
         )[0];
 
         return network
@@ -19,7 +19,7 @@ export class NetworkService {
     }
   }
 
-  static async networkRepass(userId: number, value:number, type:string){
+  static async networkRepass(userId: number, value:number, type:string, profitability:boolean = false){
     try {
         const L1 = (
             await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '1' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
@@ -33,7 +33,7 @@ export class NetworkService {
 
             if(L1HasPlan) {
                 NetworkService.earningsPercentage(L1HasPlan.product_id, type, 1)
-                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', '${type}')`))
+                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}')`))
              } 
 
             const L2 = (
@@ -47,7 +47,7 @@ export class NetworkService {
     
                 if(L2HasPlan) {
                     NetworkService.earningsPercentage(L2HasPlan.product_id, type, 2)
-                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', '${type}')`))
+                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}')`))
                 }
 
                 const L3 = (
@@ -62,7 +62,7 @@ export class NetworkService {
         
                     if(L3HasPlan) {
                         NetworkService.earningsPercentage(L3HasPlan.product_id, type, 3)
-                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', '${type}')`))
+                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}')`))
                     }
                 }
                 

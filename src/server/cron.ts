@@ -23,7 +23,7 @@ export const everyMinuteCron = cron.schedule(
 	"1-59 0,10 * * *",
 	async () => {
 		try {
-			await checkExpiredUsers();
+			await checkUsersWithoutPlan();
 		  } catch (error) {
 			console.log("Erro:", error);
 		  }
@@ -72,10 +72,31 @@ async function applyEarningsDaily() {
 
 		await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${today_earnings}','${user.user_id}', 'sum', 'earnings')`);
 
-		NetworkService.networkRepass(user.user_id, today_earnings, "earnings")
+		NetworkService.networkRepass(user.user_id, today_earnings, "earnings", true)
 
 	  });
 
+}
+
+async function checkUsersWithoutPlan() {
+	const expired:any = (
+		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE AND status = 0`)
+	  )[0];
+
+	  await expired.map(async(user) => {
+		const balance = await TransactionsService.balance(user.user_id);
+		const product:any = (
+			await conn.query(`SELECT price FROM products WHERE id = ${user.product_id}`)
+		  )[0][0];
+
+		  if(product.price <= balance){	
+            await TransactionsService.renewTuition(user, product)
+		  } else {
+			await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${user.user_id}'`);
+		  }
+	  });
+
+	  
 }
 
 

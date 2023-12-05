@@ -1,8 +1,8 @@
 import { bot } from "..";
 import { AuthenticationService } from "../../services/bot/auth.service";
-import { register_instructions, fields, register_callbacks } from "../services/register";
+import { register_instructions, fields, register_callbacks } from "../sections/register";
 import { _return } from "./mainMenu";
-import { login_instructions, login, login_callbacks } from "../services/login";
+import { login_instructions, login, login_callbacks } from "../sections/login";
 import { main_menu, goTo } from "./mainMenu";
 
 export async function isLoggedIn(userId:number) {

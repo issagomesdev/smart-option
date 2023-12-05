@@ -19,13 +19,16 @@ export class TransactionsService {
 
       let result:number = 0;
 
-      if(balance){
+      if(balance && balance.length > 0){
+        
         balance.map((item) => {
           result += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
         });
+
+        result = Math.floor(result * 100) / 100;
       }
 
-      return Math.floor(result * 100) / 100;
+      return result;
     } catch (error) {
       throw error;
     }
@@ -39,7 +42,7 @@ export class TransactionsService {
       )[0][0];
 
       const balance:any = (
-        await conn.query(`SELECT value, type, origin, created_at FROM balance WHERE user_id = ${user.id} ORDER BY created_at`)
+        await conn.query(`SELECT * FROM balance WHERE user_id = ${user.id} ORDER BY created_at`)
       )[0];
 
       return balance
@@ -135,7 +138,7 @@ export class TransactionsService {
 
           if(ref_checkout.type == "deposit"){
 
-            await conn.execute(`INSERT INTO balance(value, user_id, type, origin, transaction_id) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}', '${ref_checkout.id}')`);
+            await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${ref_checkout.value}','${ref_checkout.user_id}', 'sum', '${ref_checkout.type}', '${ref_checkout.id}')`);
             
           } else if(ref_checkout.type == "subscription"){
 
@@ -199,6 +202,31 @@ export class TransactionsService {
     await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${product.price}','${user.user_id}', 'subtract', 'tuition')`);
 			
 			await conn.query(`UPDATE users_plans SET product_id='${user.product_id}', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${user.user_id}'`);
+  }
+
+  static async subscriptionWithBalance(userId: number, product:any){
+
+    const user = (
+      await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
+    )[0][0];
+
+    await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${product.price}','${user.id}', 'subtract', 'subscription')`);
+
+    const hasPlan = (
+      await conn.query(`SELECT * FROM users_plans WHERE user_id = '${user.id}'`)
+    )[0][0];
+
+    if(hasPlan){
+
+      await conn.query(`UPDATE users_plans SET product_id='${product.id}', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${user.id}'`);
+      
+    } else {
+      
+      await conn.execute(`INSERT INTO users_plans(user_id, product_id, expired_in) VALUES ('${user.id}','${product.id}', '${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}')`);
+
+    }
+
+    
   }
 
 }

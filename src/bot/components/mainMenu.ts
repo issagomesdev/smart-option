@@ -1,12 +1,12 @@
-import { choose_services, products_callbacks } from "../services/products";
-import { register_instructions, fields, register_callbacks } from "../services/register";
+import { choose_services, products_callbacks } from "../sections/products";
+import { register_instructions, fields, register_callbacks } from "../sections/register";
 import { AuthenticationService } from "../../services/bot/auth.service";
-import { affiliate_link } from "../services/affiliateLink";
-import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests } from "../services/balance";
+import { affiliate_link } from "../sections/affiliateLink";
+import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests } from "../sections/balance";
 import { TransactionsService } from "../../services/bot/transactions.service";
-import { show_network_level } from "../services/network";
-import { show_rules } from "../services/rules";
-import { suport, message } from "../services/suport";
+import { show_network_level } from "../sections/network";
+import { show_rules } from "../sections/rules";
+import { suport, message } from "../sections/suport";
 import { isLoggedIn, logIn } from "./auth";
 import { bot } from "..";
 

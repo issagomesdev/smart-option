@@ -1,5 +1,5 @@
 
-import { callback } from "./index";
+import { callback } from "../components/index";
 import { bot } from "..";
 import  { _return } from "../components/mainMenu";
 import { RegisterService } from "../../services/bot/register.service";

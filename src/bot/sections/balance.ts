@@ -2,7 +2,7 @@
 
 import { TransactionsService } from "../../services/bot/transactions.service";
 import { ProductsService } from "../../services/bot/products.service";
-import { callback, generatePaymentLink } from "./index";
+import { callback, generatePaymentLink } from "../components/index";
 import  { _return } from "../components/mainMenu";
 import { bot } from "..";
 import moment from 'moment';
@@ -10,7 +10,7 @@ import moment from 'moment';
 var { AsciiTable3, AlignmentEnum  } = require('ascii-table3');
 let mode:string = null;
 
-async function getBalance(userId:number):Promise<number> {
+export async function getBalance(userId:number):Promise<number> {
 
     let balance:any = await TransactionsService.balance(userId)
     return balance
@@ -155,7 +155,7 @@ export async function extract(userId:number) {
     TransactionsService.extract(userId).then(data => {
        let items:any = [];
         data.map((item) => {
-            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdraw"? "Saque" : item.origin == "earnings"? "Rentabilidade" : item.origin == "subscription"? "Adesão" : item.origin == "tuition"? "Mensalidade" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdraw"? "Saque" : item.origin == "earnings"? "Ganhos": item.origin == "profitability"? `Ganhos#${item.reference_id}` : item.origin == "subscription"? "Adesão" : item.origin == "tuition"? "Mensalidade" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
 
         var extract = 
