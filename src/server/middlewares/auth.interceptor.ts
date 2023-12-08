@@ -11,7 +11,7 @@ export const authenticateToken = async (token: string): Promise<any | null> => {
 		let id: string;
 		try {
 			const data:any = verify(token, process.env.SECRET_KEY);
-			if (data) id = data.userId;
+			if (data) id = data.user.id;
 		} catch (err) {
 			console.error(err);
 			return null;

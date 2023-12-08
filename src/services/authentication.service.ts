@@ -15,19 +15,13 @@ export class AuthenticationService {
 			if (user.password != SHA1(password)) throw Error("Usuário e/ou senha inválidos");
 
 			const token = jwt.sign(
-				{ userId: user.id }, 
+				{ user }, 
 				process.env.SECRET_KEY, 
-				{ expiresIn: "1d" },
+				{ expiresIn: remember? "1d" : "30m"},
 			);
-
-			const refesh_token = jwt.sign(
-				{ userId: user.id }, 
-				process.env.SECRET_KEY, 
-				{ expiresIn: "30d" },
-			);
-
+			
 			delete user.password;
-			return { auth: true, token, user, refesh_token };
+			return { auth: true, token, user };
 		} catch (error) {
 			console.log(error);
 			throw error;
