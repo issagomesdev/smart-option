@@ -33,7 +33,7 @@ export class NetworkService {
 
             if(L1HasPlan) {
                 NetworkService.earningsPercentage(L1HasPlan.product_id, type, 1)
-                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}')`))
+                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}', '${userId}')`))
              } 
 
             const L2 = (
@@ -47,7 +47,7 @@ export class NetworkService {
     
                 if(L2HasPlan) {
                     NetworkService.earningsPercentage(L2HasPlan.product_id, type, 2)
-                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}')`))
+                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}', '${userId}')`))
                 }
 
                 const L3 = (
@@ -62,7 +62,7 @@ export class NetworkService {
         
                     if(L3HasPlan) {
                         NetworkService.earningsPercentage(L3HasPlan.product_id, type, 3)
-                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}')`))
+                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}', '${userId}')`))
                     }
                 }
                 

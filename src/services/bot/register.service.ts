@@ -33,7 +33,7 @@ export class RegisterService {
     let user = (
       await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
     )[0][0];
-    const token = jwt.sign({ email }, 'Opea.Bot23', { expiresIn: '1h' });
+    const token = jwt.sign({ email }, process.env.SECRET_KEY, { expiresIn: '1h' });
     
     await conn.query(`INSERT INTO verification_email(user_id, token) VALUES ('${user.id}','${token}')`);
 
@@ -119,7 +119,7 @@ export class RegisterService {
 
   if (!token) throw Error("Token ausente");
 
-  const decodedToken: any = jwt.verify(token, 'Opea.Bot23');
+  const decodedToken: any = jwt.verify(token, process.env.SECRET_KEY);
   const today = Math.floor(Date.now() / 1000);
   let user = (
     await conn.query(`SELECT user_id FROM verification_email WHERE token = '${token}'`)
