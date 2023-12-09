@@ -4,6 +4,7 @@ import express from "express";
 import { NextFunction, Request, Response } from "express";
 import { HttpException } from "../../exceptions/http.exception";
 import jwt from 'jsonwebtoken';
+import conn from "../../db";
 
 
 export default express
@@ -26,13 +27,19 @@ export default express
       return res.status(200).json({ message: 'Token inválido' });
     }
     
-    jwt.verify(token, process.env.SECRET_KEY, (err:any, decoded:any) => {
+    jwt.verify(token, process.env.SECRET_KEY, async(err:any, decoded:any) => {
       
       if (err) {
         return res.status(200).json({ message: 'Falha na autenticação do token' });
       }
 
-      return res.status(200).json({ message: 'Token validado com sucesso', user: decoded.user });
+      const user = (
+        await conn.query(`SELECT * FROM users where id = ${decoded.userId}`)
+      )[0][0];
+
+      delete user.password;
+
+      return res.status(200).json({ message: 'Token validado com sucesso', user: user });
      
     });
 
