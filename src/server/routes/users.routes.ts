@@ -16,16 +16,6 @@ export default express
     }
 
     })
-    .get('/users-bot', async(req: Request, res: Response, next: NextFunction) => {
-    try {
-        const response = await UsersService.botUsers();
-        res.status(200).json(response);
-    } catch (error) {
-        console.log(error);
-        next(new HttpException(400, error));
-    }
-
-    })
     .patch('/update-user', async(req: Request, res: Response, next: NextFunction) => {
       try {
           const response = await UsersService.updateUser(req.body);
@@ -45,5 +35,25 @@ export default express
           next(new HttpException(400, error));
       }
 
-    });
+    })
+    .get('/users-bot', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.botUsers();
+        res.status(200).json(response);
+    } catch (error) {
+        console.log(error);
+        next(new HttpException(400, error));
+    }
+
+    })
+    .get('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.botUser(req.params.id);
+        res.status(200).json(response);
+    } catch (error) {
+        console.log(error);
+        next(new HttpException(400, error));
+    }
+
+    })
     
