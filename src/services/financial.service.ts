@@ -59,15 +59,11 @@ export class FinancialService {
     }
   }
 
-  static async withdrawalRequests(userId:number){
+  static async withdrawalRequests(userId:number = null){
     try {
 
-      const user = (
-        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
-      )[0][0];
-
       const requests:any = (
-        await conn.query(`SELECT * FROM withdrawals WHERE user_id = ${user.id} ORDER BY created_at`)
+        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y') AS created_at FROM withdrawals ${userId? `WHERE user_id = ${userId}` : ''} ORDER BY created_at`)
       )[0];
 
       return requests
