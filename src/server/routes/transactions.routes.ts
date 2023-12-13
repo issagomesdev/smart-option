@@ -14,4 +14,9 @@ export default express
       console.log(error);
     }
 
-    });
+    })
+  .post('/res-withdrawal-req/:reference_id', async(req, res) => {
+  
+      console.log(req.body);
+  
+  });

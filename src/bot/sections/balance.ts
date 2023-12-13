@@ -133,7 +133,7 @@ export async function withdrawalRequests(userId:number) {
     TransactionsService.withdrawalRequests(userId).then(data => {
         let items:any = [];
          data.map((item) => {
-             items.push([`${item.value}`, `${item.status == "pending"? "Pendente" : item.status == "authorized"? "Concluído" : item.status == "refused"? "Negado" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+             items.push([`${item.value}`, `${item.status == "pending"? "Pendente" : item.status == "authorized"? "Autorizado" : item.status == "refused"? "Rejeitado" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
          })
  
          var extract = 

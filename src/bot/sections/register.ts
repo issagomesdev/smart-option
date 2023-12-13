@@ -15,6 +15,10 @@ const questions:Array<any> = [
         text: 'Email',
     },
     {
+        field: 'cpf',
+        text: 'CPF (apenas números, sem espaços e/ou caracteres especiais)',
+    },
+    {
         field: 'password',
         text: 'Senha',
     },
@@ -54,12 +58,12 @@ export async function fields(msg:any) {
         if(field_correction || field_correction == 0){
             answers[questions[field_correction].field] = msg.text;
 
-            if(field_correction == 2){
-                field_correction = 3;
+            if(field_correction == 3){
+                field_correction = 4;
                 await bot.sendMessage(msg.chat.id, questions[field_correction].text + ":");
-            } else if(field_correction == 3 && answers.password !== answers.confirm_password){
+            } else if(field_correction == 4 && answers.password !== answers.confirm_password){
                 await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
-                field_correction = 2;
+                field_correction = 3;
             } else {
                 field_correction = null;
                 confirm_fields(msg.chat.id)
@@ -67,8 +71,8 @@ export async function fields(msg:any) {
         } else {
             answers[questions[current_field].field] = msg.text;
             if (current_field < questions.length - 1) {
-                if(current_field == 3 && answers.password !== answers.confirm_password){
-                    current_field = 2;
+                if(current_field == 4 && answers.password !== answers.confirm_password){
+                    current_field = 3;
                     await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
                 } else{
                     current_field++;

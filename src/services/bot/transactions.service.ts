@@ -128,7 +128,7 @@ export class TransactionsService {
   static async finishCheckout(reference_id:string, status:string){
     try {
       const ref_checkout = (
-        await conn.query(`SELECT * FROM checkouts WHERE reference_id = '${reference_id}' AND status != '${status}'`)
+        await conn.query(`SELECT * FROM checkouts WHERE id = '${reference_id}' AND status != '${status}'`)
       )[0][0];
 
       if(ref_checkout){
