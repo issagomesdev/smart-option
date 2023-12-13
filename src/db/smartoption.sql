@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 01-Dez-2023 às 02:07
+-- Tempo de geração: 13-Dez-2023 às 11:43
 -- Versão do servidor: 8.0.31
 -- versão do PHP: 8.1.13
 
@@ -33,25 +33,31 @@ CREATE TABLE IF NOT EXISTS `balance` (
   `value` decimal(10,2) NOT NULL,
   `user_id` bigint NOT NULL,
   `type` enum('sum','subtract') NOT NULL,
-  `origin` enum('deposit','withdraw','earnings','subscription','tuition') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `transaction_id` varchar(255) DEFAULT NULL,
+  `origin` enum('deposit','withdraw','earnings','profitability','subscription','tuition') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `reference_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `balance`
 --
 
-INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `transaction_id`, `created_at`) VALUES
+INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id`, `created_at`) VALUES
 (19, '230.30', 10, 'sum', 'deposit', '74', '2023-11-27 01:09:06'),
 (18, '63.70', 10, 'sum', 'deposit', '73', '2023-11-27 01:02:12'),
 (20, '97.00', 10, 'subtract', 'subscription', '72', '2023-11-28 01:02:12'),
 (21, '17.12', 10, 'subtract', 'withdraw', '4', '2023-11-28 02:32:13'),
 (22, '93.40', 49, 'sum', 'deposit', '80', '2023-11-28 06:57:29'),
-(23, '32.01', 48, 'sum', 'subscription', NULL, '2023-11-28 07:11:02'),
+(23, '32.01', 10, 'sum', 'subscription', '72', '2023-11-28 07:11:02'),
 (24, '100.00', 48, 'sum', 'deposit', '87', '2023-11-28 07:41:55'),
-(25, '100.00', 48, 'sum', 'deposit', '89', '2023-11-28 07:52:28');
+(25, '100.00', 48, 'sum', 'deposit', '89', '2023-11-28 07:52:28'),
+(27, '97.00', 10, 'subtract', 'subscription', NULL, '2023-12-05 01:55:20'),
+(28, '0.13', 10, 'sum', 'profitability', '23', '2023-12-05 02:23:59'),
+(29, '1.50', 10, 'sum', 'earnings', '', '2023-12-05 02:35:26'),
+(33, '100.00', 10, 'sum', 'deposit', '94', '2023-12-13 11:37:01'),
+(31, '100.00', 10, 'sum', 'deposit', NULL, '2023-12-05 02:37:21'),
+(32, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-05 02:36:45');
 
 -- --------------------------------------------------------
 
@@ -64,6 +70,7 @@ CREATE TABLE IF NOT EXISTS `bot_users` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `cpf` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `phone_number` varchar(255) NOT NULL,
   `adress` varchar(255) NOT NULL,
@@ -74,36 +81,37 @@ CREATE TABLE IF NOT EXISTS `bot_users` (
   `verified_email_at` timestamp NULL DEFAULT NULL,
   `last_activity` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `bot_users`
 --
 
-INSERT INTO `bot_users` (`id`, `name`, `email`, `password`, `phone_number`, `adress`, `pix_code`, `status`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
-(10, 'issa gomes', 'issagomes2002@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', 'hbgvfcdx', 1, 1743885934, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-12-01 02:06:04'),
-(25, 'liza', 'liza@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 1, NULL, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 16:49:30'),
-(24, 'lilian Barro', 'gvfrcd', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hbgvfcd', 1, NULL, '2023-11-19 21:46:43', '2023-11-01 21:53:05', '2023-11-20 19:53:56'),
-(23, 'leandro henrique', 'leo_hen@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 1, NULL, '2023-11-19 21:41:38', '2023-11-19 21:43:24', '2023-11-19 21:43:58'),
-(26, 'Hayssa gomes', 'Haygomes1@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '827372828272', 'Hehehshsh', 'Sggsshsh', 1, NULL, '2023-11-20 19:56:53', NULL, '2023-11-20 19:56:53'),
-(27, 'Luiz HENrique marrotos', 'Hehshs', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '2763737227', 'Gdhshsh', 'Egehw', 1, NULL, '2023-11-20 20:00:13', NULL, '2023-11-20 20:00:13'),
-(28, 'Andre marcos', 'Andre@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '7372828', 'Shahha', 'Sggssh', 1, NULL, '2023-11-20 20:44:54', '2023-11-20 20:45:40', '2023-11-22 16:16:32'),
-(31, 'Barbara Ramos', 'barbaraR@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '26267272', 'Sggshsh', 'Shhshs', 1, NULL, '2023-11-20 20:53:56', '2023-11-20 20:55:50', '2023-11-20 20:58:23'),
-(29, 'Livia Pereira Barros de Melo', 'Livia@mail', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '4572627272', 'Sggsgsgsg', 'Syhshs', 1, NULL, '2023-11-20 20:47:43', NULL, '2023-11-20 20:47:43'),
-(30, 'Livia pereira', 'Livia@email.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '36637272', 'Ehshhshs', 'Ehshhs', 1, NULL, '2023-11-20 20:51:03', NULL, '2023-11-20 20:51:03'),
-(32, 'David Polo', 'davidp@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '626262626', 'Sygsgsgs', 'Whwhw', 1, NULL, '2023-11-20 20:58:14', NULL, '2023-11-20 20:58:14'),
-(37, 'hayssa gomes', 'hayssagomes2002@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '887573475894', 'jhgfds', 'hgbfvdc', 1, NULL, '2023-11-23 01:18:50', '2023-11-23 01:19:47', '2023-11-23 01:21:21'),
-(38, 'luccas', 'byiissag@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'hgfdsa', 'bfvdcx', 1, NULL, '2023-11-23 01:21:01', '2023-11-23 01:24:12', '2023-11-24 19:48:16'),
-(39, 'hayssa maria gomes', 'anaepapaizinho@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6578439201', 'uyhjgkfdlspoewritug', 'thudfjska', 1, NULL, '2023-11-24 19:49:49', '2023-11-24 19:51:07', '2023-11-26 07:43:55'),
-(41, 'testygdw', 'codedbyissa@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '68594032', 'hbgtvfrcde', 'sghvfcdx', 1, NULL, '2023-11-26 06:24:33', '2023-11-26 06:24:33', '0000-00-00 00:00:00'),
-(42, 'hbgtvfcdxs', 'email@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6589432', 'gvfcdx', 'hgtrfd', 1, NULL, '2023-11-26 09:23:16', '2023-11-26 09:23:16', '0000-00-00 00:00:00'),
-(43, 'gvfcd', 'gtvrfd', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '574893', 'hgvfcd', 'bgvfc', 1, NULL, '2023-11-26 09:25:39', '2023-11-26 09:25:39', '0000-00-00 00:00:00'),
-(44, 'gvfcdxs', 'issagomes@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '67849302', 'hbgvfc', 'bgvfd', 1, NULL, '2023-11-26 09:27:57', '2023-11-26 09:27:57', '0000-00-00 00:00:00'),
-(45, 'hbgvfcd', 'liza@mail.co', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '75849302', 'hytgvrfd', 'dgvfcd', 1, NULL, '2023-11-26 09:31:29', '2023-11-26 09:31:29', '0000-00-00 00:00:00'),
-(46, 'nhbgvfcd', 'bgvfcdx', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '65432', 'bgvfcd', 'xgvfcdx', 1, NULL, '2023-11-26 09:35:22', '2023-11-26 09:35:22', '0000-00-00 00:00:00'),
-(48, 'hayssa g', 'byissag@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6378920', 'thgrfdsczx', 'fgddcx', 1, NULL, '2023-11-28 06:11:05', '2023-11-28 06:11:45', '2023-11-28 07:53:06'),
-(49, 'laura maria', 'byissag+teste1@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '5467382', 'hfgbfvs', 'hfgfv', 1, NULL, '2023-11-28 06:14:40', '2023-11-28 06:15:12', '2023-11-28 06:59:11'),
-(50, 'renato marcos', 'byissag+teste2@gmail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '564783', 'hfgd', 'gnbf', 1, NULL, '2023-11-28 06:16:27', '2023-11-28 06:16:49', '2023-11-28 07:12:15');
+INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number`, `adress`, `pix_code`, `status`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
+(10, 'Hayssa Maria Gomes da Silva', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', '13105628495', 1, 1743885934, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-12-13 11:41:53'),
+(25, 'liza', 'liza@mail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 1, NULL, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 16:49:30'),
+(24, 'lilian Barro', 'gvfrcd', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hbgvfcd', 1, NULL, '2023-11-19 21:46:43', '2023-11-01 21:53:05', '2023-11-20 19:53:56'),
+(23, 'leandro henrique', 'leo_hen@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 1, NULL, '2023-11-19 21:41:38', '2023-11-19 21:43:24', '2023-11-19 21:43:58'),
+(26, 'Hayssa gomes', 'Haygomes1@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '827372828272', 'Hehehshsh', 'Sggsshsh', 1, NULL, '2023-11-20 19:56:53', NULL, '2023-11-20 19:56:53'),
+(27, 'Luiz HENrique marrotos', 'Hehshs', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '2763737227', 'Gdhshsh', 'Egehw', 1, NULL, '2023-11-20 20:00:13', NULL, '2023-11-20 20:00:13'),
+(28, 'Andre marcos', 'Andre@mail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '7372828', 'Shahha', 'Sggssh', 1, NULL, '2023-11-20 20:44:54', '2023-11-20 20:45:40', '2023-11-22 16:16:32'),
+(31, 'Barbara Ramos', 'barbaraR@mail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '26267272', 'Sggshsh', 'Shhshs', 1, NULL, '2023-11-20 20:53:56', '2023-11-20 20:55:50', '2023-11-20 20:58:23'),
+(29, 'Livia Pereira Barros de Melo', 'Livia@mail', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '4572627272', 'Sggsgsgsg', 'Syhshs', 1, NULL, '2023-11-20 20:47:43', NULL, '2023-11-20 20:47:43'),
+(30, 'Livia pereira', 'Livia@email.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '36637272', 'Ehshhshs', 'Ehshhs', 1, NULL, '2023-11-20 20:51:03', NULL, '2023-11-20 20:51:03'),
+(32, 'David Polo', 'davidp@mail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '626262626', 'Sygsgsgs', 'Whwhw', 1, NULL, '2023-11-20 20:58:14', NULL, '2023-11-20 20:58:14'),
+(37, 'hayssa gomes', 'hayssagomes2002@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '887573475894', 'jhgfds', 'hgbfvdc', 1, NULL, '2023-11-23 01:18:50', '2023-11-23 01:19:47', '2023-11-23 01:21:21'),
+(38, 'luccas', 'byiissag@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'hgfdsa', 'bfvdcx', 1, NULL, '2023-11-23 01:21:01', '2023-11-23 01:24:12', '2023-11-24 19:48:16'),
+(39, 'hayssa maria gomes', 'anaepapaizinho@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6578439201', 'uyhjgkfdlspoewritug', 'thudfjska', 1, NULL, '2023-11-24 19:49:49', '2023-11-24 19:51:07', '2023-11-26 07:43:55'),
+(41, 'testygdw', 'codedbyissa@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '68594032', 'hbgtvfrcde', 'sghvfcdx', 1, NULL, '2023-11-26 06:24:33', '2023-11-26 06:24:33', '0000-00-00 00:00:00'),
+(42, 'hbgtvfcdxs', 'email@mail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6589432', 'gvfcdx', 'hgtrfd', 1, NULL, '2023-11-26 09:23:16', '2023-11-26 09:23:16', '0000-00-00 00:00:00'),
+(43, 'gvfcd', 'gtvrfd', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '574893', 'hgvfcd', 'bgvfc', 1, NULL, '2023-11-26 09:25:39', '2023-11-26 09:25:39', '0000-00-00 00:00:00'),
+(44, 'gvfcdxs', 'issagomes@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '67849302', 'hbgvfc', 'bgvfd', 1, NULL, '2023-11-26 09:27:57', '2023-11-26 09:27:57', '0000-00-00 00:00:00'),
+(45, 'hbgvfcd', 'liza@mail.co', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '75849302', 'hytgvrfd', 'dgvfcd', 1, NULL, '2023-11-26 09:31:29', '2023-11-26 09:31:29', '0000-00-00 00:00:00'),
+(46, 'nhbgvfcd', 'bgvfcdx', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '65432', 'bgvfcd', 'xgvfcdx', 1, NULL, '2023-11-26 09:35:22', '2023-11-26 09:35:22', '0000-00-00 00:00:00'),
+(48, 'hayssa g', 'byissag@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6378920', 'thgrfdsczx', 'fgddcx', 1, NULL, '2023-11-28 06:11:05', '2023-11-28 06:11:45', '2023-11-28 07:53:06'),
+(49, 'laura maria', 'byissag+teste1@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '5467382', 'hfgbfvs', 'hfgfv', 1, NULL, '2023-11-28 06:14:40', '2023-11-28 06:15:12', '2023-11-28 06:59:11'),
+(50, 'renato marcos', 'byissag+teste2@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '564783', 'hfgd', 'gnbf', 1, NULL, '2023-11-28 06:16:27', '2023-11-28 06:16:49', '2023-11-28 07:12:15'),
+(51, 'bgvfcx', 'gvfdcx', '54354353453', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '545435', 'hbgvfdc', 'hbgvfc', 1, NULL, '2023-12-13 10:53:01', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -123,7 +131,7 @@ CREATE TABLE IF NOT EXISTS `checkouts` (
   `user_id` bigint DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=91 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=97 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `checkouts`
@@ -143,10 +151,16 @@ INSERT INTO `checkouts` (`id`, `reference_id`, `type`, `value`, `status`, `trans
 (84, '4fe0ea7b-1862-48e1-bdc5-6b9eb75aed66', 'subscription', '97.00', 'PAID', 'CHEC_F2D8C8F8-BBB6-4628-9A77-0543A09D7021', 1, 48, '2023-11-28 07:24:23'),
 (85, '7b106bd9-2fd3-4a25-9a09-f1bf2d2372f7', 'subscription', '197.00', 'PENDING', 'CHEC_178E8504-5D8F-4180-BB91-8723D97771E0', 2, 48, '2023-11-28 07:27:22'),
 (86, '14f3fe89-633b-4dd4-b685-3a45b694fac7', 'subscription', '97.00', 'PAID', 'CHEC_C2A612F3-BF3F-4AF5-B6D8-B0083ED788CC', 1, 48, '2023-11-28 07:39:48'),
-(87, 'cd232703-9cab-4035-a447-d5e91679a395', 'deposit', '100.00', 'PAID', 'CHEC_FB3797BD-C9DA-4257-87CE-5242C73B6F94', 0, 48, '2023-11-28 07:41:03'),
+(87, 'cd232703-9cab-4035-a447-d5e91679a395', 'deposit', '100.00', 'PAID', 'CHEC_FB3797BD-C9DA-4257-87CE-5242C73B6F94', NULL, 48, '2023-11-28 07:41:03'),
 (88, 'd2d84f25-76ad-454e-a491-ba24d834fff1', 'subscription', '97.00', 'PAID', 'CHEC_6F48D941-CEEF-4DB8-92F9-6065D645D592', 1, 48, '2023-11-28 07:45:26'),
-(89, 'bb245884-41c4-4983-9ee8-9b67e53686a7', 'deposit', '100.00', 'PAID', 'CHEC_F4893C72-6805-4311-960A-A7BEA96739A1', 0, 48, '2023-11-28 07:51:15'),
-(90, 'c7de0649-59f7-4449-b11f-3b0cc67cd0f0', 'subscription', '97.00', 'PENDING', 'CHEC_87136540-F9DE-4B90-BA47-1D1728CA90BE', 1, 10, '2023-12-01 02:03:57');
+(89, 'bb245884-41c4-4983-9ee8-9b67e53686a7', 'deposit', '100.00', 'PAID', 'CHEC_F4893C72-6805-4311-960A-A7BEA96739A1', NULL, 48, '2023-11-28 07:51:15'),
+(90, 'c7de0649-59f7-4449-b11f-3b0cc67cd0f0', 'subscription', '97.00', 'PENDING', 'CHEC_87136540-F9DE-4B90-BA47-1D1728CA90BE', 1, 10, '2023-12-01 02:03:57'),
+(91, '2ff43dc3-92fb-40ea-8dda-0727ef41f2a1', 'deposit', '14.12', 'PENDING', 'CHEC_E6DFC424-CFA6-4803-8C51-A13E7654C93F', NULL, 10, '2023-12-05 01:56:00'),
+(92, 'eaecf8e0-1567-4518-a855-9b2d9e8c83ed', 'subscription', '97.00', 'PENDING', 'CHEC_4AB1344F-D180-47DE-8E76-CDF726D571A1', 1, 10, '2023-12-05 01:57:49'),
+(93, '512b6b77-27b5-474c-b9ad-9491fc4162db', 'subscription', '97.00', 'PAID', 'CHEC_D037DE0C-5963-40A4-9B2B-738DCAAB3EF4', 1, 10, '2023-12-13 11:30:09'),
+(94, 'ce9a5c76-80ff-4b71-b45d-25aaf82c7168', 'deposit', '100.00', 'PAID', 'CHEC_A2CA66FB-25D6-4AB9-8B2F-8E870EB19A6B', 0, 10, '2023-12-13 11:35:47'),
+(95, 'd3d7891d-dbb0-49d1-8780-9759261378b6', 'subscription', '97.00', 'PENDING', 'CHEC_98C28070-4346-4154-80CB-A857D1F2D418', 1, 10, '2023-12-13 11:39:53'),
+(96, '5132e808-82d2-4bc2-9716-8a8ec31cd4e2', 'subscription', '97.00', 'PAID', 'CHEC_194D48D4-DE99-43BF-B07D-D117C9DC2C0B', 1, 10, '2023-12-13 11:40:10');
 
 -- --------------------------------------------------------
 
@@ -162,7 +176,7 @@ CREATE TABLE IF NOT EXISTS `network` (
   `level` enum('1','2','3') NOT NULL,
   `earnings` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `network`
@@ -199,7 +213,8 @@ INSERT INTO `network` (`id`, `affiliate_user_id`, `guest_user_id`, `level`, `ear
 (30, 24, 46, '2', 1),
 (31, 23, 46, '3', 1),
 (32, 48, 49, '1', 1),
-(33, 48, 50, '1', 1);
+(33, 48, 50, '1', 1),
+(34, 10, 51, '1', 0);
 
 -- --------------------------------------------------------
 
@@ -223,11 +238,11 @@ CREATE TABLE IF NOT EXISTS `products` (
 --
 
 INSERT INTO `products` (`id`, `name`, `description`, `price`, `earnings_monthly`, `purchase_type`) VALUES
-(1, 'bronze', '  🥉Smart Bronze (até 5% ao mês) – R$ 97,00\n\n  Bônus de ADESÃO (Ilimitado)\n  ╔═════════╗\n  ║ Nível 1- 30% \n  ║ Nível 2- 7%     ╠ 40% 💵\n  ║ Nível 3- 3%  \n  ╚═════════╝\n  \n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\n  ╔═════════════════╗\n  ║ Nível 1- (2,33% * 3) = 7%  \n  ║ Nível 2- (1,66% * 3) = 5%     ╠ 15% 💵\n  ║ Nível 3- (1,00% * 3) = 3%   \n  ╚═════════════════╝', '97.00', '5.00', 'auto'),
-(2, 'silver', '  🥈Smart silver (até 7% ao mês) – R$ 197,00\r\n\r\n  Bônus de ADESÃO (Ilimitado)\r\n  ╔═════════╗\r\n  ║ Nível 1- 33%  \r\n  ║ Nível 2- 8%     ╠ 45% 💵\r\n  ║ Nível 3- 4% \r\n  ╚═════════╝\r\n  \r\n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\r\n  ╔═════════════════╗\r\n  ║ Nível 1- (3,33% * 3) = 9%  \r\n  ║ Nível 2- (2,33% * 3) = 7%     ╠ 20% 💵\r\n  ║ Nível 3- (1,33% * 3) = 4%   \r\n  ╚═════════════════╝', '197.00', '7.00', 'auto'),
-(3, 'gold', '  🥇Smart gold (até 10% ao mês) – R$ 297,00\r\n\r\n  Bônus de ADESÃO (Ilimitado)\r\n  ╔═════════╗\r\n  ║ Nível 1 - 35%  \r\n  ║ Nível 2 - 10%  ╠ 50% 💵\r\n  ║ Nível 3 - 5%  \r\n  ╚═════════╝\r\n  \r\n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\r\n  ╔═════════════════╗\r\n  ║ Nível 1- (4,00% * 3) = 12%  \r\n  ║ Nível 2- (2,66% * 3) = 8%     ╠ 25% 💵\r\n  ║ Nível 3- (1,66% * 3) = 5%   \r\n  ╚═════════════════╝', '297.00', '10.00', 'auto'),
-(4, 'advanced management', '  🤖 Smart Bot – R$197,00 (MENSAL)\n  Smart Bot – R$1.297,00 (VITALÍCIO)\n  • Gerenciamento avançado.\n  • Analisa mais de 17 estratégias e\n  encontra as melhores oportunidades.\n  • Operações automatizadas.\n  • Opera no mercado aberto e OTC.\n  • Stop WIN/LOSS.\n  • Martin Gale e Soros.\n  • Mais de 90% de assertividade.', '0.00', '0.00', 'manual'),
-(5, 'bank leverage', '  🎰 Alavancagem de banca:\r\n  \r\n  Aumente em até 5 vezes o valor de sua\r\n  banca em uma sessão individual com um\r\n  Trader de nossa equipe.\r\n\r\n  *Embora nossa Equipe tenha um\r\n  histórico de êxito nas operações,\r\n  o mercado de renda variável não\r\n  possibilita garantias que ganhos\r\n  passados representarão resultados\r\n  futuros.', '0.00', '0.00', 'manual');
+(1, 'bronze', '  🥉Smart Bronze (até 4% ao mês) – R$ 97,00\n\n  Bônus de ADESÃO (Ilimitado)\n  ╔═════════╗\n  ║ Nível 1- 30% \n  ║ Nível 2- 7%     ╠ 40% 💵\n  ║ Nível 3- 3%  \n  ╚═════════╝\n  \n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\n  ╔═════════════════╗\n  ║ Nível 1- (2,33% * 3) = 7%  \n  ║ Nível 2- (1,66% * 3) = 5%     ╠ 15% 💵\n  ║ Nível 3- (1,00% * 3) = 3%   \n  ╚═════════════════╝', '97.00', '4.00', 'auto'),
+(2, 'silver', '  🥈Smart silver (até 6% ao mês) – R$ 197,00\n\n  Bônus de ADESÃO (Ilimitado)\n  ╔═════════╗\n  ║ Nível 1- 33%  \n  ║ Nível 2- 8%     ╠ 45% 💵\n  ║ Nível 3- 4% \n  ╚═════════╝\n  \n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\n  ╔═════════════════╗\n  ║ Nível 1- (3,33% * 3) = 9%  \n  ║ Nível 2- (2,33% * 3) = 7%     ╠ 20% 💵\n  ║ Nível 3- (1,33% * 3) = 4%   \n  ╚═════════════════╝', '197.00', '6.00', 'auto'),
+(3, 'gold', '  🥇Smart gold (até 8% ao mês) – R$ 297,00\n\n  Bônus de ADESÃO (Ilimitado)\n  ╔═════════╗\n  ║ Nível 1 - 35%  \n  ║ Nível 2 - 10%  ╠ 50% 💵\n  ║ Nível 3 - 5%  \n  ╚═════════╝\n  \n  Bônus de RENTABILIDADE (até 3 afiliados por nível)\n  ╔═════════════════╗\n  ║ Nível 1- (4,00% * 3) = 12%  \n  ║ Nível 2- (2,66% * 3) = 8%     ╠ 25% 💵\n  ║ Nível 3- (1,66% * 3) = 5%   \n  ╚═════════════════╝', '297.00', '8.00', 'auto'),
+(4, '🤖 Smart Bot', '  🤖 Smart Bot – R$197,00 (MENSAL)\n  Smart Bot – R$1.297,00 (VITALÍCIO)\n  • Gerenciamento avançado.\n  • Analisa mais de 17 estratégias e\n  encontra as melhores oportunidades.\n  • Operações automatizadas.\n  • Opera no mercado aberto e OTC.\n  • Stop WIN/LOSS.\n  • Martin Gale e Soros.\n  • Mais de 90% de assertividade.', '0.00', '0.00', 'manual'),
+(5, '🎰 Alavancagem de banca', '  🎰 Alavancagem de banca:\n  \n  Aumente em até 5 vezes o valor de sua\n  banca em uma sessão individual com um\n  Trader de nossa equipe.\n\n  *Embora nossa Equipe tenha um\n  histórico de êxito nas operações,\n  o mercado de renda variável não\n  possibilita garantias que ganhos\n  passados representarão resultados\n  futuros.', '0.00', '0.00', 'manual');
 
 -- --------------------------------------------------------
 
@@ -279,12 +294,12 @@ DROP TABLE IF EXISTS `requests`;
 CREATE TABLE IF NOT EXISTS `requests` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `type` enum('support','service') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
-  `subject` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `subject` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `user_id` bigint NOT NULL,
   `telegram_user_id` bigint NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `requests`
@@ -294,14 +309,64 @@ INSERT INTO `requests` (`id`, `type`, `subject`, `user_id`, `telegram_user_id`, 
 (1, 'service', '4', 10, 1743885934, '2023-11-27 01:44:06'),
 (5, 'support', 'gfds', 10, 1743885934, '2023-11-27 02:09:09'),
 (3, 'support', 'estou com problemas para realizar saques', 10, 1743885934, '2023-11-27 02:04:11'),
-(4, 'support', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. ', 10, 1743885934, '2023-11-27 02:04:56'),
+(4, 'support', '<p>Lorem ipsum dolor sit amet. Non consequatur animi et ipsa maiores ut neque beatae vel laboriosam velit sit explicabo omnis ut omnis assumenda. In quae tenetur qui alias molestiae ut galisum esse quo aspernatur mollitia in dolorum nisi aut neque vitae ea magni voluptas. Quo impedit molestiae 33 corporis voluptatum ut provident eligendi et suscipit quisquam est dolorem corporis ut dolorem nihil! In quas corrupti vel velit odio qui dolor incidunt et necessitatibus quasi ut inventore sapiente sit reiciendis sapiente aut quae blanditiis. </p><p>Ut deleniti atque eos corporis soluta et magni enim aut dicta ullam ut odio doloremque qui exercitationem odit quo dignissimos voluptate. Est modi sequi est illo animi et dolor doloribus aut omnis libero ut quia doloribus. Est voluptatem quia sed dolorum itaque vel consequuntur magnam. Rem perferendis delectus aut suscipit molestiae sit nesciunt alias et iusto optio id voluptatem facere sit inventore suscipit non illum ducimus. </p><p>Ea ipsam consequatur et minima repellat in voluptate eligendi. Et quae consequatur ab sunt nisi et enim explicabo! Eos voluptas expedita qui placeat perspiciatis ut nulla voluptatem non cumque quibusdam sed possimus nostrum vel laudantium vero ex eius harum. Ea laborum molestiae a illo quia id incidunt illum in voluptatum animi. </p>\n', 10, 1743885934, '2023-11-27 02:04:56'),
 (6, 'support', 'gvfcdxs', 10, 1743885934, '2023-11-27 02:09:38'),
 (7, 'support', 'vfcdxs', 10, 1743885934, '2023-11-27 02:09:40'),
 (8, 'support', 'vcxz', 10, 1743885934, '2023-11-27 02:11:01'),
 (10, 'service', '4', 48, 1743885934, '2023-11-28 07:23:13'),
 (11, 'service', '4', 48, 1743885934, '2023-11-28 07:44:21'),
 (12, 'support', 'meu saque do dia 28/11 as 04:50 da manha no valor de 100 reais foi negado, mesmo tendo saldo suficiente', 10, 1743885934, '2023-11-28 07:56:20'),
-(13, 'service', '4', 10, 1743885934, '2023-12-01 02:03:34');
+(13, 'service', '4', 10, 1743885934, '2023-12-01 02:03:34'),
+(14, 'support', 'Nao consigo realizar saque, fica em pendencia sempre', 10, 1743885934, '2023-12-01 02:18:51'),
+(15, 'service', '4', 10, 1743885934, '2023-12-13 07:54:00'),
+(16, 'service', '5', 10, 1743885934, '2023-12-13 07:56:28');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `roles`
+--
+
+DROP TABLE IF EXISTS `roles`;
+CREATE TABLE IF NOT EXISTS `roles` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Extraindo dados da tabela `roles`
+--
+
+INSERT INTO `roles` (`id`, `name`, `created_at`) VALUES
+(1, 'admin', '2023-12-07 03:25:57'),
+(2, 'manager', '2023-12-07 03:25:57');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura da tabela `users`
+--
+
+DROP TABLE IF EXISTS `users`;
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `surname` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role_id` bigint NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Extraindo dados da tabela `users`
+--
+
+INSERT INTO `users` (`id`, `name`, `surname`, `email`, `password`, `role_id`, `created_at`) VALUES
+(1, 'hayssa', 'gomes', 'admin@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 1, '2023-12-07 03:24:26');
 
 -- --------------------------------------------------------
 
@@ -318,7 +383,7 @@ CREATE TABLE IF NOT EXISTS `users_plans` (
   `acquired_in` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expired_in` timestamp NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `users_plans`
@@ -326,9 +391,10 @@ CREATE TABLE IF NOT EXISTS `users_plans` (
 
 INSERT INTO `users_plans` (`id`, `user_id`, `product_id`, `status`, `acquired_in`, `expired_in`) VALUES
 (9, 25, 1, 1, '2023-11-27 00:59:33', '2023-12-27 00:59:33'),
-(10, 49, 1, 1, '2023-11-28 06:23:47', '2023-12-28 06:23:47'),
+(10, 49, 2, 1, '2023-11-28 06:23:47', '2023-12-28 06:23:47'),
 (11, 48, 1, 1, '2023-12-28 07:46:57', '2023-12-28 07:46:57'),
-(12, 50, 1, 1, '2023-11-28 07:11:02', '2023-12-28 07:11:02');
+(12, 50, 3, 1, '2023-11-28 07:11:02', '2023-12-28 07:11:02'),
+(13, 10, 1, 1, '2023-12-13 11:41:44', '2024-01-13 11:41:44');
 
 -- --------------------------------------------------------
 
@@ -343,7 +409,7 @@ CREATE TABLE IF NOT EXISTS `verification_email` (
   `token` varchar(255) NOT NULL,
   `status` enum('pending','expired','checked') NOT NULL DEFAULT 'pending',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `verification_email`
@@ -351,6 +417,7 @@ CREATE TABLE IF NOT EXISTS `verification_email` (
 
 INSERT INTO `verification_email` (`id`, `user_id`, `token`, `status`) VALUES
 (37, 50, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWcrdGVzdGUyQGdtYWlsLmNvbSIsImlhdCI6MTcwMTE1MjE4NywiZXhwIjoxNzAxMTU1Nzg3fQ.Sc5yhNBHkHmrUxPegoApR_eFyeWfjsz_MWjVjjesLHE', 'checked'),
+(38, 51, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imd2ZmRjeCIsImlhdCI6MTcwMjQ2NDc4MSwiZXhwIjoxNzAyNDY4MzgxfQ.yOVlUOtTeToeBwE7Z-0BrR7accS8ztrszL3B6qR3sAM', 'pending'),
 (36, 49, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWcrdGVzdGUxQGdtYWlsLmNvbSIsImlhdCI6MTcwMTE1MjA4MCwiZXhwIjoxNzAxMTU1NjgwfQ.B3A6h3F0XWGcPhu9MNviv_ZYVtcmoJko0kcz3kCecdc', 'checked'),
 (35, 48, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAxMTUxODkyLCJleHAiOjE3MDExNTU0OTJ9.9FjnI3q7wCEsoSNEBSBY6psnM0pLd1xYhhz9b8tHh2g', 'checked'),
 (34, 48, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAxMTUxODY1LCJleHAiOjE3MDExNTU0NjV9.pJI-5tcbvk7MsARAk8VVIxgTy6t14bAi7BTHr0avPYQ', 'checked'),
@@ -368,20 +435,21 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
   `user_id` bigint NOT NULL,
   `value` decimal(10,2) NOT NULL,
   `status` enum('pending','authorized','refused') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'pending',
-  `reply_observation` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `reply_observation` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
   `reference_id` varchar(255) NOT NULL,
   `transaction_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `withdrawals`
 --
 
 INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `reference_id`, `transaction_id`, `created_at`) VALUES
-(4, 10, '17.12', 'authorized', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
-(6, 48, '100.00', 'pending', NULL, '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25');
+(4, 10, '17.12', 'refused', '<p>Lorem ipsum dolor sit amet. Et quos sapiente qui suscipit atque ut maiores delectus. Eum explicabo error non veritatis dolores aut culpa architecto quo velit fugiat sit nihil vero. Et omnis omnis ad facilis pariatur ut repellat velit ex impedit laudantium et quis ipsam ut officiis odit. Ut facere voluptatem eos omnis sapiente vel veniam amet. </p><p>Ex quidem dolores qui odit voluptatum et fugiat tempora id voluptatem harum. Et ipsum accusantium et optio dolor et odit impedit ut possimus blanditiis est voluptatem omnis. Est numquam galisum aut doloremque molestiae est omnis vero aut officia quae id sunt voluptates aut tempore sint. Ut error recusandae ut aliquid galisum eos nemo sunt? </p><p>Est culpa pariatur et dolor consequuntur et odit unde? Ad deleniti dicta et numquam voluptas et internos aliquid vel veniam tenetur! Eos doloribus incidunt et exercitationem sint ea quia laborum est animi repellendus? 33 perferendis veniam est Quis iure id velit animi et galisum praesentium ut cupiditate fugiat non tenetur similique. </p>\n', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
+(6, 10, '100.00', 'authorized', 'vfcxcv', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25'),
+(7, 10, '100.00', 'authorized', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
