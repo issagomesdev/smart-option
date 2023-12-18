@@ -33,7 +33,7 @@ export class RequestService {
     try {
 
       const balance:any = (
-        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y') AS created_at FROM balance WHERE user_id = ${userId} ORDER BY created_at`)
+        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') AS created_at FROM balance WHERE user_id = ${userId} ORDER BY created_at`)
       )[0];
 
       return {extract: balance, balance: await RequestService.balance(userId)}
@@ -46,7 +46,7 @@ export class RequestService {
     try {
 
       const requests:any = (
-        await conn.query(`SELECT withdrawals.*, DATE_FORMAT(withdrawals.created_at, '%d/%m/%Y') AS created_at, bot_users.name FROM withdrawals JOIN bot_users ON withdrawals.user_id = bot_users.id ${userId? `WHERE withdrawals.user_id = ${userId}` : ''} ORDER BY created_at`)
+        await conn.query(`SELECT withdrawals.*, DATE_FORMAT(withdrawals.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name FROM withdrawals JOIN bot_users ON withdrawals.user_id = bot_users.id ${userId? `WHERE withdrawals.user_id = ${userId}` : ''} ORDER BY created_at`)
       )[0];
 
       return requests
@@ -59,7 +59,7 @@ export class RequestService {
     try {
 
       const requests:any = (
-        await conn.query(`SELECT checkouts.*, DATE_FORMAT(checkouts.created_at, '%d/%m/%Y') AS created_at, bot_users.name FROM checkouts JOIN bot_users ON checkouts.user_id = bot_users.id WHERE ${userId? `checkouts.user_id = ${userId} AND` : ''} checkouts.type = 'deposit' ORDER BY created_at`)
+        await conn.query(`SELECT checkouts.*, DATE_FORMAT(checkouts.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name FROM checkouts JOIN bot_users ON checkouts.user_id = bot_users.id WHERE ${userId? `checkouts.user_id = ${userId} AND` : ''} checkouts.type = 'deposit' ORDER BY created_at`)
       )[0];
 
       return requests
@@ -72,7 +72,7 @@ export class RequestService {
     try {
 
       const requests:any = (
-        await conn.query(`SELECT checkouts.*, DATE_FORMAT(checkouts.created_at, '%d/%m/%Y') AS created_at, bot_users.name, products.name as product FROM checkouts JOIN bot_users ON checkouts.user_id = bot_users.id LEFT JOIN products ON products.id = checkouts.product_id WHERE ${userId? `checkouts.user_id = ${userId} AND` : ''} checkouts.type = 'subscription' ORDER BY created_at`)
+        await conn.query(`SELECT checkouts.*, DATE_FORMAT(checkouts.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, products.name as product FROM checkouts JOIN bot_users ON checkouts.user_id = bot_users.id LEFT JOIN products ON products.id = checkouts.product_id WHERE ${userId? `checkouts.user_id = ${userId} AND` : ''} checkouts.type = 'subscription' ORDER BY created_at`)
       )[0];
 
       return requests
@@ -85,7 +85,7 @@ export class RequestService {
     try {
 
       const requests:any = (
-        await conn.query(`SELECT requests.*, DATE_FORMAT(requests.created_at, '%d/%m/%Y') AS created_at, bot_users.name, bot_users.id as user_id, products.name as product FROM requests JOIN bot_users ON requests.user_id = bot_users.id LEFT JOIN products ON products.id = requests.subject ${userId? `WHERE requests.user_id = ${userId}` : ''} ORDER BY created_at`)
+        await conn.query(`SELECT requests.*, DATE_FORMAT(requests.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, bot_users.id as user_id, products.name as product FROM requests JOIN bot_users ON requests.user_id = bot_users.id LEFT JOIN products ON products.id = requests.subject ${userId? `WHERE requests.user_id = ${userId}` : ''} ORDER BY created_at`)
       )[0];
 
       return requests
@@ -105,6 +105,10 @@ export class RequestService {
       const withdrawal = (
         await conn.query(`SELECT * FROM withdrawals WHERE id = '${body.id}'`)
       )[0][0];
+
+      if(body.res){
+        await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
+      }
 
     // const options = {
     //   method: 'POST',

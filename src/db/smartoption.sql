@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 13-Dez-2023 às 11:43
+-- Tempo de geração: 18-Dez-2023 às 23:02
 -- Versão do servidor: 8.0.31
 -- versão do PHP: 8.1.13
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `balance` (
   `reference_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `balance`
@@ -57,7 +57,9 @@ INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id
 (29, '1.50', 10, 'sum', 'earnings', '', '2023-12-05 02:35:26'),
 (33, '100.00', 10, 'sum', 'deposit', '94', '2023-12-13 11:37:01'),
 (31, '100.00', 10, 'sum', 'deposit', NULL, '2023-12-05 02:37:21'),
-(32, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-05 02:36:45');
+(32, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-05 02:36:45'),
+(34, '97.00', 10, 'subtract', 'subscription', NULL, '2023-12-13 13:18:17'),
+(36, '120.00', 10, 'subtract', '', '11', '2023-12-13 14:33:00');
 
 -- --------------------------------------------------------
 
@@ -88,7 +90,7 @@ CREATE TABLE IF NOT EXISTS `bot_users` (
 --
 
 INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number`, `adress`, `pix_code`, `status`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
-(10, 'Hayssa Maria Gomes da Silva', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', '13105628495', 1, 1743885934, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-12-13 11:41:53'),
+(10, 'Hayssa Maria Gomes da Silva', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', '13105628495', 1, 1743885934, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-12-18 16:53:50'),
 (25, 'liza', 'liza@mail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 1, NULL, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 16:49:30'),
 (24, 'lilian Barro', 'gvfrcd', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hbgvfcd', 1, NULL, '2023-11-19 21:46:43', '2023-11-01 21:53:05', '2023-11-20 19:53:56'),
 (23, 'leandro henrique', 'leo_hen@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 1, NULL, '2023-11-19 21:41:38', '2023-11-19 21:43:24', '2023-11-19 21:43:58'),
@@ -131,7 +133,7 @@ CREATE TABLE IF NOT EXISTS `checkouts` (
   `user_id` bigint DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=97 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=98 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `checkouts`
@@ -160,7 +162,8 @@ INSERT INTO `checkouts` (`id`, `reference_id`, `type`, `value`, `status`, `trans
 (93, '512b6b77-27b5-474c-b9ad-9491fc4162db', 'subscription', '97.00', 'PAID', 'CHEC_D037DE0C-5963-40A4-9B2B-738DCAAB3EF4', 1, 10, '2023-12-13 11:30:09'),
 (94, 'ce9a5c76-80ff-4b71-b45d-25aaf82c7168', 'deposit', '100.00', 'PAID', 'CHEC_A2CA66FB-25D6-4AB9-8B2F-8E870EB19A6B', 0, 10, '2023-12-13 11:35:47'),
 (95, 'd3d7891d-dbb0-49d1-8780-9759261378b6', 'subscription', '97.00', 'PENDING', 'CHEC_98C28070-4346-4154-80CB-A857D1F2D418', 1, 10, '2023-12-13 11:39:53'),
-(96, '5132e808-82d2-4bc2-9716-8a8ec31cd4e2', 'subscription', '97.00', 'PAID', 'CHEC_194D48D4-DE99-43BF-B07D-D117C9DC2C0B', 1, 10, '2023-12-13 11:40:10');
+(96, '5132e808-82d2-4bc2-9716-8a8ec31cd4e2', 'subscription', '97.00', 'PAID', 'CHEC_194D48D4-DE99-43BF-B07D-D117C9DC2C0B', 1, 10, '2023-12-13 11:40:10'),
+(97, 'a70757d8-2914-4db8-bca8-5741f775dcfc', 'subscription', '97.00', 'PAID', 'CHEC_0A81A939-A691-44D8-938D-6AE102D53638', 1, 10, '2023-12-13 13:19:03');
 
 -- --------------------------------------------------------
 
@@ -394,7 +397,7 @@ INSERT INTO `users_plans` (`id`, `user_id`, `product_id`, `status`, `acquired_in
 (10, 49, 2, 1, '2023-11-28 06:23:47', '2023-12-28 06:23:47'),
 (11, 48, 1, 1, '2023-12-28 07:46:57', '2023-12-28 07:46:57'),
 (12, 50, 3, 1, '2023-11-28 07:11:02', '2023-12-28 07:11:02'),
-(13, 10, 1, 1, '2023-12-13 11:41:44', '2024-01-13 11:41:44');
+(13, 10, 1, 0, '2023-12-13 13:21:00', '2024-01-13 13:21:00');
 
 -- --------------------------------------------------------
 
@@ -440,7 +443,7 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
   `transaction_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `withdrawals`
@@ -448,8 +451,10 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
 
 INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `reference_id`, `transaction_id`, `created_at`) VALUES
 (4, 10, '17.12', 'refused', '<p>Lorem ipsum dolor sit amet. Et quos sapiente qui suscipit atque ut maiores delectus. Eum explicabo error non veritatis dolores aut culpa architecto quo velit fugiat sit nihil vero. Et omnis omnis ad facilis pariatur ut repellat velit ex impedit laudantium et quis ipsam ut officiis odit. Ut facere voluptatem eos omnis sapiente vel veniam amet. </p><p>Ex quidem dolores qui odit voluptatum et fugiat tempora id voluptatem harum. Et ipsum accusantium et optio dolor et odit impedit ut possimus blanditiis est voluptatem omnis. Est numquam galisum aut doloremque molestiae est omnis vero aut officia quae id sunt voluptates aut tempore sint. Ut error recusandae ut aliquid galisum eos nemo sunt? </p><p>Est culpa pariatur et dolor consequuntur et odit unde? Ad deleniti dicta et numquam voluptas et internos aliquid vel veniam tenetur! Eos doloribus incidunt et exercitationem sint ea quia laborum est animi repellendus? 33 perferendis veniam est Quis iure id velit animi et galisum praesentium ut cupiditate fugiat non tenetur similique. </p>\n', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
-(6, 10, '100.00', 'authorized', 'vfcxcv', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25'),
-(7, 10, '100.00', 'authorized', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03');
+(6, 10, '100.00', 'refused', 'vfcxcv', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25'),
+(7, 10, '100.00', 'authorized', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
+(10, 10, '120.00', 'refused', 'gdgdbfgvdf', '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, '2023-12-13 14:31:49'),
+(11, 10, '120.00', 'authorized', 'jhfdfs', 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, '2023-12-13 14:32:40');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
