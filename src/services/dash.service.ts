@@ -35,10 +35,8 @@ export class DashboardService {
     }
   }
 
-  static async balance(user_id:string, product_id:string){
+  static async balance(user_id:string, product_id:string, period:string){
     try {
-
-        console.log(user_id, product_id)
 
       const balance:any = (
         await conn.query(`SELECT * FROM balance ${product_id !== 'all'? `JOIN users_plans ON balance.user_id = users_plans.user_id WHERE users_plans.product_id = '${product_id}'` : ''} ${user_id !== 'all'? `WHERE user_id = '${user_id}'` : ''} ORDER BY created_at`)

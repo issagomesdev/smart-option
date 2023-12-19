@@ -45,10 +45,10 @@ export class UsersService {
     }
   }
 
-  static async botUsers(): Promise<any> {
+  static async botUsers(search:string): Promise<any> {
     try {
         const users:any = (
-            await conn.query(`SELECT bot_users.id, bot_users.name, bot_users.email, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id`)
+        await conn.query(` SELECT bot_users.id, bot_users.name, bot_users.email, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id ${search !== 'all' ? `WHERE bot_users.id = '${search}' OR LOWER(bot_users.name) LIKE LOWER('%${search}%')` : ''} `)
         )[0];
 
         for (const user of users) {

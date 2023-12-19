@@ -16,9 +16,9 @@ export default express
             next(new HttpException(400, error));
         }
     })
-    .get('/balance/:user_id/:product_id', async(req: Request, res: Response, next: NextFunction) => {
+    .get('/balance/:user_id/:product_id/:period', async(req: Request, res: Response, next: NextFunction) => {
         try {
-            const response = await DashboardService.balance(req.params.user_id, req.params.product_id);
+            const response = await DashboardService.balance(req.params.user_id, req.params.product_id, req.params.period);
             res.status(200).json(response);
         } catch (error) {
             console.log(error);

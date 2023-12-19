@@ -36,9 +36,9 @@ export default express
       }
 
     })
-    .get('/users-bot', async(req: Request, res: Response, next: NextFunction) => {
+    .get('/users-bot/:search', async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const response = await UsersService.botUsers();
+        const response = await UsersService.botUsers(req.params.search);
         res.status(200).json(response);
     } catch (error) {
         console.log(error);
