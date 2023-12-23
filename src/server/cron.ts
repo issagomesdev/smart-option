@@ -35,13 +35,13 @@ export const everyMinuteCron = cron.schedule(
 
 async function checkExpiredUsers() {
 	const expired:any = (
-		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE expired_in < NOW() AND status = 1`)
+		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE expired_in < NOW() AND status = '1'`)
 	  )[0];
 
 	  await expired.map(async(user) => {
 		const balance = await TransactionsService.balance(user.user_id);
 		const product:any = (
-			await conn.query(`SELECT price FROM products WHERE id = ${user.product_id}`)
+			await conn.query(`SELECT price FROM products WHERE id = '${user.product_id}'`)
 		  )[0][0];
 
 		  if(product.price <= balance){	
@@ -57,14 +57,14 @@ async function checkExpiredUsers() {
 async function applyEarningsDaily() {
 
 	const users:any = (
-		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE status = 1`)
+		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE status = '1'`)
 	  )[0];
 
 	  await users.map(async(user) => {
 		const balance:any = await TransactionsService.balance(user.user_id, false);
 		
 		const product:any = (
-			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = ${user.product_id}`)
+			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)
 		  )[0][0];
 
 		const daily_earnings:any = Math.floor((product.monthly_earnings / 22) * 100) / 100;
@@ -80,13 +80,13 @@ async function applyEarningsDaily() {
 
 async function checkUsersWithoutPlan() {
 	const expired:any = (
-		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE AND status = 0`)
+		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE status = '0'`)
 	  )[0];
 
 	  await expired.map(async(user) => {
-		const balance = await TransactionsService.balance(user.user_id);
+		const balance = await TransactionsService.balance(null, true, user);
 		const product:any = (
-			await conn.query(`SELECT price FROM products WHERE id = ${user.product_id}`)
+			await conn.query(`SELECT price FROM products WHERE id = '${user.product_id}'`)
 		  )[0][0];
 
 		  if(product.price <= balance){	

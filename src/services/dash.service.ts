@@ -35,11 +35,13 @@ export class DashboardService {
     }
   }
 
-  static async balance(user_id:string, product_id:string, period:string){
+  static async balance(user_id:string, product_id:string, interval:string){
     try {
 
+      const [start, end] = interval !== 'all'? interval.split(' - ') : '';
+
       const balance:any = (
-        await conn.query(`SELECT * FROM balance ${product_id !== 'all'? `JOIN users_plans ON balance.user_id = users_plans.user_id WHERE users_plans.product_id = '${product_id}'` : ''} ${user_id !== 'all'? `WHERE user_id = '${user_id}'` : ''} ORDER BY created_at`)
+        await conn.query(`SELECT * FROM balance ${product_id !== 'all'? `JOIN users_plans ON balance.user_id = users_plans.user_id WHERE users_plans.product_id = '${product_id}'` : ''} ${user_id !== 'all'? `WHERE user_id = '${user_id}'` : ''} ${interval !== 'all'? `${user_id !== 'all' || product_id !== 'all'? 'AND' : 'WHERE'} DATE(created_at) BETWEEN '${start.split('-')[2]+'-'+start.split('-')[1]+'-'+start.split('-')[0]}' AND '${end.split('-')[2]+'-'+end.split('-')[1]+'-'+end.split('-')[0]}'` : ''} ORDER BY created_at`)
       )[0];
 
       let result:number = 0;

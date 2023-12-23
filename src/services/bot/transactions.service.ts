@@ -6,15 +6,17 @@ import { NetworkService } from "./network.service";
 
 export class TransactionsService {
 
-  static async balance(userId:number, earnings:boolean = true){
+  static async balance(telegramId:number = null, earnings:boolean = true, user:any = null){
     try {
 
-      const user = (
-        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
-      )[0][0];
+      if(telegramId && !user) {
+        user = (
+          await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${telegramId}`)
+        )[0][0];
+      }
 
       const balance:any = (
-        await conn.query(`SELECT * FROM balance WHERE user_id = ${user.id} ${!earnings? "AND origin != 'earnings'" : ""} ORDER BY created_at`)
+        await conn.query(`SELECT * FROM balance WHERE user_id = '${user.id}' ${!earnings? "AND origin != 'earnings'" : ""} ORDER BY created_at`)
       )[0];
 
       let result:number = 0;

@@ -46,6 +46,16 @@ export default express
     }
 
     })
+    .post('/users-bot', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.botUsers('all', req.body);
+        res.status(200).json(response);
+    } catch (error) {
+        console.log(error);
+        next(new HttpException(400, error));
+    }
+
+    })
     .get('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => {
     try {
         const response = await UsersService.botUser(req.params.id);
