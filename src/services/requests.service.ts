@@ -29,11 +29,13 @@ export class RequestService {
     }
   }
 
-  static async extract(userId:number){
+  static async extract(userId:number, filters:any = null){
     try {
 
+      console.log(filters.created_at)
+
       const balance:any = (
-        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') AS created_at FROM balance WHERE user_id = ${userId} ORDER BY created_at`)
+        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') AS created_at FROM balance WHERE user_id = ${userId} ${filters? `${filters.value.includes('+')? `AND balance.type = 'sum'`: filters.value.includes('-')? `AND balance.type = 'subtract'` : ''} AND LOWER(balance.value) LIKE LOWER('%${filters.value.match(/[+-]?\d+(\.\d+)?/)? filters.value.match(/[+-]?\d+(\.\d+)?/)[0] : '' }%') ${filters.origin !== 'all'? `AND ${filters.origin == 'deposit'? 'balance.origin = "deposit"' : filters.origin == 'withdraw'? 'balance.origin = "withdraw"' : filters.origin == 'subscription'? 'balance.origin = "subscription" AND balance.type = "subtract"' : filters.origin == 'tuition'? 'balance.origin = "tuition" AND balance.type = "subtract"' : filters.origin == 'earnings'? 'balance.origin = "earnings"' : filters.origin == 'profitability'? 'balance.origin = "profitability"' : filters.origin == 'B.A'? 'balance.origin = "subscription" AND balance.type = "sum"' : filters.origin == 'B.M'? 'balance.origin = "tuition" AND balance.type = "sum"' : '' }` : ''} ${filters.created_at? `AND LOWER(balance.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}` : '' } ORDER BY created_at`)
       )[0];
 
       return {extract: balance, balance: await RequestService.balance(userId)}

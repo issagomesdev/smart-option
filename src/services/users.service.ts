@@ -2,6 +2,7 @@ import conn from "../db";
 import { SHA1 } from "crypto-js";
 import axios from "axios";
 import { bot } from "../bot/index"
+import { DashboardService } from "./dash.service";
 
 export class UsersService {
 
@@ -18,7 +19,6 @@ export class UsersService {
   }
 
   static async updateUser(user:any): Promise<any> {
-    console.log(user)
     try {
       await conn.query(`UPDATE users SET name='${user.name}',surname='${user.surname}',email='${user.email}' WHERE id = ${user.id}`)
 
@@ -56,15 +56,17 @@ export class UsersService {
         for (let i = users.length - 1; i >= 0; i--) {
           const user = users[i];
     
-          if (filters.telegram) {
+          if (filters && filters.telegram) {
             if (user.telegram) {
               const telegram_user = (await bot.getChat(user.telegram)).username;
               user.telegram = telegram_user;
               if (!telegram_user.includes(filters.telegram)) {
                 users.splice(i, 1);
+                continue;
               }
             } else {
               users.splice(i, 1);
+              continue;
             }
           } else {
             if (user.telegram) {
@@ -73,8 +75,19 @@ export class UsersService {
               user.telegram = 'off';
             }
           }
-        }
 
+          if (filters && filters.balance) {         
+            const balance = `${await DashboardService.balance(user.id, 'all', 'all')}`;
+            if (balance.includes(filters.balance)) {
+              user.balance = balance;
+            } else {
+              users.splice(i, 1);
+            }
+          } else {
+            const balance = await DashboardService.balance(user.id, 'all', 'all');
+            user.balance = balance;
+          }
+        }
         return users;
         
     } catch (error) {

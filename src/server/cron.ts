@@ -61,7 +61,7 @@ async function applyEarningsDaily() {
 	  )[0];
 
 	  await users.map(async(user) => {
-		const balance:any = await TransactionsService.balance(user.user_id, false);
+		const balance:any = await TransactionsService.balance(null, false, user.user_id);
 		
 		const product:any = (
 			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)

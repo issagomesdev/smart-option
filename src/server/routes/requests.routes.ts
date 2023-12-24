@@ -15,6 +15,15 @@ export default express
           next(new HttpException(400, error));
       }
     })
+    .post('/extract/:id', async(req: Request, res: Response, next: NextFunction) => {
+      try {
+          const response = await RequestService.extract(Number(req.params.id) || null, req.body);
+          res.status(200).json(response);
+      } catch (error) {
+          console.log(error);
+          next(new HttpException(400, error));
+      }
+    })
     .get('/withdrawal/:id', async(req: Request, res: Response, next: NextFunction) => {
       try {
           const response = await RequestService.withdrawalRequests(Number(req.params.id) || null);
