@@ -6,9 +6,9 @@ import { HttpException } from "../../exceptions/http.exception";
 
 export default express
   .Router()
-    .get('/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/:id', async(req: Request, res: Response, next: NextFunction) => {
     try {
-        const response = await NetworkService.network(Number(req.params.id));
+        const response = await NetworkService.network(Number(req.params.id), req.body);
         res.status(200).json(response);
     } catch (error) {
         console.log(error);

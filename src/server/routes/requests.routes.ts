@@ -24,36 +24,36 @@ export default express
           next(new HttpException(400, error));
       }
     })
-    .get('/withdrawal/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/withdrawal/:id', async(req: Request, res: Response, next: NextFunction) => {
       try {
-          const response = await RequestService.withdrawalRequests(Number(req.params.id) || null);
+          const response = await RequestService.withdrawalRequests(Number(req.params.id) || null, req.body);
           res.status(200).json(response);
       } catch (error) {
           console.log(error);
           next(new HttpException(400, error));
       }
     })
-    .get('/deposit/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/deposit/:id', async(req: Request, res: Response, next: NextFunction) => {
       try {
-          const response = await RequestService.depositsRequests(Number(req.params.id) || null);
+          const response = await RequestService.depositsRequests(Number(req.params.id) || null, req.body);
           res.status(200).json(response);
       } catch (error) {
           console.log(error);
           next(new HttpException(400, error));
       }
     })
-    .get('/support/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/support/:id', async(req: Request, res: Response, next: NextFunction) => {
       try {
-          const response = await RequestService.supportRequests(Number(req.params.id) || null);
+          const response = await RequestService.supportRequests(Number(req.params.id) || null, req.body);
           res.status(200).json(response);
       } catch (error) {
           console.log(error);
           next(new HttpException(400, error));
       }
     })
-    .get('/subscription/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/subscription/:id', async(req: Request, res: Response, next: NextFunction) => {
       try {
-          const response = await RequestService.subscriptionsRequests(Number(req.params.id) || null);
+          const response = await RequestService.subscriptionsRequests(Number(req.params.id) || null, req.body);
           res.status(200).json(response);
       } catch (error) {
           console.log(error);
