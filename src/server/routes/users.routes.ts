@@ -1,5 +1,6 @@
 
 import { UsersService } from "../../services/users.service";
+import { RegisterService } from "../../services/bot/register.service";
 import express from "express";
 import { NextFunction, Request, Response } from "express";
 import { HttpException } from "../../exceptions/http.exception";
@@ -26,7 +27,7 @@ export default express
       }
 
     })
-   .patch('/update-pass', async(req: Request, res: Response, next: NextFunction) => {
+    .patch('/update-pass', async(req: Request, res: Response, next: NextFunction) => {
       try {
           const response = await UsersService.updatePass(req.body);
           res.status(200).json(response);
@@ -59,6 +60,35 @@ export default express
     .get('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => {
     try {
         const response = await UsersService.botUser(req.params.id);
+        res.status(200).json(response);
+    } catch (error) {
+        console.log(error);
+        next(new HttpException(400, error));
+    }
+
+    })
+    .post('/user-bot', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await RegisterService.registerUser(req.body);
+        res.status(200).json(response);
+    } catch (error) {
+        console.log(error);
+        next(new HttpException(400, error));
+    }
+
+    })
+    .patch('/user-bot', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.updateBotUser(req.body);
+        res.status(200).json(response);
+    } catch (error) {
+        next(new HttpException(400, error));
+    }
+
+    })
+    .post('/user-bot/:id/:status', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.isActiveBotUser(Number(req.params.id), Number(req.params.status));
         res.status(200).json(response);
     } catch (error) {
         console.log(error);

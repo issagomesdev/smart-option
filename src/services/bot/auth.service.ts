@@ -11,6 +11,7 @@ export class AuthenticationService {
         )[0][0];
         if(!user || user.password != SHA1(password)) throw Error("Email e/ou senha inválidos");
         if(!user.verified_email_at) throw Error("Email não validado");
+        if(!user.is_active) throw Error("Acesso bloqueado, contate o suporte");
 
         await conn.query(`UPDATE bot_users SET telegram_user_id='${userId}', last_activity='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.id}'`);
 

@@ -23,6 +23,8 @@ export class RegisterService {
         
         if(affiliateId) NetworkService.upNetwork(affiliateId, user.insertId);
         RegisterService.sendVerificationEmail(body.email)
+
+        return { status: true, message: "Usuário cadastrado com sucesso" }
     } catch (error) {
       throw error;
     }

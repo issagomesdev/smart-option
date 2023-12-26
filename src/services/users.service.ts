@@ -49,8 +49,8 @@ export class UsersService {
     try {
 
         const users:any = (
-        await conn.query(`SELECT bot_users.id, bot_users.name, bot_users.email, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id ${search !== 'all' ? `WHERE bot_users.id = '${search}' OR LOWER(bot_users.name) LIKE LOWER('%${search}%')` : ''}
-        ${filters? `WHERE LOWER(bot_users.id) LIKE LOWER('%${filters.user_id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(bot_users.email) LIKE LOWER('%${filters.email}%') ${filters.product_id !== 'all'? `AND products.id = ${filters.product_id}` : ''} ${filters.status !== 'all'? `AND users_plans.status = ${filters.status} ${!filters.status? 'OR users_plans.status IS NULL' : ''}` : ''} AND LOWER(bot_users.created_at) LIKE LOWER('%${filters.created_at? (filters.created_at.replace(/\//g, '-')).split("-").reverse().join("-") : ''}%')` : '' }`)
+        await conn.query(`SELECT bot_users.id, bot_users.name, bot_users.email, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, bot_users.is_active, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id ${search !== 'all' ? `WHERE bot_users.id = '${search}' OR LOWER(bot_users.name) LIKE LOWER('%${search}%')` : ''}
+        ${filters? `WHERE LOWER(bot_users.id) LIKE LOWER('%${filters.user_id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(bot_users.email) LIKE LOWER('%${filters.email}%') ${filters.product_id !== 'all'? `AND products.id = ${filters.product_id}` : ''} ${filters.status !== 'all'? `AND users_plans.status = ${filters.status} ${!filters.status? 'OR users_plans.status IS NULL' : ''}` : ''} ${filters.is_active !== 'all'? `AND bot_users.is_active = ${filters.is_active}` : ''} AND LOWER(bot_users.created_at) LIKE LOWER('%${filters.created_at? (filters.created_at.replace(/\//g, '-')).split("-").reverse().join("-") : ''}%')` : '' }`)
         )[0];
 
         for (let i = users.length - 1; i >= 0; i--) {
@@ -98,7 +98,7 @@ export class UsersService {
   static async botUser(id:string): Promise<any> {
     try {
         const user:any = (
-            await conn.query(`SELECT bot_users.id, bot_users.name, bot_users.email, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id WHERE bot_users.id = ${id}`)
+            await conn.query(`SELECT bot_users.id, bot_users.name, bot_users.email, bot_users.cpf, bot_users.phone_number, bot_users.adress, bot_users.pix_code, bot_users.is_active, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id WHERE bot_users.id = ${id}`)
         )[0][0];
 
         if (user.telegram) {
@@ -108,6 +108,45 @@ export class UsersService {
         }
 
         return user;
+        
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  
+  static async updateBotUser(body:any): Promise<any> {
+    try {
+
+      let user = (
+        await conn.query(`SELECT * FROM bot_users WHERE id = '${body.id}'`)
+      )[0][0];
+
+      if(!user) throw Error("Usuário Inexistente");
+
+      await conn.execute(`UPDATE bot_users SET name='${body.name}',email='${body.email}',cpf='${body.cpf}', ${body.password? `password='${SHA1(body.password).toString()}, ` : ''} phone_number='${body.phone_number}', adress='${body.adress}', pix_code='${body.pix_code}' WHERE id = '${body.id}'`)
+
+        return { status: true, message: "Usuário atualizado com sucesso" }
+        
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async isActiveBotUser(userId:number, status:number): Promise<any> {
+    try {
+
+      let user = (
+        await conn.query(`SELECT * FROM bot_users WHERE id = '${userId}'`)
+      )[0][0];
+
+      if(!user) throw Error("Usuário Inexistente");
+      
+      const up:any = (
+        await conn.execute(`UPDATE bot_users SET is_active='${status}' WHERE id = '${userId}'`)
+        )[0]
+
+        return { status: true, message: "Usuário atualizado com sucesso" }
         
     } catch (error) {
       throw error;
