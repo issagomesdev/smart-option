@@ -69,4 +69,13 @@ export default express
           next(new HttpException(400, error));
       }
     })
+    .patch('/was-read/:id/:status', async(req: Request, res: Response, next: NextFunction) => {
+      try {
+          const response = await RequestService.wasRead(req.params.id, req.params.status);
+          res.status(200).json(response);
+      } catch (error) {
+          console.log(error);
+          next(new HttpException(400, error));
+      }
+    })
     

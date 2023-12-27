@@ -12,7 +12,6 @@ export default express
         const response = await UsersService.users();
         res.status(200).json(response);
     } catch (error) {
-        console.log(error);
         next(new HttpException(400, error));
     }
 
@@ -22,7 +21,6 @@ export default express
           const response = await UsersService.updateUser(req.body);
           res.status(200).json(response);
       } catch (error) {
-          console.log(error);
           next(new HttpException(400, error));
       }
 
@@ -32,7 +30,6 @@ export default express
           const response = await UsersService.updatePass(req.body);
           res.status(200).json(response);
       } catch (error) {
-          console.log(error);
           next(new HttpException(400, error));
       }
 
@@ -42,7 +39,6 @@ export default express
         const response = await UsersService.botUsers(req.params.search);
         res.status(200).json(response);
     } catch (error) {
-        console.log(error);
         next(new HttpException(400, error));
     }
 
@@ -52,7 +48,6 @@ export default express
         const response = await UsersService.botUsers('all', req.body);
         res.status(200).json(response);
     } catch (error) {
-        console.log(error);
         next(new HttpException(400, error));
     }
 
@@ -62,7 +57,6 @@ export default express
         const response = await UsersService.botUser(req.params.id);
         res.status(200).json(response);
     } catch (error) {
-        console.log(error);
         next(new HttpException(400, error));
     }
 
@@ -72,7 +66,6 @@ export default express
         const response = await RegisterService.registerUser(req.body);
         res.status(200).json(response);
     } catch (error) {
-        console.log(error);
         next(new HttpException(400, error));
     }
 
@@ -86,14 +79,21 @@ export default express
     }
 
     })
-    .post('/user-bot/:id/:status', async(req: Request, res: Response, next: NextFunction) => {
+    .put('/user-bot/:id/:status', async(req: Request, res: Response, next: NextFunction) => {
     try {
         const response = await UsersService.isActiveBotUser(Number(req.params.id), Number(req.params.status));
         res.status(200).json(response);
     } catch (error) {
-        console.log(error);
         next(new HttpException(400, error));
     }
 
     })
+    .post('/transf-user-admin', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.transfValuesAdmin(req.body);
+        res.status(200).json(response);
+    } catch (error) {
+        next(new HttpException(400, error));
+    }
+    });
     

@@ -33,7 +33,7 @@ export class RequestService {
     try {
 
       const balance:any = (
-        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') AS created_at FROM balance WHERE user_id = ${userId} ${filters? `${filters.value.includes('+')? `AND balance.type = 'sum'`: filters.value.includes('-')? `AND balance.type = 'subtract'` : ''} AND LOWER(balance.value) LIKE LOWER('%${filters.value.match(/[+-]?\d+(\.\d+)?/)? filters.value.match(/[+-]?\d+(\.\d+)?/)[0] : '' }%') ${filters.origin !== 'all'? `AND ${filters.origin == 'deposit'? 'balance.origin = "deposit"' : filters.origin == 'withdraw'? 'balance.origin = "withdraw"' : filters.origin == 'subscription'? 'balance.origin = "subscription" AND balance.type = "subtract"' : filters.origin == 'tuition'? 'balance.origin = "tuition" AND balance.type = "subtract"' : filters.origin == 'earnings'? 'balance.origin = "earnings"' : filters.origin == 'profitability'? 'balance.origin = "profitability"' : filters.origin == 'B.A'? 'balance.origin = "subscription" AND balance.type = "sum"' : filters.origin == 'B.M'? 'balance.origin = "tuition" AND balance.type = "sum"' : '' }` : ''} ${filters.created_at? `AND LOWER(balance.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}` : '' } ORDER BY created_at`)
+        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') AS created_at FROM balance WHERE user_id = ${userId} ${filters? `${filters.value.includes('+')? `AND balance.type = 'sum'`: filters.value.includes('-')? `AND balance.type = 'subtract'` : ''} AND LOWER(balance.value) LIKE LOWER('%${filters.value.match(/[+-]?\d+(\.\d+)?/)? filters.value.match(/[+-]?\d+(\.\d+)?/)[0] : '' }%') ${filters.origin !== 'all'? `AND ${filters.origin == 'deposit'? 'balance.origin = "deposit"' : filters.origin == 'withdraw'? 'balance.origin = "withdraw"' : filters.origin == 'subscription'? 'balance.origin = "subscription" AND balance.type = "subtract"' : filters.origin == 'tuition'? 'balance.origin = "tuition" AND balance.type = "subtract"' : filters.origin == 'earnings'? 'balance.origin = "earnings"' : filters.origin == 'profitability'? 'balance.origin = "profitability"' : filters.origin == 'transfer'? 'balance.origin = "transfer"' : filters.origin == 'admin'? 'balance.origin = "admin"' : filters.origin == 'B.A'? 'balance.origin = "subscription" AND balance.type = "sum"' : filters.origin == 'B.M'? 'balance.origin = "tuition" AND balance.type = "sum"' : '' }` : ''} ${filters.created_at? `AND LOWER(balance.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}` : '' } ORDER BY created_at`)
       )[0];
 
       return {extract: balance, balance: await RequestService.balance(userId)}
@@ -81,9 +81,8 @@ export class RequestService {
 
   static async supportRequests(userId:number = null, filters:any){
     try {
-      console.log(filters)
       const requests:any = (
-        await conn.query(`SELECT requests.*, DATE_FORMAT(requests.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, bot_users.id as user_id, products.name as product FROM requests JOIN bot_users ON requests.user_id = bot_users.id LEFT JOIN products ON products.id = requests.subject WHERE ${`LOWER(requests.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') ${filters.type !== 'all'? `AND requests.type = "${filters.type}"` : ''} ${filters.created_at? `AND LOWER(requests.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND requests.user_id = ${userId}` : ''} ORDER BY created_at`)
+        await conn.query(`SELECT requests.*, DATE_FORMAT(requests.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, bot_users.id as user_id, products.name as product FROM requests JOIN bot_users ON requests.user_id = bot_users.id LEFT JOIN products ON products.id = requests.subject WHERE ${`LOWER(requests.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') ${filters.type !== 'all'? `AND requests.type = "${filters.type}"` : ''} ${filters.is_read !== 'all'? `AND requests.is_read = "${filters.is_read}"` : ''} ${filters.created_at? `AND LOWER(requests.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND requests.user_id = ${userId}` : ''} ORDER BY created_at`)
       )[0];
 
       return requests
@@ -124,6 +123,16 @@ export class RequestService {
     // };
     // const response = await fetch(`${process.env.TRANS_CHK_PATH}/transfers`, options);
     // const data = await response.json();
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  static async wasRead(id:string, status:string){
+    try {
+
+      await conn.query(`UPDATE requests SET is_read='${status}' WHERE id=${id}`);
+      return { status: true, message: "Solicitação atualizado com sucesso" }
     } catch (error) {
       console.log(error)
     }

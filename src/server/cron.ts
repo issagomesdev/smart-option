@@ -20,7 +20,7 @@ export const dailyCron = cron.schedule(
   );
 
 export const everyMinuteCron = cron.schedule(
-	"1-59 0,10 * * *",
+	"* * * * *",
 	async () => {
 		try {
 			await checkUsersWithoutPlan();
@@ -39,7 +39,7 @@ async function checkExpiredUsers() {
 	  )[0];
 
 	  await expired.map(async(user) => {
-		const balance = await TransactionsService.balance(user.user_id);
+		const balance = await TransactionsService.balance(null, true, user);
 		const product:any = (
 			await conn.query(`SELECT price FROM products WHERE id = '${user.product_id}'`)
 		  )[0][0];
@@ -61,7 +61,7 @@ async function applyEarningsDaily() {
 	  )[0];
 
 	  await users.map(async(user) => {
-		const balance:any = await TransactionsService.balance(null, false, user.user_id);
+		const balance:any = await TransactionsService.balance(null, false, user);
 		
 		const product:any = (
 			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)
@@ -91,9 +91,7 @@ async function checkUsersWithoutPlan() {
 
 		  if(product.price <= balance){	
             await TransactionsService.renewTuition(user, product)
-		  } else {
-			await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${user.user_id}'`);
-		  }
+		  } 
 	  });
 
 	  

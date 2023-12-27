@@ -114,7 +114,6 @@ export class UsersService {
     }
   }
 
-  
   static async updateBotUser(body:any): Promise<any> {
     try {
 
@@ -142,11 +141,21 @@ export class UsersService {
 
       if(!user) throw Error("Usuário Inexistente");
       
-      const up:any = (
-        await conn.execute(`UPDATE bot_users SET is_active='${status}' WHERE id = '${userId}'`)
-        )[0]
+      await conn.execute(`UPDATE bot_users SET is_active='${status}' WHERE id = '${userId}'`)
 
-        return { status: true, message: "Usuário atualizado com sucesso" }
+      return { status: true, message: "Usuário atualizado com sucesso" }
+        
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async transfValuesAdmin(data:any): Promise<any> {
+    try {
+      
+      await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${data.value}','${data.user_id}','${data.type}','admin')`);
+
+      return { status: true, message: "Usuário atualizado com sucesso" }
         
     } catch (error) {
       throw error;
