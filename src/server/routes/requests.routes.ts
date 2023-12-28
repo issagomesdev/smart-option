@@ -78,4 +78,13 @@ export default express
           next(new HttpException(400, error));
       }
     })
+    .get('/pendencies', async(req: Request, res: Response, next: NextFunction) => {
+      try {
+          const response = await RequestService.pendingRequests();
+          res.status(200).json(response);
+      } catch (error) {
+          console.log(error);
+          next(new HttpException(400, error));
+      }
+    })
     

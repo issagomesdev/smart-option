@@ -141,7 +141,7 @@ export class UsersService {
 
       if(!user) throw Error("Usuário Inexistente");
       
-      await conn.execute(`UPDATE bot_users SET is_active='${status}' WHERE id = '${userId}'`)
+      await conn.execute(`UPDATE bot_users SET is_active='${status}', telegram_user_id=null WHERE id = '${userId}'`)
 
       return { status: true, message: "Usuário atualizado com sucesso" }
         

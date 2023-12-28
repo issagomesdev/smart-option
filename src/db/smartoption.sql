@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 18-Dez-2023 às 23:02
+-- Tempo de geração: 28-Dez-2023 às 00:05
 -- Versão do servidor: 8.0.31
 -- versão do PHP: 8.1.13
 
@@ -33,11 +33,11 @@ CREATE TABLE IF NOT EXISTS `balance` (
   `value` decimal(10,2) NOT NULL,
   `user_id` bigint NOT NULL,
   `type` enum('sum','subtract') NOT NULL,
-  `origin` enum('deposit','withdraw','earnings','profitability','subscription','tuition') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `origin` enum('deposit','withdraw','earnings','profitability','subscription','tuition','transfer','admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `reference_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `balance`
@@ -59,7 +59,18 @@ INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id
 (31, '100.00', 10, 'sum', 'deposit', NULL, '2023-12-05 02:37:21'),
 (32, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-05 02:36:45'),
 (34, '97.00', 10, 'subtract', 'subscription', NULL, '2023-12-13 13:18:17'),
-(36, '120.00', 10, 'subtract', '', '11', '2023-12-13 14:33:00');
+(36, '120.00', 10, 'subtract', 'withdraw', '11', '2023-12-13 14:33:00'),
+(37, '1.00', 10, 'sum', 'tuition', '94', '2023-12-05 02:36:45'),
+(38, '13.00', 10, 'sum', 'admin', NULL, '2023-12-27 09:14:00'),
+(39, '10.00', 10, 'subtract', 'admin', NULL, '2023-12-27 09:14:47'),
+(40, '10.32', 10, 'sum', 'admin', NULL, '2023-12-27 09:15:33'),
+(41, '100.00', 23, 'subtract', 'admin', NULL, '2023-12-27 09:21:34'),
+(42, '217.76', 23, 'sum', 'admin', NULL, '2023-12-27 09:21:51'),
+(43, '100.00', 10, 'sum', 'admin', NULL, '2023-12-27 09:22:54'),
+(44, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-27 09:38:00'),
+(45, '100.00', 10, 'subtract', '', '7', '2023-12-27 21:54:28'),
+(46, '100.00', 10, 'sum', 'admin', NULL, '2023-12-27 21:58:56'),
+(47, '17.12', 10, 'subtract', '', '4', '2023-12-28 00:00:57');
 
 -- --------------------------------------------------------
 
@@ -77,24 +88,24 @@ CREATE TABLE IF NOT EXISTS `bot_users` (
   `phone_number` varchar(255) NOT NULL,
   `adress` varchar(255) NOT NULL,
   `pix_code` varchar(255) NOT NULL,
-  `status` int NOT NULL DEFAULT '1',
+  `is_active` int NOT NULL DEFAULT '1',
   `telegram_user_id` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `verified_email_at` timestamp NULL DEFAULT NULL,
   `last_activity` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `bot_users`
 --
 
-INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number`, `adress`, `pix_code`, `status`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
-(10, 'Hayssa Maria Gomes da Silva', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'hgtvfrd', '13105628495', 1, 1743885934, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-12-18 16:53:50'),
-(25, 'liza', 'liza@mail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 1, NULL, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 16:49:30'),
+INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number`, `adress`, `pix_code`, `is_active`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
+(10, 'Issa Maria Gom', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 0, NULL, '2023-11-18 13:29:17', '2023-11-17 03:00:00', '2023-12-27 21:50:40'),
+(25, 'liza', 'liza@mail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 0, NULL, '2023-11-19 21:54:29', '2023-11-09 09:30:39', '2023-11-26 16:49:30'),
 (24, 'lilian Barro', 'gvfrcd', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hbgvfcd', 1, NULL, '2023-11-19 21:46:43', '2023-11-01 21:53:05', '2023-11-20 19:53:56'),
-(23, 'leandro henrique', 'leo_hen@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 1, NULL, '2023-11-19 21:41:38', '2023-11-19 21:43:24', '2023-11-19 21:43:58'),
-(26, 'Hayssa gomes', 'Haygomes1@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '827372828272', 'Hehehshsh', 'Sggsshsh', 1, NULL, '2023-11-20 19:56:53', NULL, '2023-11-20 19:56:53'),
+(23, 'leandro henrique', 'leo_hen@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 0, NULL, '2023-11-19 21:41:38', '2023-11-19 21:43:24', '2023-11-19 21:43:58'),
+(26, 'Hayssa gomes', 'Haygomes1@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '827372828272', 'Hehehshsh', 'Sggsshsh', 0, NULL, '2023-11-20 19:56:53', NULL, '2023-11-20 19:56:53'),
 (27, 'Luiz HENrique marrotos', 'Hehshs', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '2763737227', 'Gdhshsh', 'Egehw', 1, NULL, '2023-11-20 20:00:13', NULL, '2023-11-20 20:00:13'),
 (28, 'Andre marcos', 'Andre@mail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '7372828', 'Shahha', 'Sggssh', 1, NULL, '2023-11-20 20:44:54', '2023-11-20 20:45:40', '2023-11-22 16:16:32'),
 (31, 'Barbara Ramos', 'barbaraR@mail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '26267272', 'Sggshsh', 'Shhshs', 1, NULL, '2023-11-20 20:53:56', '2023-11-20 20:55:50', '2023-11-20 20:58:23'),
@@ -113,7 +124,15 @@ INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number
 (48, 'hayssa g', 'byissag@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '6378920', 'thgrfdsczx', 'fgddcx', 1, NULL, '2023-11-28 06:11:05', '2023-11-28 06:11:45', '2023-11-28 07:53:06'),
 (49, 'laura maria', 'byissag+teste1@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '5467382', 'hfgbfvs', 'hfgfv', 1, NULL, '2023-11-28 06:14:40', '2023-11-28 06:15:12', '2023-11-28 06:59:11'),
 (50, 'renato marcos', 'byissag+teste2@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '564783', 'hfgd', 'gnbf', 1, NULL, '2023-11-28 06:16:27', '2023-11-28 06:16:49', '2023-11-28 07:12:15'),
-(51, 'bgvfcx', 'gvfdcx', '54354353453', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '545435', 'hbgvfdc', 'hbgvfc', 1, NULL, '2023-12-13 10:53:01', NULL, NULL);
+(51, 'bgvfcx', 'gvfdcx', '54354353453', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '545435', 'hbgvfdc', 'hbgvfc', 1, NULL, '2023-12-13 10:53:01', NULL, NULL),
+(52, 'julia Maria G', 'issagomes2002+t@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 1, NULL, '2023-12-26 06:47:42', NULL, NULL),
+(53, 'julia Maria G', 'issagomes2002+tw@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 1, NULL, '2023-12-26 06:48:22', NULL, NULL),
+(54, 'Liassir M G', 'issagomes2002+twt@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 1, NULL, '2023-12-26 18:21:14', NULL, NULL),
+(55, 'Hayssa Gomes2', 'issagomes2002+hbzj@gmail.com', '43546', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'dfcvbgfv', 1, NULL, '2023-12-26 19:12:49', NULL, NULL),
+(56, 'dcx', 'vdcx', 'cefce', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'edcsx', 'dsx', 'edsx', 1, NULL, '2023-12-26 19:46:04', NULL, NULL),
+(57, 'Hayssa Gomes', 'issagomes2002+2w@gmail.com', 'fd', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'fvc', 1, NULL, '2023-12-26 21:00:50', NULL, NULL),
+(58, 'Hayssa Gomes', 'issagomes2002+13@gmail.com', 'dff', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'bfb', 1, NULL, '2023-12-26 21:03:24', NULL, NULL),
+(59, 'undefined', 'undefined', 'undefined', 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'undefined', 'undefined', 'undefined', 1, NULL, '2023-12-27 00:41:03', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -298,6 +317,7 @@ CREATE TABLE IF NOT EXISTS `requests` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `type` enum('support','service') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `subject` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `is_read` int NOT NULL DEFAULT '0',
   `user_id` bigint NOT NULL,
   `telegram_user_id` bigint NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -308,21 +328,21 @@ CREATE TABLE IF NOT EXISTS `requests` (
 -- Extraindo dados da tabela `requests`
 --
 
-INSERT INTO `requests` (`id`, `type`, `subject`, `user_id`, `telegram_user_id`, `created_at`) VALUES
-(1, 'service', '4', 10, 1743885934, '2023-11-27 01:44:06'),
-(5, 'support', 'gfds', 10, 1743885934, '2023-11-27 02:09:09'),
-(3, 'support', 'estou com problemas para realizar saques', 10, 1743885934, '2023-11-27 02:04:11'),
-(4, 'support', '<p>Lorem ipsum dolor sit amet. Non consequatur animi et ipsa maiores ut neque beatae vel laboriosam velit sit explicabo omnis ut omnis assumenda. In quae tenetur qui alias molestiae ut galisum esse quo aspernatur mollitia in dolorum nisi aut neque vitae ea magni voluptas. Quo impedit molestiae 33 corporis voluptatum ut provident eligendi et suscipit quisquam est dolorem corporis ut dolorem nihil! In quas corrupti vel velit odio qui dolor incidunt et necessitatibus quasi ut inventore sapiente sit reiciendis sapiente aut quae blanditiis. </p><p>Ut deleniti atque eos corporis soluta et magni enim aut dicta ullam ut odio doloremque qui exercitationem odit quo dignissimos voluptate. Est modi sequi est illo animi et dolor doloribus aut omnis libero ut quia doloribus. Est voluptatem quia sed dolorum itaque vel consequuntur magnam. Rem perferendis delectus aut suscipit molestiae sit nesciunt alias et iusto optio id voluptatem facere sit inventore suscipit non illum ducimus. </p><p>Ea ipsam consequatur et minima repellat in voluptate eligendi. Et quae consequatur ab sunt nisi et enim explicabo! Eos voluptas expedita qui placeat perspiciatis ut nulla voluptatem non cumque quibusdam sed possimus nostrum vel laudantium vero ex eius harum. Ea laborum molestiae a illo quia id incidunt illum in voluptatum animi. </p>\n', 10, 1743885934, '2023-11-27 02:04:56'),
-(6, 'support', 'gvfcdxs', 10, 1743885934, '2023-11-27 02:09:38'),
-(7, 'support', 'vfcdxs', 10, 1743885934, '2023-11-27 02:09:40'),
-(8, 'support', 'vcxz', 10, 1743885934, '2023-11-27 02:11:01'),
-(10, 'service', '4', 48, 1743885934, '2023-11-28 07:23:13'),
-(11, 'service', '4', 48, 1743885934, '2023-11-28 07:44:21'),
-(12, 'support', 'meu saque do dia 28/11 as 04:50 da manha no valor de 100 reais foi negado, mesmo tendo saldo suficiente', 10, 1743885934, '2023-11-28 07:56:20'),
-(13, 'service', '4', 10, 1743885934, '2023-12-01 02:03:34'),
-(14, 'support', 'Nao consigo realizar saque, fica em pendencia sempre', 10, 1743885934, '2023-12-01 02:18:51'),
-(15, 'service', '4', 10, 1743885934, '2023-12-13 07:54:00'),
-(16, 'service', '5', 10, 1743885934, '2023-12-13 07:56:28');
+INSERT INTO `requests` (`id`, `type`, `subject`, `is_read`, `user_id`, `telegram_user_id`, `created_at`) VALUES
+(1, 'service', '4', 0, 10, 1743885934, '2023-11-27 01:44:06'),
+(5, 'support', 'gfds', 1, 10, 1743885934, '2023-11-27 02:09:09'),
+(3, 'support', 'estou com problemas para realizar saques', 0, 10, 1743885934, '2023-11-27 02:04:11'),
+(4, 'support', '<p>Lorem ipsum dolor sit amet. Non consequatur animi et ipsa maiores ut neque beatae vel laboriosam velit sit explicabo omnis ut omnis assumenda. In quae tenetur qui alias molestiae ut galisum esse quo aspernatur mollitia in dolorum nisi aut neque vitae ea magni voluptas. Quo impedit molestiae 33 corporis voluptatum ut provident eligendi et suscipit quisquam est dolorem corporis ut dolorem nihil! In quas corrupti vel velit odio qui dolor incidunt et necessitatibus quasi ut inventore sapiente sit reiciendis sapiente aut quae blanditiis. </p><p>Ut deleniti atque eos corporis soluta et magni enim aut dicta ullam ut odio doloremque qui exercitationem odit quo dignissimos voluptate. Est modi sequi est illo animi et dolor doloribus aut omnis libero ut quia doloribus. Est voluptatem quia sed dolorum itaque vel consequuntur magnam. Rem perferendis delectus aut suscipit molestiae sit nesciunt alias et iusto optio id voluptatem facere sit inventore suscipit non illum ducimus. </p><p>Ea ipsam consequatur et minima repellat in voluptate eligendi. Et quae consequatur ab sunt nisi et enim explicabo! Eos voluptas expedita qui placeat perspiciatis ut nulla voluptatem non cumque quibusdam sed possimus nostrum vel laudantium vero ex eius harum. Ea laborum molestiae a illo quia id incidunt illum in voluptatum animi. </p>\n', 1, 10, 1743885934, '2023-11-27 02:04:56'),
+(6, 'support', 'gvfcdxs', 1, 10, 1743885934, '2023-11-27 02:09:38'),
+(7, 'support', 'vfcdxs', 1, 10, 1743885934, '2023-11-27 02:09:40'),
+(8, 'support', 'vcxz', 1, 10, 1743885934, '2023-11-27 02:11:01'),
+(10, 'service', '4', 1, 48, 1743885934, '2023-11-28 07:23:13'),
+(11, 'service', '4', 1, 48, 1743885934, '2023-11-28 07:44:21'),
+(12, 'support', 'meu saque do dia 28/11 as 04:50 da manha no valor de 100 reais foi negado, mesmo tendo saldo suficiente', 1, 10, 1743885934, '2023-11-28 07:56:20'),
+(13, 'service', '4', 1, 10, 1743885934, '2023-12-01 02:03:34'),
+(14, 'support', 'Nao consigo realizar saque, fica em pendencia sempre', 1, 10, 1743885934, '2023-12-01 02:18:51'),
+(15, 'service', '4', 0, 10, 1743885934, '2023-12-13 07:54:00'),
+(16, 'service', '5', 0, 10, 1743885934, '2023-12-13 07:56:28');
 
 -- --------------------------------------------------------
 
@@ -397,7 +417,7 @@ INSERT INTO `users_plans` (`id`, `user_id`, `product_id`, `status`, `acquired_in
 (10, 49, 2, 1, '2023-11-28 06:23:47', '2023-12-28 06:23:47'),
 (11, 48, 1, 1, '2023-12-28 07:46:57', '2023-12-28 07:46:57'),
 (12, 50, 3, 1, '2023-11-28 07:11:02', '2023-12-28 07:11:02'),
-(13, 10, 1, 0, '2023-12-13 13:21:00', '2024-01-13 13:21:00');
+(13, 10, 1, 1, '2023-12-27 09:38:00', '2024-01-27 09:38:00');
 
 -- --------------------------------------------------------
 
@@ -412,13 +432,21 @@ CREATE TABLE IF NOT EXISTS `verification_email` (
   `token` varchar(255) NOT NULL,
   `status` enum('pending','expired','checked') NOT NULL DEFAULT 'pending',
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=39 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=47 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `verification_email`
 --
 
 INSERT INTO `verification_email` (`id`, `user_id`, `token`, `status`) VALUES
+(46, 59, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3MDM2Mzc2NjMsImV4cCI6MTcwMzY0MTI2M30.1RORHQSIMwzT5qqgyc6qiu_CTKgIzv0vu-j6AAh5NTs', 'pending'),
+(45, 58, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrMTNAZ21haWwuY29tIiwiaWF0IjoxNzAzNjI0NjA0LCJleHAiOjE3MDM2MjgyMDR9.RC1pqWmJtA1fwqPJHBzXwXD28arbI8JYXHgTyyVFAq0', 'pending'),
+(44, 57, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrMndAZ21haWwuY29tIiwiaWF0IjoxNzAzNjI0NDUwLCJleHAiOjE3MDM2MjgwNTB9.jPwzk7lERKVW0IjCnnM5CGxJDpaz0MVB3pnhfTO1kv8', 'pending'),
+(43, 56, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InZkY3giLCJpYXQiOjE3MDM2MTk5NjQsImV4cCI6MTcwMzYyMzU2NH0.py3yOfpO9Az4unrQ8ydAz8R64pNgUKpfZTMeMptGDek', 'pending'),
+(42, 55, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIraGJ6akBnbWFpbC5jb20iLCJpYXQiOjE3MDM2MTc5NjksImV4cCI6MTcwMzYyMTU2OX0.vFDWc1L220TQ4N3zW8eG60EKU2Fa3y6LAiH7oPqXbSE', 'pending'),
+(41, 54, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdHd0QGdtYWlsLmNvbSIsImlhdCI6MTcwMzYxNDg3NCwiZXhwIjoxNzAzNjE4NDc0fQ.tRi8MmhS6qIKP4SQ1aBzivoYBDYJ7je8eV2-i2raYxQ', 'pending'),
+(40, 53, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdHdAZ21haWwuY29tIiwiaWF0IjoxNzAzNTczMzAyLCJleHAiOjE3MDM1NzY5MDJ9.uCy15-qzWEwpzTwLREE_eevAeT3DxCCGHuMfbkSIIfo', 'pending'),
+(39, 52, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdEBnbWFpbC5jb20iLCJpYXQiOjE3MDM1NzMyNjIsImV4cCI6MTcwMzU3Njg2Mn0.l2bLjDS81nov9iULjTX1Jiq8fPU-hsOjlrbjLhQjdQA', 'pending'),
 (37, 50, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWcrdGVzdGUyQGdtYWlsLmNvbSIsImlhdCI6MTcwMTE1MjE4NywiZXhwIjoxNzAxMTU1Nzg3fQ.Sc5yhNBHkHmrUxPegoApR_eFyeWfjsz_MWjVjjesLHE', 'checked'),
 (38, 51, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imd2ZmRjeCIsImlhdCI6MTcwMjQ2NDc4MSwiZXhwIjoxNzAyNDY4MzgxfQ.yOVlUOtTeToeBwE7Z-0BrR7accS8ztrszL3B6qR3sAM', 'pending'),
 (36, 49, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWcrdGVzdGUxQGdtYWlsLmNvbSIsImlhdCI6MTcwMTE1MjA4MCwiZXhwIjoxNzAxMTU1NjgwfQ.B3A6h3F0XWGcPhu9MNviv_ZYVtcmoJko0kcz3kCecdc', 'checked'),
@@ -450,9 +478,9 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
 --
 
 INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `reference_id`, `transaction_id`, `created_at`) VALUES
-(4, 10, '17.12', 'refused', '<p>Lorem ipsum dolor sit amet. Et quos sapiente qui suscipit atque ut maiores delectus. Eum explicabo error non veritatis dolores aut culpa architecto quo velit fugiat sit nihil vero. Et omnis omnis ad facilis pariatur ut repellat velit ex impedit laudantium et quis ipsam ut officiis odit. Ut facere voluptatem eos omnis sapiente vel veniam amet. </p><p>Ex quidem dolores qui odit voluptatum et fugiat tempora id voluptatem harum. Et ipsum accusantium et optio dolor et odit impedit ut possimus blanditiis est voluptatem omnis. Est numquam galisum aut doloremque molestiae est omnis vero aut officia quae id sunt voluptates aut tempore sint. Ut error recusandae ut aliquid galisum eos nemo sunt? </p><p>Est culpa pariatur et dolor consequuntur et odit unde? Ad deleniti dicta et numquam voluptas et internos aliquid vel veniam tenetur! Eos doloribus incidunt et exercitationem sint ea quia laborum est animi repellendus? 33 perferendis veniam est Quis iure id velit animi et galisum praesentium ut cupiditate fugiat non tenetur similique. </p>\n', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
-(6, 10, '100.00', 'refused', 'vfcxcv', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25'),
-(7, 10, '100.00', 'authorized', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
+(4, 10, '17.12', 'pending', '', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
+(6, 10, '100.00', 'pending', '', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25'),
+(7, 10, '100.00', 'authorized', 'rejeitei por x motivo', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
 (10, 10, '120.00', 'refused', 'gdgdbfgvdf', '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, '2023-12-13 14:31:49'),
 (11, 10, '120.00', 'authorized', 'jhfdfs', 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, '2023-12-13 14:32:40');
 COMMIT;

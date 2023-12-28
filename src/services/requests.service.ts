@@ -133,8 +133,23 @@ export class RequestService {
 
       await conn.query(`UPDATE requests SET is_read='${status}' WHERE id=${id}`);
       return { status: true, message: "Solicitação atualizado com sucesso" }
+      
     } catch (error) {
       console.log(error)
     }
   }
+
+  static async pendingRequests(){
+    try {
+
+      const pendings:any = (
+        await conn.query(`SELECT 'withdrawals' AS requests, COUNT(*) AS pendings FROM withdrawals WHERE status = 'pending' UNION SELECT 'support' AS requests, COUNT(*) AS pendings FROM requests WHERE is_read = 0;`)
+      )[0];
+
+      return pendings
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
 }
