@@ -44,18 +44,23 @@ export class DashboardService {
         await conn.query(`SELECT * FROM balance ${product_id !== 'all'? `JOIN users_plans ON balance.user_id = users_plans.user_id WHERE users_plans.product_id = '${product_id}'` : ''} ${user_id !== 'all'? `WHERE user_id = '${user_id}'` : ''} ${interval !== 'all'? `${user_id !== 'all' || product_id !== 'all'? 'AND' : 'WHERE'} DATE(created_at) BETWEEN '${start.split('-')[2]+'-'+start.split('-')[1]+'-'+start.split('-')[0]}' AND '${end.split('-')[2]+'-'+end.split('-')[1]+'-'+end.split('-')[0]}'` : ''} ORDER BY created_at`)
       )[0];
 
-      let result:number = 0;
+      let total_on_platform:number = 0;
 
       if(balance && balance.length > 0){
         
         balance.map((item) => {
-          result += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
+          total_on_platform += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
         });
 
-        result = Math.floor(result * 100) / 100;
+        total_on_platform = Math.floor(total_on_platform * 100) / 100;
       }
 
-      return result;
+      return [
+        {
+          name: 'Total na Plataforma (R$)',
+          value:  total_on_platform,
+        }
+      ];
     } catch (error) {
       throw error;
     }

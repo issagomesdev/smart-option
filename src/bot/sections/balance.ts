@@ -80,20 +80,20 @@ export async function depositRequests(userId:number) {
     })
 }
 
-export async function withdraw_instructions(chatId:number, userId:number) {
+export async function withdrawal_instructions(chatId:number, userId:number) {
     await bot.sendMessage(chatId, `Digite corretamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$ ${(await getBalance(userId)).toString().replace('.', ',')}), ultilize somente numeros e para separar os centavos use virgula:`, {
         reply_markup: await _return(chatId, true),
       });
-    mode = "withdraw";
+    mode = "withdrawal";
 }
 
-export async function make_withdraw(msg:any) {
+export async function make_withdrawal(msg:any) {
 if(msg.text !== "🔄 VOLTAR AO MENU FINANCEIRO"){
-    if(mode == "withdraw"){
+    if(mode == "withdrawal"){
         if(validate_value(msg.text)){
             await bot.sendMessage(msg.chat.id, `o valor a ser sacado é ${msg.text}`);
-            await bot.sendMessage(msg.chat.id, "Confirma?", callback([{ text: '✅ SIM', callback_data: `choice=yes&for=confirm-withdraw-value&value=${msg.text}`}, { text: '❌ NÃO', callback_data: `choice=no&for=confirm-withdraw-value&value=${msg.text}` }]));
-            mode = "confirm-withdraw";
+            await bot.sendMessage(msg.chat.id, "Confirma?", callback([{ text: '✅ SIM', callback_data: `choice=yes&for=confirm-withdrawal-value&value=${msg.text}`}, { text: '❌ NÃO', callback_data: `choice=no&for=confirm-withdrawal-value&value=${msg.text}` }]));
+            mode = "confirm-withdrawal";
         } else {
             await bot.sendMessage(msg.chat.id, `Valor incorreto! digite novamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$ ${(await getBalance(msg.from.id)).toString().replace('.', ',')}), ultilize somente numeros e para separar os centavos use virgula:`);
         } 
@@ -103,10 +103,10 @@ if(msg.text !== "🔄 VOLTAR AO MENU FINANCEIRO"){
 }
 }
 
-export async function withdraw_callbacks(query:any) {
-if(mode == "confirm-withdraw"){
+export async function withdrawal_callbacks(query:any) {
+if(mode == "confirm-withdrawal"){
     const params = new URLSearchParams(query.data);
-    if(params.get("for") == "confirm-withdraw-value"){
+    if(params.get("for") == "confirm-withdrawal-value"){
         if(params.get("choice") == "yes"){
             const value:string = params.get("value");
             if(value && parseFloat(value.replace(',', '.')) <= await getBalance(query.message.chat.id)){
@@ -118,11 +118,11 @@ if(mode == "confirm-withdraw"){
                 })
             } else {
                 await bot.sendMessage(query.message.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(query.message.chat.id)).toString().replace('.', ',')}). Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:`);
-                mode = "withdraw";
+                mode = "withdrawal";
             }
         } else {
             await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
-            mode = "withdraw";
+            mode = "withdrawal";
         }
     }
 }
@@ -155,7 +155,7 @@ export async function extract(userId:number) {
     TransactionsService.extract(userId).then(data => {
        let items:any = [];
         data.map((item) => {
-            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdraw"? "Saque" : item.origin == "subscription"? `${item.type == "sum"? `B.A.#${item.reference_id}` : 'Adesão'}` : item.origin == "tuition"? `${item.type == "sum"? `B.M.#${item.reference_id}` : 'Mensalidade'}` : item.origin == "earnings"? "Rentabilidade": item.origin == "profitability"? `B.R.#${item.reference_id}` : item.origin == "transfer"? "Transf. entre contas" : item.origin == "admin"? "Transf. Admin" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdrawal"? "Saque" : item.origin == "subscription"? `${item.type == "sum"? `B.A.#${item.reference_id}` : 'Adesão'}` : item.origin == "tuition"? `${item.type == "sum"? `B.M.#${item.reference_id}` : 'Mensalidade'}` : item.origin == "earnings"? "Rentabilidade": item.origin == "profitability"? `B.R.#${item.reference_id}` : item.origin == "transfer"? "Transf. entre contas" : item.origin == "admin"? "Transf. Admin" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
 
         var extract = 

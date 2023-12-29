@@ -2,7 +2,7 @@ import { choose_services, products_callbacks } from "../sections/products";
 import { register_instructions, fields, register_callbacks } from "../sections/register";
 import { AuthenticationService } from "../../services/bot/auth.service";
 import { affiliate_link } from "../sections/affiliateLink";
-import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdraw_instructions, make_withdraw, withdraw_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests } from "../sections/balance";
+import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdrawal_instructions, make_withdrawal, withdrawal_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests } from "../sections/balance";
 import { TransactionsService } from "../../services/bot/transactions.service";
 import { show_network_level } from "../sections/network";
 import { show_rules } from "../sections/rules";
@@ -37,8 +37,8 @@ export function return_financial_options(chatId:number) {
       bot.removeListener('callback_query', deposit_callbacks);
     break;
     case 7:
-      bot.removeListener('message', make_withdraw);
-      bot.removeListener('callback_query', withdraw_callbacks);
+      bot.removeListener('message', make_withdrawal);
+      bot.removeListener('callback_query', withdrawal_callbacks);
     break;
   }
   section = null;
@@ -123,9 +123,9 @@ export async function goTo(msg:any) {
           bot.sendMessage(msg.chat.id, "Já existe um pedido de saque sendo analisado pela nossa equipe, acompanhe o andamento em *Solicitações de saque* dentro do menu financeiro.", { parse_mode: 'Markdown' }); 
         } else {
           section = 7;
-          withdraw_instructions(msg.chat.id, msg.from.id)
-          bot.on('message', make_withdraw);
-          bot.on('callback_query', withdraw_callbacks);
+          withdrawal_instructions(msg.chat.id, msg.from.id)
+          bot.on('message', make_withdrawal);
+          bot.on('callback_query', withdrawal_callbacks);
         }
       });
     break; 
