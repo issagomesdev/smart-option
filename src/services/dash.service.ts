@@ -45,20 +45,45 @@ export class DashboardService {
       )[0];
 
       let total_on_platform:number = 0;
+      let network_profitability:number = 0;
+      let network_repass:number = 0;
 
       if(balance && balance.length > 0){
         
-        balance.map((item) => {
-          total_on_platform += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
+        balance.map(async(item) => {
+          total_on_platform += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value);
         });
 
+        // const id:any = (
+        //   await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${item.user_id}'`)
+        //   )[0][0];
+
+        // if(id && id.product_id){
+        //     const product:any = (
+        //       await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${id.product_id}'`)
+        //       )[0][0];
+
+        //     const profitability =  Math.floor(((parseFloat(product.earnings_monthly) / 100) * total) * 100) / 100;
+        //     console.log(profitability, product.earnings_monthly)
+        //     network_profitability += profitability;
+        // }
+
         total_on_platform = Math.floor(total_on_platform * 100) / 100;
+        network_profitability = Math.floor(network_profitability * 100) / 100;
       }
 
       return [
         {
           name: 'Total na Plataforma (R$)',
           value:  total_on_platform,
+        },
+        {
+          name: 'Rentabilidade da rede (R$)',
+          value:  network_profitability,
+        },
+        {
+          name: 'Repasse da rede (R$)',
+          value:  network_repass
         }
       ];
     } catch (error) {

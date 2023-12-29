@@ -2,7 +2,7 @@ import conn from "../db";
 import { SHA1 } from "crypto-js";
 import axios from "axios";
 import { bot } from "../bot/index"
-import { DashboardService } from "./dash.service";
+import { TransactionsService } from "./bot/transactions.service";
 
 export class UsersService {
 
@@ -77,14 +77,14 @@ export class UsersService {
           }
 
           if (filters && filters.balance) {         
-            const balance = `${await DashboardService.balance(user.id, 'all', 'all')}`;
+            const balance = `${await TransactionsService.balance(null, true, user)}`;
             if (balance.includes(filters.balance)) {
               user.balance = balance;
             } else {
               users.splice(i, 1);
             }
           } else {
-            const balance = await DashboardService.balance(user.id, 'all', 'all');
+            const balance = await TransactionsService.balance(null, true, user);
             user.balance = balance;
           }
         }
