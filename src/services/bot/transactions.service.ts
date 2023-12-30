@@ -16,7 +16,7 @@ export class TransactionsService {
       }
 
       const balance:any = (
-        await conn.query(`SELECT * FROM balance WHERE user_id = '${user.user_id || user.id}' ${!earnings? "AND origin != 'earnings' AND MONTH(created_at) = MONTH(CURDATE())" : ""} ORDER BY created_at`)
+        await conn.query(`SELECT * FROM balance WHERE user_id = '${user.user_id || user.id}' ${!earnings? "AND NOT (MONTH(created_at) = MONTH(CURRENT_DATE) AND origin = 'earnings')" : ""} ORDER BY created_at`)
       )[0];
 
       let result:number = 0;

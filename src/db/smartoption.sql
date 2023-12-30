@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 28-Dez-2023 às 00:05
+-- Tempo de geração: 30-Dez-2023 às 09:35
 -- Versão do servidor: 8.0.31
 -- versão do PHP: 8.1.13
 
@@ -33,11 +33,11 @@ CREATE TABLE IF NOT EXISTS `balance` (
   `value` decimal(10,2) NOT NULL,
   `user_id` bigint NOT NULL,
   `type` enum('sum','subtract') NOT NULL,
-  `origin` enum('deposit','withdraw','earnings','profitability','subscription','tuition','transfer','admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `origin` enum('deposit','withdrawal','earnings','profitability','subscription','tuition','transfer','admin') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `reference_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=48 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `balance`
@@ -47,19 +47,19 @@ INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id
 (19, '230.30', 10, 'sum', 'deposit', '74', '2023-11-27 01:09:06'),
 (18, '63.70', 10, 'sum', 'deposit', '73', '2023-11-27 01:02:12'),
 (20, '97.00', 10, 'subtract', 'subscription', '72', '2023-11-28 01:02:12'),
-(21, '17.12', 10, 'subtract', 'withdraw', '4', '2023-11-28 02:32:13'),
+(51, '43.00', 24, 'sum', 'admin', NULL, '2023-12-30 09:11:23'),
 (22, '93.40', 49, 'sum', 'deposit', '80', '2023-11-28 06:57:29'),
 (23, '32.01', 10, 'sum', 'subscription', '72', '2023-11-28 07:11:02'),
 (24, '100.00', 48, 'sum', 'deposit', '87', '2023-11-28 07:41:55'),
 (25, '100.00', 48, 'sum', 'deposit', '89', '2023-11-28 07:52:28'),
 (27, '97.00', 10, 'subtract', 'subscription', NULL, '2023-12-05 01:55:20'),
 (28, '0.13', 10, 'sum', 'profitability', '23', '2023-12-05 02:23:59'),
-(29, '1.50', 10, 'sum', 'earnings', '', '2023-12-05 02:35:26'),
+(29, '1.50', 10, 'sum', 'earnings', '', '2023-11-05 02:35:26'),
 (33, '100.00', 10, 'sum', 'deposit', '94', '2023-12-13 11:37:01'),
 (31, '100.00', 10, 'sum', 'deposit', NULL, '2023-12-05 02:37:21'),
 (32, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-05 02:36:45'),
 (34, '97.00', 10, 'subtract', 'subscription', NULL, '2023-12-13 13:18:17'),
-(36, '120.00', 10, 'subtract', 'withdraw', '11', '2023-12-13 14:33:00'),
+(50, '300.00', 25, 'sum', 'admin', NULL, '2023-12-30 09:02:42'),
 (37, '1.00', 10, 'sum', 'tuition', '94', '2023-12-05 02:36:45'),
 (38, '13.00', 10, 'sum', 'admin', NULL, '2023-12-27 09:14:00'),
 (39, '10.00', 10, 'subtract', 'admin', NULL, '2023-12-27 09:14:47'),
@@ -68,9 +68,9 @@ INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id
 (42, '217.76', 23, 'sum', 'admin', NULL, '2023-12-27 09:21:51'),
 (43, '100.00', 10, 'sum', 'admin', NULL, '2023-12-27 09:22:54'),
 (44, '97.00', 10, 'subtract', 'tuition', NULL, '2023-12-27 09:38:00'),
-(45, '100.00', 10, 'subtract', '', '7', '2023-12-27 21:54:28'),
+(49, '17.12', 10, 'subtract', 'withdrawal', '4', '2023-12-28 04:06:56'),
 (46, '100.00', 10, 'sum', 'admin', NULL, '2023-12-27 21:58:56'),
-(47, '17.12', 10, 'subtract', '', '4', '2023-12-28 00:00:57');
+(52, '39.00', 50, 'sum', 'admin', NULL, '2023-12-30 09:17:36');
 
 -- --------------------------------------------------------
 
@@ -216,7 +216,7 @@ INSERT INTO `network` (`id`, `affiliate_user_id`, `guest_user_id`, `level`, `ear
 (10, 28, 31, '1', 0),
 (11, 31, 32, '1', 0),
 (12, 28, 32, '2', 0),
-(13, 10, 33, '1', 1),
+(13, 10, 33, '1', 0),
 (14, 37, 38, '1', 0),
 (15, 38, 39, '1', 0),
 (16, 37, 39, '2', 0),
@@ -227,9 +227,9 @@ INSERT INTO `network` (`id`, `affiliate_user_id`, `guest_user_id`, `level`, `ear
 (21, 38, 41, '2', 0),
 (22, 37, 41, '3', 0),
 (23, 10, 42, '1', 1),
-(25, 10, 44, '1', 0),
+(25, 10, 44, '1', 1),
 (26, 25, 45, '1', 1),
-(27, 24, 45, '2', 1),
+(27, 24, 23, '2', 1),
 (28, 23, 45, '3', 1),
 (29, 25, 46, '1', 1),
 (30, 24, 46, '2', 1),
@@ -406,7 +406,7 @@ CREATE TABLE IF NOT EXISTS `users_plans` (
   `acquired_in` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expired_in` timestamp NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Extraindo dados da tabela `users_plans`
@@ -417,7 +417,9 @@ INSERT INTO `users_plans` (`id`, `user_id`, `product_id`, `status`, `acquired_in
 (10, 49, 2, 1, '2023-11-28 06:23:47', '2023-12-28 06:23:47'),
 (11, 48, 1, 1, '2023-12-28 07:46:57', '2023-12-28 07:46:57'),
 (12, 50, 3, 1, '2023-11-28 07:11:02', '2023-12-28 07:11:02'),
-(13, 10, 1, 1, '2023-12-27 09:38:00', '2024-01-27 09:38:00');
+(13, 10, 1, 1, '2023-12-27 09:38:00', '2024-01-27 09:38:00'),
+(14, 23, 1, 1, '2023-11-27 00:59:33', '2023-12-30 09:08:24'),
+(15, 24, 2, 1, '2023-11-28 06:23:47', '2023-12-30 09:09:32');
 
 -- --------------------------------------------------------
 
@@ -478,11 +480,11 @@ CREATE TABLE IF NOT EXISTS `withdrawals` (
 --
 
 INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `reference_id`, `transaction_id`, `created_at`) VALUES
-(4, 10, '17.12', 'pending', '', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
+(4, 10, '17.12', 'authorized', 'okk', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
 (6, 10, '100.00', 'pending', '', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, '2023-11-28 07:50:25'),
-(7, 10, '100.00', 'authorized', 'rejeitei por x motivo', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
-(10, 10, '120.00', 'refused', 'gdgdbfgvdf', '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, '2023-12-13 14:31:49'),
-(11, 10, '120.00', 'authorized', 'jhfdfs', 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, '2023-12-13 14:32:40');
+(7, 10, '100.00', 'authorized', 'não autorizar mais', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, '2023-11-27 21:38:03'),
+(10, 10, '120.00', 'refused', 'rejeitei por x motivo', '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, '2023-12-13 14:31:49'),
+(11, 10, '120.00', 'authorized', '', 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, '2023-12-13 14:32:40');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
