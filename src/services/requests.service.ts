@@ -118,10 +118,10 @@ export class RequestService {
     //       pix: {key: `${user.pix_code}`, name: `${user.name}`, tax_id: `${user.cpf}`}
     //     },
     //     reference_id: `${withdrawal.id}`,
-    //     notification_urls: [`${process.env.API_BASE_PATH}/transactions/res-withdrawal-req/${withdrawal.reference_id}`]
+    //     notification_urls: [`${process.env.API_BASE_PATH}/transactions/withdrawals/${withdrawal.reference_id}`]
     //   })
     // };
-    // const response = await fetch(`${process.env.TRANS_CHK_PATH}/transfers`, options);
+    // const response = await fetch(`${process.env.TRANSFER_BASE_PATH}/transfers`, options);
     // const data = await response.json();
     } catch (error) {
       console.log(error)

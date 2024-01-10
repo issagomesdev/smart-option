@@ -4,7 +4,7 @@ import express from "express";
 
 export default express
   .Router()
-  .post('/checkout-successful/:reference_id', async(req, res) => {
+  .post('/checkouts/:reference_id', async(req, res) => {
 
     try {
       if(req.body.charges){
@@ -15,8 +15,9 @@ export default express
     }
 
     })
-  .post('/res-withdrawal-req/:reference_id', async(req, res) => {
-  
-      console.log(req.body);
-  
+  .get('/challenge', async(req, res) => {
+    res.status(200).json({
+      "public_key": `${process.env.PUBLIC_KEY}`,
+      "created_at": 1704593661363
+    });
   });

@@ -112,11 +112,11 @@ export class TransactionsService {
         body: JSON.stringify({
           items: [item],
           reference_id: checkout.insertId.toString(),
-          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkout-successful/${checkout.insertId}`]
+          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${checkout.insertId}`]
         })
       };
 
-      const response = await fetch(`${process.env.PAG_CHK_PATH}/checkouts`, options);
+      const response = await fetch(`${process.env.CHK_BASE_PATH}/checkouts`, options);
       const data = await response.json();
 
       await conn.query(`UPDATE checkouts SET transaction_id='${data.id}' WHERE id = '${checkout.insertId}'`);
