@@ -1,5 +1,7 @@
 
 import { TransactionsService } from "../../services/bot/transactions.service";
+import { NextFunction, Request, Response } from "express";
+import { HttpException } from "../../exceptions/http.exception";
 import express from "express";
 
 export default express
@@ -14,6 +16,16 @@ export default express
       console.log(error);
     }
 
+    })
+  .post('/checkouts-test', async(req: Request, res: Response, next: NextFunction) => {
+      const { userId, value } = req.body;
+      try {
+        const response =  await TransactionsService.checkout(userId, value);
+        res.status(200).json(response);
+      } catch (error) {
+          console.log(error);
+          next(new HttpException(400, error));
+      }
     })
   .get('/challenge', async(req, res) => {
     res.status(200).json({

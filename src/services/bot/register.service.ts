@@ -31,7 +31,7 @@ export class RegisterService {
   }
 
   static async sendVerificationEmail(email:string){
-
+    console.log('info')
     let user = (
       await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
     )[0][0];
@@ -40,7 +40,7 @@ export class RegisterService {
     await conn.query(`INSERT INTO verification_email(user_id, token) VALUES ('${user.id}','${token}')`);
 
     const transporter = nodemailer.createTransport({
-      host: 'vps-11423744.smartoptionea.com',
+      host: 'smtp.titan.email',
       port: 465,
       secure: true,
       auth: {
@@ -111,6 +111,7 @@ export class RegisterService {
     };
 
       transporter.sendMail(mailOptions, async(error, info) => {
+        console.log(info)
         if (error) {
           console.log(error.message)
         }
@@ -152,9 +153,8 @@ export class RegisterService {
   } else {
     throw Error("Token inválido");
   }
-}
+  }
 
 }
-
 
 

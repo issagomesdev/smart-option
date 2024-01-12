@@ -1,7 +1,7 @@
 
 
 import { TransactionsService } from "../../services/bot/transactions.service";
-import { ProductsService } from "../../services/bot/products.service";
+import { AuthenticationService } from "../../services/bot/auth.service";
 import { callback, generatePaymentLink } from "../components/index";
 import  { _return } from "../components/mainMenu";
 import { bot } from "..";
@@ -9,6 +9,10 @@ import moment from 'moment';
 
 var { AsciiTable3, AlignmentEnum  } = require('ascii-table3');
 let mode:string = null;
+let transfer_data = {
+    value: '',
+    email: ''
+}
 
 export async function getBalance(userId:number):Promise<number> {
 
@@ -151,6 +155,64 @@ export async function withdrawalRequests(userId:number) {
     })
 }
 
+export async function transfer_instructions(chatId:number, userId:number) {
+    await bot.sendMessage(chatId, "Digite corretamente a quantia que deseja transferir, ultilize somente numeros e para separar os centavos use virgula:", {
+        reply_markup: await _return(chatId, true),
+      });
+    mode = "transfer-value";
+}
+
+export async function make_transfer(msg:any) {
+    if(msg.text !== "🔄 VOLTAR AO MENU FINANCEIRO"){
+        if(mode == "transfer-value"){
+            if(validate_value(msg.text)){
+                if(parseFloat(msg.text.replace(',', '.')) <= await getBalance(msg.from.id)){
+                    transfer_data.value = msg.text;
+                    mode = "transfer-email"
+                    await bot.sendMessage(msg.chat.id, "Agora informe o e-mail do destinatário para o qual deseja realizar a transferência");
+                } else {
+                    await bot.sendMessage(msg.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(msg.from.id)).toString().replace('.', ',')}). Para completar sua transferência, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:`);
+                }
+            } else {
+                await bot.sendMessage(msg.chat.id, "Valor incorreto! digite novamente a quantia que deseja transferir, ultilize somente numeros e para separar os centavos use virgula:");
+            } 
+        } else if(mode == "transfer-email"){
+            AuthenticationService.existingUser(msg.text)
+            .then(async() => {
+                transfer_data.email = msg.text;
+                mode = "confirm-transfer";
+                
+                await bot.sendMessage(msg.chat.id, 'Você está a um passo de realizar a transferência!');
+                await bot.sendMessage(msg.chat.id, `Valor: R$ ${transfer_data.value.replace('.', ',')}\nEmail: ${transfer_data.email}`, callback([{ text: 'Confirmar', callback_data: "choice=confirm&for=confirm-transfer-infos"}, { text: 'Cancelar', callback_data: "choice=cancel&for=confirm-transfer-infos"}]));
+
+            }).catch (async(error) => {
+                await bot.sendMessage(msg.chat.id, `${error.message}, insira novamente o e-mail do destinatário para o qual deseja realizar a transferência`);
+            })
+        }
+    } else {
+        mode = null;
+        transfer_data = {
+            value: '',
+            email: ''
+        }
+    }
+}
+
+export async function transfer_callbacks(query:any) {
+    if(mode == "confirm-deposit"){
+        const params = new URLSearchParams(query.data);
+        if(params.get("for") == "confirm-deposit-value"){
+            if(params.get("choice") == "yes"){
+                generatePaymentLink(query.message.chat.id, parseFloat(params.get("value").replace(',', '.')));
+                mode = null;
+            } else {
+                await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
+                mode = "deposit";
+            }
+        }
+    }
+}
+
 export async function extract(userId:number) {
     TransactionsService.extract(userId).then(data => {
        let items:any = [];
@@ -197,4 +259,4 @@ export async function subscriptionRequests(userId:number) {
 function validate_value(value:string) {
     var regex = /^\d+(,\d{1,2})?$/;
     return regex.test(value);
-  }
+}

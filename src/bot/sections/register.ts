@@ -111,7 +111,11 @@ export async function register_callbacks(query:any) {
                 await bot.sendMessage(query.message.chat.id, "Tudo", callback([{ text: "Editar", callback_data: `choice=all&for=correction-user-infos`}]));
                 questions.forEach(async(question, index) => {
                     if(question.field !== "confirm_password"){
-                        await bot.sendMessage(query.message.chat.id, question.text, callback([{ text: "Editar", callback_data: `choice=${index}&for=correction-user-infos`}]));
+                        try {
+                            await bot.sendMessage(query.message.chat.id, question.text, callback([{ text: "Editar", callback_data: `choice=${index}&for=correction-user-infos`}]));
+                        } catch (error) {
+                            console.log(error.message, question.field)
+                        }
                     }
                 });
                 

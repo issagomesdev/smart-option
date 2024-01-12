@@ -2,7 +2,7 @@ import { choose_services, products_callbacks } from "../sections/products";
 import { register_instructions, fields, register_callbacks } from "../sections/register";
 import { AuthenticationService } from "../../services/bot/auth.service";
 import { affiliate_link } from "../sections/affiliateLink";
-import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdrawal_instructions, make_withdrawal, withdrawal_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests } from "../sections/balance";
+import { show_balance, deposit_instructions, make_deposit, deposit_callbacks, withdrawal_instructions, make_withdrawal, withdrawal_callbacks, extract, depositRequests, withdrawalRequests, subscriptionRequests, transfer_instructions, make_transfer, transfer_callbacks } from "../sections/balance";
 import { TransactionsService } from "../../services/bot/transactions.service";
 import { show_network_level } from "../sections/network";
 import { show_rules } from "../sections/rules";
@@ -40,6 +40,10 @@ export function return_financial_options(chatId:number) {
       bot.removeListener('message', make_withdrawal);
       bot.removeListener('callback_query', withdrawal_callbacks);
     break;
+    case 8:
+      bot.removeListener('message', make_transfer);
+      bot.removeListener('callback_query', transfer_callbacks);
+    break;
   }
   section = null;
   bot.sendMessage(chatId, 'Você retornou ao menu financeiro', {
@@ -62,6 +66,7 @@ export const main_menu:any = {
 export const financial_options:any = {
   keyboard: [
     ['➕💵 DEPÓSITO', '➖💵 SAQUE'],
+    ['💲🔄 TRANSFERIR SALDO'],
     ['💰 SALDO', '🧾 EXTRATO'],
     ['📥 SOLICITAÇÕES DE DEPÓSITO', '📤 SOLICITAÇÕES DE SAQUE'],
     ['🛒 SOLICITAÇÕES DE ADESÃO'],
@@ -128,6 +133,12 @@ export async function goTo(msg:any) {
           bot.on('callback_query', withdrawal_callbacks);
         }
       });
+    break; 
+    case "💲🔄 TRANSFERIR SALDO":
+      section = 8;
+      transfer_instructions(msg.chat.id, msg.from.id)
+      bot.on('message', make_transfer);
+      bot.on('callback_query', transfer_callbacks);
     break; 
     case "🧾 EXTRATO":
       extract(msg.from.id)

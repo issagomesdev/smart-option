@@ -94,9 +94,11 @@ export class TransactionsService {
         await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
       )[0][0];
 
-      const checkout:any = (
-        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
-        )[0];
+      // const checkout:any = (
+      //   await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
+      //   )[0];
+
+      const id_test = uuidv4();
 
       let item:any;
       
@@ -111,16 +113,17 @@ export class TransactionsService {
         },
         body: JSON.stringify({
           items: [item],
-          reference_id: checkout.insertId.toString(),
-          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${checkout.insertId}`]
+          reference_id: id_test,
+          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${id_test}`]
         })
       };
 
       const response = await fetch(`${process.env.CHK_BASE_PATH}/checkouts`, options);
       const data = await response.json();
 
-      await conn.query(`UPDATE checkouts SET transaction_id='${data.id}' WHERE id = '${checkout.insertId}'`);
-      return data.links.find(link => link.rel == "PAY").href;
+      // await conn.query(`UPDATE checkouts SET transaction_id='${data.id}' WHERE id = '${checkout.insertId}'`);
+      // return data.links.find(link => link.rel == "PAY").href;
+       return data;
 
     } catch (error) {
       throw error;

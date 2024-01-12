@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-const token = '6962207233:AAEDOQOTowtq8wrVABjLpdvLxvmiJZkwtkI';
+const token = '6962207233:AAH_eijZs5TI8MO17wuVTtRfHctj8C_QwHI';
 export const bot = new TelegramBot(token, { polling: true });
 import { goTo, main_menu } from "./components/mainMenu"
 import { isLoggedIn, logIn } from "./components/auth";
@@ -8,7 +8,9 @@ export async function start() {
 
 
   bot.on('message', async(msg) => {
-    if(await isLoggedIn(msg.from.id)){
+    try {
+      
+      if(await isLoggedIn(msg.from.id)){
 
         if(/\/start/.test(msg.text)){
           bot.sendMessage(msg.chat.id, 'Para iniciar, clique no menu abaixo em “PRODUTOS E SERVIÇOS” para conhecer os planos mensais, serviços e produtos.', {
@@ -28,6 +30,10 @@ export async function start() {
       }
       
       logIn(msg, affiliateId)
+    }
+    
+    } catch (error) {
+      console.log(error)
     }
   });
 

@@ -43,5 +43,19 @@ export class AuthenticationService {
     }
   }
 
+  static async existingUser(email: string): Promise<any> {
+    try {
+        const user = (
+            await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
+        )[0][0];
+
+        if(!user) throw Error("o email fornecido não corresponde a nenhum usuário registrado em nossa base de dados");
+
+        return user;
+    } catch (error) {
+      throw error;
+    }
+  }
+
 }
 
