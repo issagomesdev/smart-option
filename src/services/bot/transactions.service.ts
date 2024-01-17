@@ -90,40 +90,38 @@ export class TransactionsService {
   static async checkout(userId: number, value:number, product:any = null){
     try {
 
-      const user = (
-        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
-      )[0][0];
+      // const user = (
+      //   await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
+      // )[0][0];
 
       // const checkout:any = (
       //   await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
       //   )[0];
 
-      const id_test = uuidv4();
-
-      let item:any;
+      // let item:any;
       
-      product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano Smart ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
+      // product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano Smart ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
 
-      const options = {
-        method: 'POST',
-        headers: {
-          accept: 'application/json',
-          'Content-type': 'application/json',
-          Authorization: `Bearer ${process.env.PAG_TOKEN}`
-        },
-        body: JSON.stringify({
-          items: [item],
-          reference_id: id_test,
-          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${id_test}`]
-        })
-      };
+      // const options = {
+      //   method: 'POST',
+      //   headers: {
+      //     accept: 'application/json',
+      //     'Content-type': 'application/json',
+      //     Authorization: `Bearer ${process.env.PAG_TOKEN}`
+      //   },
+      //   body: JSON.stringify({
+      //     items: [item],
+      //     reference_id: checkout.insertId,
+      //     payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${checkout.insertId}`]
+      //   })
+      // };
 
-      const response = await fetch(`${process.env.CHK_BASE_PATH}/checkouts`, options);
-      const data = await response.json();
+      // const response = await fetch(`${process.env.CHK_BASE_PATH}/checkouts`, options);
+      // const data = await response.json();
 
       // await conn.query(`UPDATE checkouts SET transaction_id='${data.id}' WHERE id = '${checkout.insertId}'`);
       // return data.links.find(link => link.rel == "PAY").href;
-       return data;
+       return 'exemple.link.com';
 
     } catch (error) {
       throw error;

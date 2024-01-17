@@ -8,8 +8,8 @@ import * as path from 'path';
 export default express
   .Router()
   .get('/:token', async(req, res) => {
-    const logo1 = 'https://www.smartoptionea.com/images/logo1.png'; 
-    const logo2 = 'https://www.smartoptionea.com/images/logo2.png'; 
+    const logo1 = 'https://api.smartoptionea.com/images/logo1.png'; 
+    const logo2 = 'https://api.smartoptionea.com/images/logo2.png'; 
 
     const image1 = await axios.get(logo1, { responseType: 'arraybuffer' });
         const imageData1 = Buffer.from(image1.data, 'binary').toString('base64');
