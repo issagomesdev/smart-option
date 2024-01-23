@@ -29,7 +29,7 @@ export default express
     })
   .get('/challenge', async(req, res) => {
     res.status(200).json({
-      "public_key": `-----BEGIN PUBLIC KEY----- ${process.env.PUBLIC_KEY} -----END PUBLIC KEY-----`,
+      "public_key": `-----BEGIN PUBLIC KEY-----${process.env.PUBLIC_KEY}-----END PUBLIC KEY-----`,
       "created_at": 1704593661363
     });
   });
