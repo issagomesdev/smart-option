@@ -58,7 +58,7 @@ export class UsersService {
     
           if (filters && filters.telegram) {
             if (user.telegram) {
-              const telegram_user = (await bot.getChat(user.telegram)).username;
+              const telegram_user = '(await bot.getChat(user.telegram)).username';
               user.telegram = telegram_user;
               if (!telegram_user.includes(filters.telegram)) {
                 users.splice(i, 1);
@@ -70,7 +70,7 @@ export class UsersService {
             }
           } else {
             if (user.telegram) {
-              user.telegram = (await bot.getChat(user.telegram)).username;
+              user.telegram = '(await bot.getChat(user.telegram)).username';
             } else {
               user.telegram = 'off';
             }
@@ -102,7 +102,7 @@ export class UsersService {
         )[0][0];
 
         if (user.telegram) {
-          user.telegram = (await bot.getChat(user.telegram)).username;
+          user.telegram = '(await bot.getChat(user.telegram)).username';
         } else {
           user.telegram = 'off';
         }
