@@ -1,6 +1,7 @@
 import conn from "../db";
+import * as https from 'https';
 const axios = require('axios');
-
+var fs = require('fs');
 
 export class RequestService {
 
@@ -45,7 +46,7 @@ export class RequestService {
     try {
 
       const requests:any = (
-        await conn.query(`SELECT withdrawals.*, DATE_FORMAT(withdrawals.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, bot_users.pix_code FROM withdrawals JOIN bot_users ON withdrawals.user_id = bot_users.id WHERE ${`LOWER(withdrawals.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(withdrawals.value) LIKE LOWER('%${filters.value}%') ${filters.status !== 'all'? `AND withdrawals.status = "${filters.status}"` : ''} ${filters.created_at? `AND LOWER(withdrawals.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND withdrawals.user_id = ${userId}` : ''} ORDER BY created_at`)
+        await conn.query(`SELECT withdrawals.*, DATE_FORMAT(withdrawals.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name FROM withdrawals JOIN bot_users ON withdrawals.user_id = bot_users.id WHERE ${`LOWER(withdrawals.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(withdrawals.value) LIKE LOWER('%${filters.value}%') ${filters.status !== 'all'? `AND withdrawals.status = "${filters.status}"` : ''} ${filters.created_at? `AND LOWER(withdrawals.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND withdrawals.user_id = ${userId}` : ''} ORDER BY created_at`)
       )[0];
 
       return requests
@@ -92,51 +93,67 @@ export class RequestService {
 
   static async resWithdrawal(body:any){
     try {
-      
-      // const withdrawal = (
-      //   await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`)
-      // )[0][0];
+        if(body.res){
+            const withdrawal = (
+                await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`)
+            )[0][0];
 
-      // const user = (
-      //   await conn.query(`SELECT pix_code FROM bot_users WHERE id = '${withdrawal.user_id}'`)
-      // )[0][0];
-
-      // if(body.res){
-      //   await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
-      // }
-      
-      await conn.query(`UPDATE withdrawals SET status='${body.res? 'authorized': 'refused'}', reply_observation='${body.observation}' WHERE id = '${body.id}'`)
-
-      // axios.post(`${process.env.PAGBANK_SECURE_BASE_PATH}/transfers`, {
-      //   amount: {
-      //       value: parseFloat(withdrawal.value)*100,
-      //       currency: 'BRL'
-      //   },
-      //   instrument: {
-      //       type: 'PIX',
-      //       pix: {
-      //           key: user.pix_code
-      //       }
-      //   },
-      //   reference_id: withdrawal.id,
-      //   notification_urls: [
-      //     `${process.env.API_BASE_PATH}/transactions/transfers/${withdrawal.id}`
-      //   ]
-      // }, {
-      //   headers: {
-      //       'Content-Type': 'application/json',
-      //       'Authorization': `Bearer ${process.env.PAGBANK_SECURE_TOKEN}`
-      //   }
-      // })
-      // .then(res => res.json())
-      // .then(res => {
-      //     console.log('Resposta:', res);
-      // })
-      // .catch(erro => console.log(erro))
-    
+            const user = (
+                await conn.query(`SELECT pix_code FROM bot_users WHERE id = '${withdrawal.user_id}'`)
+            )[0][0];
+            
+            await axios.post(`${process.env.PAGBANK_SECURE_BASE_PATH}/transfers`, {
+                amount: {
+                    value: parseFloat(withdrawal.value)*100,
+                    currency: 'BRL'
+                },
+                instrument: {
+                    type: 'PIX',
+                    pix: {
+                        key: user.pix_code
+                    }
+                },
+                reference_id: withdrawal.id,
+                notification_urls: [
+                    `${process.env.API_BASE_PATH}/transactions/transfers/${withdrawal.id}`
+                ]
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.PAGBANK_SECURE_TOKEN}`
+                },
+                httpsAgent: new https.Agent({
+                    key: fs.readFileSync('C:/dev/smartOption/smart-option-keys/cert_prvt.key'),
+                    cert: fs.readFileSync('C:/dev/smartOption/smart-option-keys/cert_prvt.pem'),
+                }),
+            })
+            .then(async(res) => {
+                await conn.query(`UPDATE withdrawals SET status='authorized', reply_observation='${body.observation}', transaction_id='${res.data.id}' WHERE id = '${body.id}'`);
+            })
+            .catch(erro => console.log(erro));
+            return (await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`))[0][0];
+        } else {
+            await conn.query(`UPDATE withdrawals SET status='refused', reply_observation='${body.observation}' WHERE id = '${body.id}'`);
+            return (await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`))[0][0];
+        }
+        
     } catch (error) {
-      console.log(error)
+        console.log(error);
     }
+}
+
+
+  static async finishWithdrawal(body:any){
+    
+    if(body.status == 'SUCCESS'){
+      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}' WHERE id = '${body.reference_id}'`);
+      const withdrawal = (
+        await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.reference_id}`)
+      )[0][0];
+      await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
+    } else {
+      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}', errors_cause='${JSON.stringify(body.error_messages)}' WHERE id = '${body.reference_id}'`);
+    } 
   }
 
   static async wasRead(id:string, status:string){

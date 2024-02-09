@@ -21,7 +21,7 @@ export async function getBalance(userId:number):Promise<number> {
 }
 
 export async function show_balance(chatId:number, userId:number) {
-    await bot.sendMessage(chatId, `Saldo atual: R$ ${(await getBalance(userId)).toString().replace('.', ',')}`);
+    await bot.sendMessage(chatId, `Saldo atual: R$ ${((await getBalance(userId)).toFixed(2)).toString().replace('.', ',')}`);
 }
 
 export async function deposit_instructions(chatId:number, userId:number) {
@@ -35,7 +35,7 @@ export async function make_deposit(msg:any) {
     if(msg.text !== "🔄 VOLTAR AO MENU FINANCEIRO"){
         if(mode == "deposit"){
             if(validate_value(msg.text)){
-                await bot.sendMessage(msg.chat.id, `o valor a ser depositado é ${msg.text}`);
+                await bot.sendMessage(msg.chat.id, `o valor a ser depositado é R$ ${(parseFloat(msg.text.replace(',', '.')).toFixed(2)).toString().replace('.', ',')}`);
                 await bot.sendMessage(msg.chat.id, "Confirma?", callback([{ text: '✅ SIM', callback_data: `choice=yes&for=confirm-deposit-value&value=${msg.text}`}, { text: '❌ NÃO', callback_data: `choice=no&for=confirm-deposit-value&value=${msg.text}` }]));
                 mode = "confirm-deposit";
             } else {
@@ -95,7 +95,7 @@ export async function make_withdrawal(msg:any) {
 if(msg.text !== "🔄 VOLTAR AO MENU FINANCEIRO"){
     if(mode == "withdrawal"){
         if(validate_value(msg.text)){
-            await bot.sendMessage(msg.chat.id, `o valor a ser sacado é ${msg.text}`);
+            await bot.sendMessage(msg.chat.id, `o valor a ser sacado é R$ ${(parseFloat(msg.text.replace(',', '.')).toFixed(2)).toString().replace('.', ',')}`);
             await bot.sendMessage(msg.chat.id, "Confirma?", callback([{ text: '✅ SIM', callback_data: `choice=yes&for=confirm-withdrawal-value&value=${msg.text}`}, { text: '❌ NÃO', callback_data: `choice=no&for=confirm-withdrawal-value&value=${msg.text}` }]));
             mode = "confirm-withdrawal";
         } else {

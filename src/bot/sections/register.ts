@@ -15,10 +15,6 @@ const questions:Array<any> = [
         text: 'Email',
     },
     {
-        field: 'cpf',
-        text: 'CPF (apenas números, sem espaços e/ou caracteres especiais)',
-    },
-    {
         field: 'password',
         text: 'Senha',
     },
