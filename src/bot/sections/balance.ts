@@ -137,7 +137,7 @@ export async function withdrawalRequests(userId:number) {
     TransactionsService.withdrawalRequests(userId).then(data => {
         let items:any = [];
          data.map((item) => {
-             items.push([`${item.value}`, `${item.status == "pending"? "Pendente" : item.status == "authorized"? "Autorizado" : item.status == "refused"? "Rejeitado" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+             items.push([`${item.value}`, `${item.status == "pending"? "Pendente" : item.status == "authorized"? "Autorizado" : item.status == "refused"? "Rejeitado" : item.status == "failed"? "Falhou" : item.status == "success"? "Concluído" : "Pendente"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
          })
  
          var extract = 
@@ -177,7 +177,7 @@ export async function make_transfer(msg:any) {
                 await bot.sendMessage(msg.chat.id, "Valor incorreto! digite novamente a quantia que deseja transferir, ultilize somente numeros e para separar os centavos use virgula:");
             } 
         } else if(mode == "transfer-email"){
-            AuthenticationService.existingUser(msg.text)
+            AuthenticationService.existingUser(msg.text, msg.from.id)
             .then(async() => {
                 transfer_data.email = msg.text;
                 mode = "confirm-transfer";
@@ -199,15 +199,19 @@ export async function make_transfer(msg:any) {
 }
 
 export async function transfer_callbacks(query:any) {
-    if(mode == "confirm-deposit"){
+    if(mode == "confirm-transfer"){
         const params = new URLSearchParams(query.data);
-        if(params.get("for") == "confirm-deposit-value"){
-            if(params.get("choice") == "yes"){
-                generatePaymentLink(query.message.chat.id, parseFloat(params.get("value").replace(',', '.')));
-                mode = null;
+        if(params.get("for") == "confirm-transfer-infos"){
+            if(params.get("choice") == "confirm"){
+                TransactionsService.transfersBetweenUsers(parseFloat(transfer_data.value), query.message.chat.id, transfer_data.email).then((data) => {
+                    bot.sendMessage(query.message.chat.id, data, { parse_mode: 'Markdown' });
+                })
+                .catch((error) =>{
+                    bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+                })
             } else {
                 await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
-                mode = "deposit";
+                mode = "transfer-value";
             }
         }
     }
@@ -217,7 +221,7 @@ export async function extract(userId:number) {
     TransactionsService.extract(userId).then(data => {
        let items:any = [];
         data.map((item) => {
-            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdrawal"? "Saque" : item.origin == "subscription"? `${item.type == "sum"? `B.A.#${item.reference_id}` : 'Adesão'}` : item.origin == "tuition"? `${item.type == "sum"? `B.M.#${item.reference_id}` : 'Mensalidade'}` : item.origin == "earnings"? "Rentabilidade": item.origin == "profitability"? `B.R.#${item.reference_id}` : item.origin == "transfer"? "Transf. entre contas" : item.origin == "admin"? "Transf. Admin" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdrawal"? "Saque" : item.origin == "subscription"? `${item.type == "sum"? `B.A.#${item.reference_id}` : 'Adesão'}` : item.origin == "tuition"? `${item.type == "sum"? `B.M.#${item.reference_id}` : 'Mensalidade'}` : item.origin == "earnings"? "Rentabilidade": item.origin == "profitability"? `B.R.#${item.reference_id}` : item.origin == "transfer"? `Transf#${item.reference_id}` : item.origin == "admin"? "Transf#ADM" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
 
         var extract = 

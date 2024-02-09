@@ -17,19 +17,11 @@ export default express
     }
 
     })
-  .post('/checkouts-test', async(req: Request, res: Response, next: NextFunction) => {
-      const { userId, value } = req.body;
+    .post('/transfers/:reference_id', async(req, res) => {
       try {
-        const response =  await TransactionsService.checkout(userId, value);
-        res.status(200).json(response);
+        console.log('hook', req.params.reference_id, req.body)
       } catch (error) {
-          console.log(error);
-          next(new HttpException(400, error));
+        console.log(error);
       }
-    })
-  .get('/challenge', async(req, res) => {
-    res.status(200).json({
-      "public_key": `-----BEGIN PUBLIC KEY-----${process.env.PUBLIC_KEY}-----END PUBLIC KEY-----`,
-      "created_at": 1704593661363
-    });
-  });
+  
+      });

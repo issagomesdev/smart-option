@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+var fs = require('fs');
 
 // crypto.generateKeyPair('rsa',
 // {

@@ -43,10 +43,10 @@ export class AuthenticationService {
     }
   }
 
-  static async existingUser(email: string): Promise<any> {
+  static async existingUser(email: string, telegramUser:string): Promise<any> {
     try {
         const user = (
-            await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
+            await conn.query(`SELECT * FROM bot_users WHERE email = '${email}' AND (telegram_user_id != '${telegramUser}' OR telegram_user_id IS NULL)`)
         )[0][0];
 
         if(!user) throw Error("o email fornecido não corresponde a nenhum usuário registrado em nossa base de dados");

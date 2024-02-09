@@ -90,38 +90,37 @@ export class TransactionsService {
   static async checkout(userId: number, value:number, product:any = null){
     try {
 
-      // const user = (
-      //   await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
-      // )[0][0];
+      const user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
+      )[0][0];
 
-      // const checkout:any = (
-      //   await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
-      //   )[0];
+      const checkout:any = (
+        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
+        )[0];
 
-      // let item:any;
+      let item:any;
       
-      // product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano Smart ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
+      product? item = { reference_id: `${product.id}`, name: `SMART OPTION E.A. Plano Smart ${product.name}`, quantity: 1, unit_amount: value*100}  : item = { name: `SMART OPTION E.A. Depósito`, quantity: 1, unit_amount: value*100}
 
-      // const options = {
-      //   method: 'POST',
-      //   headers: {
-      //     accept: 'application/json',
-      //     'Content-type': 'application/json',
-      //     Authorization: `Bearer ${process.env.PAG_TOKEN}`
-      //   },
-      //   body: JSON.stringify({
-      //     items: [item],
-      //     reference_id: checkout.insertId,
-      //     payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${checkout.insertId}`]
-      //   })
-      // };
+      const options = {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'Content-type': 'application/json',
+          Authorization: `Bearer ${process.env.PAGBANK_TOKEN}`
+        },
+        body: JSON.stringify({
+          items: [item],
+          reference_id: checkout.insertId,
+          payment_notification_urls: [`${process.env.API_BASE_PATH}/transactions/checkouts/${checkout.insertId}`]
+        })
+      };
 
-      // const response = await fetch(`${process.env.CHK_BASE_PATH}/checkouts`, options);
-      // const data = await response.json();
+      const response = await fetch(`${process.env.PAGBANK_BASE_PATH}/checkouts`, options);
+      const data = await response.json();
 
-      // await conn.query(`UPDATE checkouts SET transaction_id='${data.id}' WHERE id = '${checkout.insertId}'`);
-      // return data.links.find(link => link.rel == "PAY").href;
-       return 'exemple.link.com';
+      await conn.query(`UPDATE checkouts SET transaction_id='${data.id}' WHERE id = '${checkout.insertId}'`);
+      return data.links.find(link => link.rel == "PAY").href;
 
     } catch (error) {
       throw error;
@@ -133,7 +132,6 @@ export class TransactionsService {
       const ref_checkout = (
         await conn.query(`SELECT * FROM checkouts WHERE id = '${reference_id}' AND status != '${status}'`)
       )[0][0];
-
       if(ref_checkout){
         await conn.query(`UPDATE checkouts SET status='${status}' WHERE id = '${ref_checkout.id}'`);
 
@@ -158,7 +156,7 @@ export class TransactionsService {
               await conn.execute(`INSERT INTO users_plans(user_id, product_id, expired_in) VALUES ('${ref_checkout.user_id}','${ref_checkout.product_id}', '${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}')`);
 
             }
-  
+            
             NetworkService.networkRepass(ref_checkout.user_id, ref_checkout.value, "subscription");
           }
         }
@@ -230,6 +228,28 @@ export class TransactionsService {
     }
 
     
+  }
+
+  static async transfersBetweenUsers(values:number, sender:number, recipient:string): Promise<any> {
+    try {
+      const sender_user = (
+        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${sender}'`)
+      )[0][0];
+      
+      if(sender_user && sender_user.id){
+        const recipient_user = (
+          await conn.query(`SELECT * FROM bot_users WHERE email = '${recipient}'`)
+        )[0][0];
+  
+        await conn.execute(`INSERT INTO balance(value, user_id, reference_id, type, origin) VALUES ('${values}','${sender_user.id}', '${recipient_user.id}', 'subtract', 'transfer')`);
+        await conn.execute(`INSERT INTO balance(value, user_id, reference_id, type, origin) VALUES ('${values}','${recipient_user.id}', '${sender_user.id}', 'sum', 'transfer')`);
+      }
+
+      return "Transferência concluída com sucesso!";
+        
+    } catch (error) {
+      throw error;
+    }
   }
 
 }

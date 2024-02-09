@@ -31,7 +31,6 @@ export class RegisterService {
   }
 
   static async sendVerificationEmail(email:string){
-    console.log('info')
     let user = (
       await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
     )[0][0];
@@ -58,7 +57,7 @@ export class RegisterService {
       subject: 'Confirmação de e-mail',
       html: `<div>
       <p> 
-      <img style="width: 25em;" src="https://www.smartoptionea.com/images/logo1.png" alt="SmartOption">
+      <img style="width: 25em;" src="https://smartoptionea.com/images/logo1.png" alt="SmartOption">
       </p>
       
       <table cellspacing="0" style="width:100%;margin:0 auto" bgcolor="#F2F3F4">
@@ -69,7 +68,7 @@ export class RegisterService {
                           <tbody>
                               <tr>
                                   <td>
-                                      <img style="margin: 1em; width: 100px;" src="https://www.smartoptionea.com/images/logo2.png" alt="SmartOption">
+                                      <img style="margin: 1em; width: 100px;" src="https://smartoptionea.com/images/logo2.png" alt="SmartOption">
                                   </td>
                               </tr>
                           </tbody>
@@ -111,9 +110,9 @@ export class RegisterService {
     };
 
       transporter.sendMail(mailOptions, async(error, info) => {
-        console.log(info)
+        //console.log(info)
         if (error) {
-          console.log(error.message)
+         // console.log(error.message)
         }
     });
   }
@@ -123,6 +122,8 @@ export class RegisterService {
   if (!token) throw Error("Token ausente");
 
   const decodedToken: any = jwt.verify(token, process.env.SECRET_KEY);
+
+  console.log()
   const today = Math.floor(Date.now() / 1000);
   let user = (
     await conn.query(`SELECT user_id FROM verification_email WHERE token = '${token}'`)

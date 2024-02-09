@@ -5,4 +5,4 @@ import { start } from "./bot";
 
 const port = 3000; 
 export default new Server().router(routes).listen(port);
-//start();
+start();
