@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Tempo de geração: 10-Jan-2024 às 15:37
+-- Tempo de geração: 09-Fev-2024 às 14:46
 -- Versão do servidor: 5.7.39
 -- versão do PHP: 5.6.5
 
@@ -69,7 +69,10 @@ INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id
 (44, 97.00, 10, 'subtract', 'tuition', NULL, 0x323032332d31322d32372030393a33383a3030),
 (49, 17.12, 10, 'subtract', 'withdrawal', '4', 0x323032332d31322d32382030343a30363a3536),
 (46, 100.00, 10, 'sum', 'admin', NULL, 0x323032332d31322d32372032313a35383a3536),
-(52, 39.00, 50, 'sum', 'admin', NULL, 0x323032332d31322d33302030393a31373a3336);
+(52, 39.00, 50, 'sum', 'admin', NULL, 0x323032332d31322d33302030393a31373a3336),
+(53, 100.54, 63, 'sum', 'deposit', '108', 0x323032342d30322d30362032323a30383a3432),
+(58, 100.00, 63, 'subtract', 'transfer', '10', 0x323032342d30322d30392031343a32333a3132),
+(59, 100.00, 10, 'sum', 'transfer', '63', 0x323032342d30322d30392031343a32333a3132);
 
 -- --------------------------------------------------------
 
@@ -98,8 +101,8 @@ CREATE TABLE `bot_users` (
 --
 
 INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number`, `adress`, `pix_code`, `is_active`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
-(10, 'Issa Maria Gom', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 0, NULL, 0x323032332d31312d31382031333a32393a3137, 0x323032332d31312d31372030333a30303a3030, 0x323032332d31322d32372032313a35303a3430),
-(25, 'liza', 'liza@mail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 0, NULL, 0x323032332d31312d31392032313a35343a3239, 0x323032332d31312d30392030393a33303a3339, 0x323032332d31312d32362031363a34393a3330),
+(10, 'Issa Maria Gom', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 1, 1743885934, 0x323032332d31312d31382031333a32393a3137, 0x323032332d31312d31372030333a30303a3030, 0x323032342d30322d30392031343a34303a3131),
+(25, 'liza', 'liza@mail.com', 'fe', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 0, NULL, 0x323032332d31312d31392032313a35343a3239, 0x323032332d31312d30392030393a33303a3339, 0x323032332d31312d32362031363a34393a3330),
 (24, 'lilian Barro', 'gvfrcd', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hbgvfcd', 1, NULL, 0x323032332d31312d31392032313a34363a3433, 0x323032332d31312d30312032313a35333a3035, 0x323032332d31312d32302031393a35333a3536),
 (23, 'leandro henrique', 'leo_hen@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 0, NULL, 0x323032332d31312d31392032313a34313a3338, 0x323032332d31312d31392032313a34333a3234, 0x323032332d31312d31392032313a34333a3538),
 (26, 'Hayssa gomes', 'Haygomes1@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '827372828272', 'Hehehshsh', 'Sggsshsh', 0, NULL, 0x323032332d31312d32302031393a35363a3533, NULL, 0x323032332d31312d32302031393a35363a3533),
@@ -129,7 +132,11 @@ INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number
 (56, 'dcx', 'vdcx', 'cefce', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'edcsx', 'dsx', 'edsx', 1, NULL, 0x323032332d31322d32362031393a34363a3034, NULL, NULL),
 (57, 'Hayssa Gomes', 'issagomes2002+2w@gmail.com', 'fd', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'fvc', 1, NULL, 0x323032332d31322d32362032313a30303a3530, NULL, NULL),
 (58, 'Hayssa Gomes', 'issagomes2002+13@gmail.com', 'dff', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'bfb', 1, NULL, 0x323032332d31322d32362032313a30333a3234, NULL, NULL),
-(59, 'undefined', 'undefined', 'undefined', 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'undefined', 'undefined', 'undefined', 1, NULL, 0x323032332d31322d32372030303a34313a3033, NULL, NULL);
+(59, 'undefined', 'undefined', 'undefined', 'da39a3ee5e6b4b0d3255bfef95601890afd80709', 'undefined', 'undefined', 'undefined', 1, NULL, 0x323032332d31322d32372030303a34313a3033, NULL, NULL),
+(60, 'Hayssa Gomes', 'issagomes2002+yt@gmail.com', '455', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', '654', 1, NULL, 0x323032342d30312d31312030333a31393a3137, NULL, NULL),
+(61, 'Hayssa Gomes', 'issagomes32002@gmail.com', ' v', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'fdc', 1, NULL, 0x323032342d30312d31312030333a31393a3538, NULL, NULL),
+(62, 'bv', 'issagomes2002+rrrr@gmail.com', 'b gfdvc', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'jhbgvfdc', 'bhgvfdcx', 'bv dcs', 1, NULL, 0x323032342d30312d31312031353a33303a3030, NULL, NULL),
+(63, 'hayssa maria', 'issagomes2002+testee2@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '839483249', 'rua madri numero 19', '13105628495', 1, NULL, 0x323032342d30322d30362031363a33353a3232, 0x323032342d30322d30362032313a33303a3131, 0x323032342d30322d30392031343a32343a3239);
 
 -- --------------------------------------------------------
 
@@ -177,7 +184,18 @@ INSERT INTO `checkouts` (`id`, `reference_id`, `type`, `value`, `status`, `trans
 (94, 'ce9a5c76-80ff-4b71-b45d-25aaf82c7168', 'deposit', 100.00, 'PAID', 'CHEC_A2CA66FB-25D6-4AB9-8B2F-8E870EB19A6B', 0, 10, 0x323032332d31322d31332031313a33353a3437),
 (95, 'd3d7891d-dbb0-49d1-8780-9759261378b6', 'subscription', 97.00, 'PENDING', 'CHEC_98C28070-4346-4154-80CB-A857D1F2D418', 1, 10, 0x323032332d31322d31332031313a33393a3533),
 (96, '5132e808-82d2-4bc2-9716-8a8ec31cd4e2', 'subscription', 97.00, 'PAID', 'CHEC_194D48D4-DE99-43BF-B07D-D117C9DC2C0B', 1, 10, 0x323032332d31322d31332031313a34303a3130),
-(97, 'a70757d8-2914-4db8-bca8-5741f775dcfc', 'subscription', 97.00, 'PAID', 'CHEC_0A81A939-A691-44D8-938D-6AE102D53638', 1, 10, 0x323032332d31322d31332031333a31393a3033);
+(97, 'a70757d8-2914-4db8-bca8-5741f775dcfc', 'subscription', 97.00, 'PAID', 'CHEC_0A81A939-A691-44D8-938D-6AE102D53638', 1, 10, 0x323032332d31322d31332031333a31393a3033),
+(98, 'ad273f31-ad40-4e31-b4c5-d010859bef8c', 'deposit', 1.00, 'PENDING', 'undefined', 0, 10, 0x323032342d30312d31322031353a30353a3130),
+(99, '37a84bd2-edaf-4af3-b141-92e8b42f7e9d', 'deposit', 1.00, 'PENDING', NULL, 0, 10, 0x323032342d30312d31322031353a30383a3435),
+(100, '59cd4d58-a33b-416b-a3e8-3b5d47262a69', 'deposit', 90.00, 'PENDING', 'undefined', 0, 10, 0x323032342d30312d31322031353a35303a3431),
+(101, 'b9df7dc5-5920-4f81-afb0-cd932d598d00', 'deposit', 90.00, 'PENDING', 'undefined', 0, 10, 0x323032342d30312d31322031353a35353a3136),
+(102, '405f80df-076a-4fab-8ac5-441afc01fdd6', 'deposit', 90.00, 'PENDING', NULL, 0, 10, 0x323032342d30312d31322031353a35353a3530),
+(103, '18eef60e-c581-4edb-a187-4f34c0cb47ef', 'deposit', 90.00, 'PENDING', NULL, 0, 10, 0x323032342d30312d31322031353a35383a3330),
+(104, '2bf02853-df9e-4dc0-bf80-99b21316468d', 'deposit', 90.00, 'PENDING', NULL, 0, 10, 0x323032342d30312d31322031363a30323a3336),
+(105, 'fe0cfd9c-a84f-4fe7-a86e-5c7ec45aef5e', 'deposit', 1.00, 'PENDING', NULL, 0, 10, 0x323032342d30312d31322031363a30343a3330),
+(106, 'c7daabf6-97cf-4b11-802e-59a145de8d1d', 'subscription', 97.00, 'PENDING', 'CHEC_B50C9D38-FEC6-4EF8-B26C-D6765BB9E416', 1, 63, 0x323032342d30322d30362032313a34383a3037),
+(107, '75c79e03-9245-4b65-9e3b-7444cee90568', 'subscription', 97.00, 'PAID', 'CHEC_AC585912-4F67-4BD3-86E6-4974729A0E56', 1, 63, 0x323032342d30322d30362032323a30303a3330),
+(108, 'ffd37830-d00a-408f-bb26-0a55c152b63f', 'deposit', 100.54, 'PAID', 'CHEC_AB67EC28-DB76-44E5-BCB1-4A704ACC3D22', 0, 63, 0x323032342d30322d30362032323a30373a3032);
 
 -- --------------------------------------------------------
 
@@ -400,7 +418,8 @@ INSERT INTO `users_plans` (`id`, `user_id`, `product_id`, `status`, `acquired_in
 (12, 50, 3, 1, 0x323032332d31312d32382030373a31313a3032, 0x323032332d31322d32382030373a31313a3032),
 (13, 10, 1, 1, 0x323032332d31322d32372030393a33383a3030, 0x323032342d30312d32372030393a33383a3030),
 (14, 23, 1, 1, 0x323032332d31312d32372030303a35393a3333, 0x323032332d31322d33302030393a30383a3234),
-(15, 24, 2, 1, 0x323032332d31312d32382030363a32333a3437, 0x323032332d31322d33302030393a30393a3332);
+(15, 24, 2, 1, 0x323032332d31312d32382030363a32333a3437, 0x323032332d31322d33302030393a30393a3332),
+(16, 63, 1, 1, 0x323032342d30322d30362032323a30323a3030, 0x323032342d30332d30362032323a30323a3030);
 
 -- --------------------------------------------------------
 
@@ -433,7 +452,23 @@ INSERT INTO `verification_email` (`id`, `user_id`, `token`, `status`) VALUES
 (36, 49, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWcrdGVzdGUxQGdtYWlsLmNvbSIsImlhdCI6MTcwMTE1MjA4MCwiZXhwIjoxNzAxMTU1NjgwfQ.B3A6h3F0XWGcPhu9MNviv_ZYVtcmoJko0kcz3kCecdc', 'checked'),
 (35, 48, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAxMTUxODkyLCJleHAiOjE3MDExNTU0OTJ9.9FjnI3q7wCEsoSNEBSBY6psnM0pLd1xYhhz9b8tHh2g', 'checked'),
 (34, 48, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAxMTUxODY1LCJleHAiOjE3MDExNTU0NjV9.pJI-5tcbvk7MsARAk8VVIxgTy6t14bAi7BTHr0avPYQ', 'checked'),
-(33, 47, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAxMTUxNjQwLCJleHAiOjE3MDExNTUyNDB9.w5PfUdV2T1-o07WB8KAkgB1mxKd1yIbPzs1X3-FZ0VY', 'checked');
+(33, 47, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJ5aXNzYWdAZ21haWwuY29tIiwiaWF0IjoxNzAxMTUxNjQwLCJleHAiOjE3MDExNTUyNDB9.w5PfUdV2T1-o07WB8KAkgB1mxKd1yIbPzs1X3-FZ0VY', 'checked'),
+(47, 60, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIreXRAZ21haWwuY29tIiwiaWF0IjoxNzA0OTQzMTU3LCJleHAiOjE3MDQ5NDY3NTd9.PWgqCr0RlYiuwC_RBcPjZ1kHQRvnarvVcFe_gF3D_ns', 'pending'),
+(48, 61, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczMyMDAyQGdtYWlsLmNvbSIsImlhdCI6MTcwNDk0MzE5OCwiZXhwIjoxNzA0OTQ2Nzk4fQ.zdhWiLzFy4pGk5MgeoqeHAnyuMDJs3FnG8t4uPoZX3c', 'pending'),
+(49, 62, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrcnJyckBnbWFpbC5jb20iLCJpYXQiOjE3MDQ5ODcwMDAsImV4cCI6MTcwNDk5MDYwMH0.L2kB6C9tyO_UreSuz4W4nFxbiYH57hcot7msSpfU6x0', 'pending'),
+(50, 10, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDJAZ21haWwuY29tIiwiaWF0IjoxNzA0OTg3MjI4LCJleHAiOjE3MDQ5OTA4Mjh9.AilIAb86b8yVYXl6cbwGSWh2B7moS-JDKULaJn9dUrg', 'pending'),
+(51, 10, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDJAZ21haWwuY29tIiwiaWF0IjoxNzA0OTg3MjczLCJleHAiOjE3MDQ5OTA4NzN9.-sZZDCpw_uttn1DvkG2z5T1YjlC7y-8j5XbTK-NqDkI', 'pending'),
+(52, 10, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDJAZ21haWwuY29tIiwiaWF0IjoxNzA0OTg3MjgxLCJleHAiOjE3MDQ5OTA4ODF9.Nb-q8tGwf28-jV1h2def25bRe-XR_LWHdSGTm4RkoM0', 'pending'),
+(53, 10, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDJAZ21haWwuY29tIiwiaWF0IjoxNzA0OTg3NzMxLCJleHAiOjE3MDQ5OTEzMzF9.a8pRpVMfMNTRjucGvoGnx2DkgWEu0aw1gZIG1SvcY5Q', 'pending'),
+(54, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyMzczMjIsImV4cCI6MTcwNzI0MDkyMn0.OIxwrek0ZwG30E4QZ128PsNBSzmv2lgTILUL4DZOcPE', 'checked'),
+(55, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyMzk3ODcsImV4cCI6MTcwNzI0MzM4N30.1o1KN73zghRiuT_PkAJRWU6XEZGVd77Oa5SAfU1Yqxo', 'checked'),
+(56, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDIwMzcsImV4cCI6MTcwNzI0NTYzN30.1G5nw89fIm-LXHkgxavhSeXpGDcFH7JuJpIbnE7G-Ks', 'checked'),
+(57, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDIwODEsImV4cCI6MTcwNzI0NTY4MX0.RldQle8yWMh2Kz5gYtAfdiAMx8MiR2p-1aPcg82xkw8', 'checked'),
+(58, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDIxNTAsImV4cCI6MTcwNzI0NTc1MH0.QdEyGPW3hoVtkcFGSpWyv7Q0-XNxQx0ca_kzA6_U1cU', 'checked'),
+(59, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDI0ODksImV4cCI6MTcwNzI0NjA4OX0.w6CL00AXoBlCsNVw3FR8YNlL7Skw4z-ALd4LV5WSSSI', 'checked'),
+(60, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDI2MzIsImV4cCI6MTcwNzI0NjIzMn0.6T8bzqSKLH4OHEIcKStAloYcqFWXFa6bnHPLc-O9NW0', 'checked'),
+(61, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNTE2MTgsImV4cCI6MTcwNzI1NTIxOH0.2aOsM9N1YgbzDjjbXyyyIVYQvkJGZlzQYK12Xb8Uazc', 'checked'),
+(62, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNTQ2NjMsImV4cCI6MTcwNzI1ODI2M30.CzSGF_cfnq8ifX4k35RpZjgbIEMjrjvpihnoQ9p3quw', 'checked');
 
 -- --------------------------------------------------------
 
@@ -445,8 +480,9 @@ CREATE TABLE `withdrawals` (
   `id` bigint(20) NOT NULL,
   `user_id` bigint(20) NOT NULL,
   `value` decimal(10,2) NOT NULL,
-  `status` enum('pending','authorized','refused') NOT NULL DEFAULT 'pending',
+  `status` enum('pending','authorized','refused','failed','success') NOT NULL DEFAULT 'pending',
   `reply_observation` longtext,
+  `error_message` varchar(255) DEFAULT NULL,
   `reference_id` varchar(255) NOT NULL,
   `transaction_id` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -456,12 +492,14 @@ CREATE TABLE `withdrawals` (
 -- Extraindo dados da tabela `withdrawals`
 --
 
-INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `reference_id`, `transaction_id`, `created_at`) VALUES
-(4, 10, 17.12, 'authorized', 'okk', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, 0x323032332d31312d32372032313a33383a3033),
-(6, 10, 100.00, 'pending', '', '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, 0x323032332d31312d32382030373a35303a3235),
-(7, 10, 100.00, 'authorized', 'não autorizar mais', '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, 0x323032332d31312d32372032313a33383a3033),
-(10, 10, 120.00, 'refused', 'rejeitei por x motivo', '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, 0x323032332d31322d31332031343a33313a3439),
-(11, 10, 120.00, 'authorized', '', 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, 0x323032332d31322d31332031343a33323a3430);
+INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `error_message`, `reference_id`, `transaction_id`, `created_at`) VALUES
+(4, 10, 17.12, 'authorized', 'okk', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, 0x323032332d31312d32372032313a33383a3033),
+(6, 10, 100.00, 'refused', '', NULL, '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, 0x323032332d31312d32382030373a35303a3235),
+(7, 10, 100.00, 'authorized', 'não autorizar mais', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, 0x323032332d31312d32372032313a33383a3033),
+(10, 10, 120.00, 'refused', 'rejeitei por x motivo', NULL, '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, 0x323032332d31322d31332031343a33313a3439),
+(11, 10, 120.00, 'refused', '', NULL, 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, 0x323032332d31322d31332031343a33323a3430),
+(12, 63, 100.00, 'success', '', NULL, '92c7d190-8076-43c7-bb86-17829ed5b90b', NULL, 0x323032342d30322d30362032323a33303a3339),
+(13, 10, 300.00, 'pending', NULL, NULL, '0f3509ea-9e1b-422c-b3d8-175e46c83798', NULL, 0x323032342d30322d30392031343a33353a3531);
 
 --
 -- Índices para tabelas despejadas
@@ -547,19 +585,19 @@ ALTER TABLE `withdrawals`
 -- AUTO_INCREMENT de tabela `balance`
 --
 ALTER TABLE `balance`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT de tabela `bot_users`
 --
 ALTER TABLE `bot_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
 
 --
 -- AUTO_INCREMENT de tabela `checkouts`
 --
 ALTER TABLE `checkouts`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=98;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
 
 --
 -- AUTO_INCREMENT de tabela `network`
@@ -601,19 +639,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT de tabela `users_plans`
 --
 ALTER TABLE `users_plans`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT de tabela `verification_email`
 --
 ALTER TABLE `verification_email`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT de tabela `withdrawals`
 --
 ALTER TABLE `withdrawals`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
