@@ -123,8 +123,8 @@ export class RequestService {
                     'Authorization': `Bearer ${process.env.PAGBANK_SECURE_TOKEN}`
                 },
                 httpsAgent: new https.Agent({
-                    key: fs.readFileSync('C:/dev/smartOption/smart-option-keys/cert_prvt.key'),
-                    cert: fs.readFileSync('C:/dev/smartOption/smart-option-keys/cert_prvt.pem'),
+                    key: fs.readFileSync(`${process.env.KEY_PATH}`),
+                    cert: fs.readFileSync(`${process.env.CERT_PATH}`),
                 }),
             })
             .then(async(res) => {

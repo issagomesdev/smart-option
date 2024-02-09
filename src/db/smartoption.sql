@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Tempo de geração: 09-Fev-2024 às 14:46
+-- Tempo de geração: 09-Fev-2024 às 22:46
 -- Versão do servidor: 5.7.39
 -- versão do PHP: 5.6.5
 
@@ -72,7 +72,27 @@ INSERT INTO `balance` (`id`, `value`, `user_id`, `type`, `origin`, `reference_id
 (52, 39.00, 50, 'sum', 'admin', NULL, 0x323032332d31322d33302030393a31373a3336),
 (53, 100.54, 63, 'sum', 'deposit', '108', 0x323032342d30322d30362032323a30383a3432),
 (58, 100.00, 63, 'subtract', 'transfer', '10', 0x323032342d30322d30392031343a32333a3132),
-(59, 100.00, 10, 'sum', 'transfer', '63', 0x323032342d30322d30392031343a32333a3132);
+(59, 100.00, 10, 'sum', 'transfer', '63', 0x323032342d30322d30392031343a32333a3132),
+(60, 9.00, 10, 'sum', 'deposit', '109', 0x323032342d30322d30392032313a31323a3538),
+(61, 100.00, 63, 'subtract', 'withdrawal', '12', 0x323032342d30322d30392032313a32303a3035),
+(62, 10.00, 10, 'subtract', 'withdrawal', '21', 0x323032342d30322d30392032313a32313a3035),
+(63, 10.00, 10, 'subtract', 'withdrawal', '21', 0x323032342d30322d30392032313a32333a3531),
+(64, 10.00, 10, 'subtract', 'withdrawal', '21', 0x323032342d30322d30392032313a32383a3531),
+(65, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a33323a3034),
+(66, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a33343a3437),
+(67, 10.00, 10, 'subtract', 'withdrawal', '21', 0x323032342d30322d30392032313a33373a3530),
+(68, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a33393a3131),
+(69, 1.00, 10, 'subtract', 'withdrawal', '16', 0x323032342d30322d30392032313a34333a3434),
+(70, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a34373a3035),
+(71, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a34373a3438),
+(72, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a34393a3437),
+(73, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032313a35353a3136),
+(74, 1.00, 10, 'subtract', 'withdrawal', '22', 0x323032342d30322d30392032323a30333a3532),
+(75, 1.00, 10, 'subtract', 'withdrawal', '26', 0x323032342d30322d30392032323a30383a3035),
+(76, 1.00, 10, 'subtract', 'withdrawal', '26', 0x323032342d30322d30392032323a31303a3437),
+(77, 13.40, 65, 'sum', 'deposit', '110', 0x323032342d30322d30392032323a31333a3530),
+(78, 10.00, 10, 'subtract', 'withdrawal', '21', 0x323032342d30322d30392032323a33383a3434),
+(79, 10.00, 65, 'subtract', 'withdrawal', '27', 0x323032342d30322d30392032323a34363a3034);
 
 -- --------------------------------------------------------
 
@@ -101,7 +121,7 @@ CREATE TABLE `bot_users` (
 --
 
 INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number`, `adress`, `pix_code`, `is_active`, `telegram_user_id`, `created_at`, `verified_email_at`, `last_activity`) VALUES
-(10, 'Issa Maria Gom', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 1, 1743885934, 0x323032332d31312d31382031333a32393a3137, 0x323032332d31312d31372030333a30303a3030, 0x323032342d30322d30392031343a34303a3131),
+(10, 'Issa Maria Gom', 'issagomes2002@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '84957349', 'rua don leon', '13105628495', 1, NULL, 0x323032332d31312d31382031333a32393a3137, 0x323032332d31312d31372030333a30303a3030, 0x323032342d30322d30392032323a31313a3033),
 (25, 'liza', 'liza@mail.com', 'fe', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hbtgvfrcd', 'bgvfcd', 'vfdcxs', 0, NULL, 0x323032332d31312d31392032313a35343a3239, 0x323032332d31312d30392030393a33303a3339, 0x323032332d31312d32362031363a34393a3330),
 (24, 'lilian Barro', 'gvfrcd', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'hybgtfrd', 'nhbgvfd', 'hbgvfcd', 1, NULL, 0x323032332d31312d31392032313a34363a3433, 0x323032332d31312d30312032313a35333a3035, 0x323032332d31312d32302031393a35333a3536),
 (23, 'leandro henrique', 'leo_hen@gmail.com', '', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '543', 'vgfcd', 'gvfcd', 0, NULL, 0x323032332d31312d31392032313a34313a3338, 0x323032332d31312d31392032313a34333a3234, 0x323032332d31312d31392032313a34333a3538),
@@ -136,7 +156,9 @@ INSERT INTO `bot_users` (`id`, `name`, `email`, `cpf`, `password`, `phone_number
 (60, 'Hayssa Gomes', 'issagomes2002+yt@gmail.com', '455', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', '654', 1, NULL, 0x323032342d30312d31312030333a31393a3137, NULL, NULL),
 (61, 'Hayssa Gomes', 'issagomes32002@gmail.com', ' v', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', 'fdc', 1, NULL, 0x323032342d30312d31312030333a31393a3538, NULL, NULL),
 (62, 'bv', 'issagomes2002+rrrr@gmail.com', 'b gfdvc', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 'jhbgvfdc', 'bhgvfdcx', 'bv dcs', 1, NULL, 0x323032342d30312d31312031353a33303a3030, NULL, NULL),
-(63, 'hayssa maria', 'issagomes2002+testee2@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '839483249', 'rua madri numero 19', '13105628495', 1, NULL, 0x323032342d30322d30362031363a33353a3232, 0x323032342d30322d30362032313a33303a3131, 0x323032342d30322d30392031343a32343a3239);
+(63, 'hayssa maria', 'issagomes2002+testee2@gmail.com', '13105628495', '6367c48dd193d56ea7b0baad25b19455e529f5ee', '839483249', 'rua madri numero 19', '13105628495', 1, NULL, 0x323032342d30322d30362031363a33353a3232, 0x323032342d30322d30362032313a33303a3131, 0x323032342d30322d30392031343a32343a3239),
+(64, 'Hayssa Gomes', 'issagomes2002+55@gmail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852292', 'Paratibe rua Madri N19', '13105628495', 1, NULL, 0x323032342d30322d30392032313a34303a3137, 0x323032342d30322d30392032323a30383a3431, NULL),
+(65, 'hayssa g', 'issagomes2002+86@gmail.com', NULL, '6367c48dd193d56ea7b0baad25b19455e529f5ee', '81993852282', 'frf', '13105628495', 1, 1743885934, 0x323032342d30322d30392032323a31303a3333, 0x323032342d30322d30392032323a31313a3336, 0x323032342d30322d30392032323a33333a3431);
 
 -- --------------------------------------------------------
 
@@ -195,7 +217,9 @@ INSERT INTO `checkouts` (`id`, `reference_id`, `type`, `value`, `status`, `trans
 (105, 'fe0cfd9c-a84f-4fe7-a86e-5c7ec45aef5e', 'deposit', 1.00, 'PENDING', NULL, 0, 10, 0x323032342d30312d31322031363a30343a3330),
 (106, 'c7daabf6-97cf-4b11-802e-59a145de8d1d', 'subscription', 97.00, 'PENDING', 'CHEC_B50C9D38-FEC6-4EF8-B26C-D6765BB9E416', 1, 63, 0x323032342d30322d30362032313a34383a3037),
 (107, '75c79e03-9245-4b65-9e3b-7444cee90568', 'subscription', 97.00, 'PAID', 'CHEC_AC585912-4F67-4BD3-86E6-4974729A0E56', 1, 63, 0x323032342d30322d30362032323a30303a3330),
-(108, 'ffd37830-d00a-408f-bb26-0a55c152b63f', 'deposit', 100.54, 'PAID', 'CHEC_AB67EC28-DB76-44E5-BCB1-4A704ACC3D22', 0, 63, 0x323032342d30322d30362032323a30373a3032);
+(108, 'ffd37830-d00a-408f-bb26-0a55c152b63f', 'deposit', 100.54, 'PAID', 'CHEC_AB67EC28-DB76-44E5-BCB1-4A704ACC3D22', 0, 63, 0x323032342d30322d30362032323a30373a3032),
+(109, '75aaaa74-ca04-4473-85e6-2294b9df21a2', 'deposit', 9.00, 'PAID', 'CHEC_1D9D6550-7792-403D-8F78-C857A0F5E08C', 0, 10, 0x323032342d30322d30392032313a31313a3332),
+(110, 'ead0a180-8d2e-409e-a43b-bfc6074dcfbc', 'deposit', 13.40, 'PAID', 'CHEC_2822D3A1-60F2-4F42-9E13-8A96FC621929', 0, 65, 0x323032342d30322d30392032323a31333a3035);
 
 -- --------------------------------------------------------
 
@@ -247,7 +271,8 @@ INSERT INTO `network` (`id`, `affiliate_user_id`, `guest_user_id`, `level`, `ear
 (31, 23, 46, '3', 1),
 (32, 48, 49, '1', 1),
 (33, 48, 50, '1', 1),
-(34, 10, 51, '1', 0);
+(34, 10, 51, '1', 0),
+(35, 10, 65, '1', 0);
 
 -- --------------------------------------------------------
 
@@ -334,9 +359,9 @@ CREATE TABLE `requests` (
 --
 
 INSERT INTO `requests` (`id`, `type`, `subject`, `is_read`, `user_id`, `telegram_user_id`, `created_at`) VALUES
-(1, 'service', '4', 0, 10, 1743885934, 0x323032332d31312d32372030313a34343a3036),
+(1, 'service', '4', 1, 10, 1743885934, 0x323032332d31312d32372030313a34343a3036),
 (5, 'support', 'gfds', 1, 10, 1743885934, 0x323032332d31312d32372030323a30393a3039),
-(3, 'support', 'estou com problemas para realizar saques', 0, 10, 1743885934, 0x323032332d31312d32372030323a30343a3131),
+(3, 'support', 'estou com problemas para realizar saques', 1, 10, 1743885934, 0x323032332d31312d32372030323a30343a3131),
 (4, 'support', '<p>Lorem ipsum dolor sit amet. Non consequatur animi et ipsa maiores ut neque beatae vel laboriosam velit sit explicabo omnis ut omnis assumenda. In quae tenetur qui alias molestiae ut galisum esse quo aspernatur mollitia in dolorum nisi aut neque vitae ea magni voluptas. Quo impedit molestiae 33 corporis voluptatum ut provident eligendi et suscipit quisquam est dolorem corporis ut dolorem nihil! In quas corrupti vel velit odio qui dolor incidunt et necessitatibus quasi ut inventore sapiente sit reiciendis sapiente aut quae blanditiis. </p><p>Ut deleniti atque eos corporis soluta et magni enim aut dicta ullam ut odio doloremque qui exercitationem odit quo dignissimos voluptate. Est modi sequi est illo animi et dolor doloribus aut omnis libero ut quia doloribus. Est voluptatem quia sed dolorum itaque vel consequuntur magnam. Rem perferendis delectus aut suscipit molestiae sit nesciunt alias et iusto optio id voluptatem facere sit inventore suscipit non illum ducimus. </p><p>Ea ipsam consequatur et minima repellat in voluptate eligendi. Et quae consequatur ab sunt nisi et enim explicabo! Eos voluptas expedita qui placeat perspiciatis ut nulla voluptatem non cumque quibusdam sed possimus nostrum vel laudantium vero ex eius harum. Ea laborum molestiae a illo quia id incidunt illum in voluptatum animi. </p>\n', 1, 10, 1743885934, 0x323032332d31312d32372030323a30343a3536),
 (6, 'support', 'gvfcdxs', 1, 10, 1743885934, 0x323032332d31312d32372030323a30393a3338),
 (7, 'support', 'vfcdxs', 1, 10, 1743885934, 0x323032332d31312d32372030323a30393a3430),
@@ -346,8 +371,8 @@ INSERT INTO `requests` (`id`, `type`, `subject`, `is_read`, `user_id`, `telegram
 (12, 'support', 'meu saque do dia 28/11 as 04:50 da manha no valor de 100 reais foi negado, mesmo tendo saldo suficiente', 1, 10, 1743885934, 0x323032332d31312d32382030373a35363a3230),
 (13, 'service', '4', 1, 10, 1743885934, 0x323032332d31322d30312030323a30333a3334),
 (14, 'support', 'Nao consigo realizar saque, fica em pendencia sempre', 1, 10, 1743885934, 0x323032332d31322d30312030323a31383a3531),
-(15, 'service', '4', 0, 10, 1743885934, 0x323032332d31322d31332030373a35343a3030),
-(16, 'service', '5', 0, 10, 1743885934, 0x323032332d31322d31332030373a35363a3238);
+(15, 'service', '4', 1, 10, 1743885934, 0x323032332d31322d31332030373a35343a3030),
+(16, 'service', '5', 1, 10, 1743885934, 0x323032332d31322d31332030373a35363a3238);
 
 -- --------------------------------------------------------
 
@@ -468,7 +493,10 @@ INSERT INTO `verification_email` (`id`, `user_id`, `token`, `status`) VALUES
 (59, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDI0ODksImV4cCI6MTcwNzI0NjA4OX0.w6CL00AXoBlCsNVw3FR8YNlL7Skw4z-ALd4LV5WSSSI', 'checked'),
 (60, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNDI2MzIsImV4cCI6MTcwNzI0NjIzMn0.6T8bzqSKLH4OHEIcKStAloYcqFWXFa6bnHPLc-O9NW0', 'checked'),
 (61, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNTE2MTgsImV4cCI6MTcwNzI1NTIxOH0.2aOsM9N1YgbzDjjbXyyyIVYQvkJGZlzQYK12Xb8Uazc', 'checked'),
-(62, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNTQ2NjMsImV4cCI6MTcwNzI1ODI2M30.CzSGF_cfnq8ifX4k35RpZjgbIEMjrjvpihnoQ9p3quw', 'checked');
+(62, 63, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrdGVzdGVlMkBnbWFpbC5jb20iLCJpYXQiOjE3MDcyNTQ2NjMsImV4cCI6MTcwNzI1ODI2M30.CzSGF_cfnq8ifX4k35RpZjgbIEMjrjvpihnoQ9p3quw', 'checked'),
+(63, 64, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrNTVAZ21haWwuY29tIiwiaWF0IjoxNzA3NTE0ODE3LCJleHAiOjE3MDc1MTg0MTd9.DWBFh69L-kG-gkbeX16z3pQoKoZYc-w3BGzpFswT04A', 'checked'),
+(64, 65, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrODZAZ21haWwuY29tIiwiaWF0IjoxNzA3NTE2NjMzLCJleHAiOjE3MDc1MjAyMzN9.RdZZPQYBuzwOS8ebVKx6NJrfk9Wn8Mt2-p382sgQtss', 'checked'),
+(65, 65, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imlzc2Fnb21lczIwMDIrODZAZ21haWwuY29tIiwiaWF0IjoxNzA3NTE2Njg0LCJleHAiOjE3MDc1MjAyODR9.xC-Lq7YWxPRlWbZybHGuU4_ukp3PVjcrC4jz0zjhCdE', 'checked');
 
 -- --------------------------------------------------------
 
@@ -482,7 +510,7 @@ CREATE TABLE `withdrawals` (
   `value` decimal(10,2) NOT NULL,
   `status` enum('pending','authorized','refused','failed','success') NOT NULL DEFAULT 'pending',
   `reply_observation` longtext,
-  `error_message` varchar(255) DEFAULT NULL,
+  `errors_cause` varchar(255) DEFAULT NULL,
   `reference_id` varchar(255) NOT NULL,
   `transaction_id` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -492,14 +520,27 @@ CREATE TABLE `withdrawals` (
 -- Extraindo dados da tabela `withdrawals`
 --
 
-INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `error_message`, `reference_id`, `transaction_id`, `created_at`) VALUES
+INSERT INTO `withdrawals` (`id`, `user_id`, `value`, `status`, `reply_observation`, `errors_cause`, `reference_id`, `transaction_id`, `created_at`) VALUES
 (4, 10, 17.12, 'authorized', 'okk', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, 0x323032332d31312d32372032313a33383a3033),
 (6, 10, 100.00, 'refused', '', NULL, '553cc5e9-b9b3-416d-bbbd-6ce6399c888a', NULL, 0x323032332d31312d32382030373a35303a3235),
 (7, 10, 100.00, 'authorized', 'não autorizar mais', NULL, '1bed10a3-ca1e-44e5-a54a-7b52336ddfb7', NULL, 0x323032332d31312d32372032313a33383a3033),
 (10, 10, 120.00, 'refused', 'rejeitei por x motivo', NULL, '12b17df7-9f37-41de-988c-3f2ce9f43ef6', NULL, 0x323032332d31322d31332031343a33313a3439),
 (11, 10, 120.00, 'refused', '', NULL, 'a4af7b08-8890-47e3-b209-dfcf4f80db04', NULL, 0x323032332d31322d31332031343a33323a3430),
 (12, 63, 100.00, 'success', '', NULL, '92c7d190-8076-43c7-bb86-17829ed5b90b', NULL, 0x323032342d30322d30362032323a33303a3339),
-(13, 10, 300.00, 'pending', NULL, NULL, '0f3509ea-9e1b-422c-b3d8-175e46c83798', NULL, 0x323032342d30322d30392031343a33353a3531);
+(13, 10, 300.00, 'refused', '', NULL, '0f3509ea-9e1b-422c-b3d8-175e46c83798', NULL, 0x323032342d30322d30392031343a33353a3531),
+(14, 10, 1.00, 'refused', '', NULL, '1893446e-3b57-4046-8c9b-5a075635a067', NULL, 0x323032342d30322d30392032303a31373a3139),
+(16, 10, 1.00, 'failed', '', '[{\"error\":\"transfer_insufficient_balance\",\"description\":\"Insufficient balance to transfer.\"}]', '4ccd4bc9-b1bb-4aba-8439-1cac201b6995', 'TRAN_6704EC50-74E0-4014-AEB9-3126968101A9', 0x323032342d30322d30392032303a32353a3431),
+(17, 10, 1.00, 'failed', '', '[{\"error\":\"transfer_insufficient_balance\",\"description\":\"Insufficient balance to transfer.\"}]', 'af4dcb65-83d3-4ecc-86e7-bb9dd5c686c2', 'TRAN_F36AE4EF-CBE6-457D-A23D-1F4E07B7B7A4', 0x323032342d30322d30392032303a35393a3031),
+(18, 10, 1.00, 'refused', '', '[{\"error\":\"transfer_failed\",\"description\":\"An unexpected error has occurred. Try again.\"}]', 'fdc38cc1-0ad5-401d-97d6-a07067b4cb86', 'TRAN_052F5D68-D8FB-4DAC-BE69-63550127310D', 0x323032342d30322d30392032313a30363a3237),
+(19, 10, 100.00, 'refused', '', NULL, 'd55804bf-79cc-43b2-ab58-ba00b6853bfe', NULL, 0x323032342d30322d30392032313a31343a3037),
+(20, 10, 100.00, 'failed', '', '[{\"error\":\"transfer_insufficient_balance\",\"description\":\"Insufficient balance to transfer.\"}]', '648fec2a-ddc7-4b5d-9f4d-0e2152ec11cf', 'TRAN_5D72772D-48C4-4490-8169-4B39F9CE292B', 0x323032342d30322d30392032313a31353a3435),
+(21, 10, 10.00, 'success', '', NULL, '0480edde-1263-4dbc-b947-a33a108999bb', 'TRAN_F0EF11B5-7D74-469C-A109-F6F8E378D00C', 0x323032342d30322d30392032313a31393a3137),
+(22, 10, 1.00, 'success', '', NULL, '45b73ca2-0f13-49fb-88dd-dae10f72ca3a', 'TRAN_1422E8D4-4FDE-4577-8590-286E55510348', 0x323032342d30322d30392032313a32393a3439),
+(23, 10, 10.00, 'failed', 'okk', '[{\"error\":\"transfer_insufficient_balance\",\"description\":\"Insufficient balance to transfer.\"}]', 'd543cbfb-9e8b-4d05-9d12-a66ab13ac11b', 'TRAN_68EDFF2C-4FD0-4D21-8F44-4238B87F76D2', 0x323032342d30322d30392032323a30323a3036),
+(24, 10, 300.00, 'failed', 'no mais', '[{\"error\":\"transfer_insufficient_balance\",\"description\":\"Insufficient balance to transfer.\"}]', '356e25e9-2de0-4e9d-8be5-86c7d1bb1fdd', 'TRAN_E6F061EB-E083-41A3-AC14-BFE2A1A9434B', 0x323032342d30322d30392032323a30333a3036),
+(25, 10, 200.00, 'refused', '', NULL, '5190ebee-83ac-4c02-822b-332694863eac', NULL, 0x323032342d30322d30392032323a30343a3133),
+(26, 10, 1.00, 'success', '', NULL, '43ce8f30-62a1-40d2-922a-45188f348fc8', 'TRAN_74452B3E-C389-4F76-BE2D-C7E9BCE8AAC6', 0x323032342d30322d30392032323a30363a3139),
+(27, 65, 10.00, 'success', '', NULL, '6a8d448d-0835-48a0-8ecf-acfa5475fae6', 'TRAN_1F8A8E4B-46E3-4CCF-811F-34994BA877CD', 0x323032342d30322d30392032323a33333a3434);
 
 --
 -- Índices para tabelas despejadas
@@ -585,25 +626,25 @@ ALTER TABLE `withdrawals`
 -- AUTO_INCREMENT de tabela `balance`
 --
 ALTER TABLE `balance`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=80;
 
 --
 -- AUTO_INCREMENT de tabela `bot_users`
 --
 ALTER TABLE `bot_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=64;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT de tabela `checkouts`
 --
 ALTER TABLE `checkouts`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=111;
 
 --
 -- AUTO_INCREMENT de tabela `network`
 --
 ALTER TABLE `network`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
 
 --
 -- AUTO_INCREMENT de tabela `products`
@@ -645,13 +686,13 @@ ALTER TABLE `users_plans`
 -- AUTO_INCREMENT de tabela `verification_email`
 --
 ALTER TABLE `verification_email`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT de tabela `withdrawals`
 --
 ALTER TABLE `withdrawals`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
