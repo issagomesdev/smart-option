@@ -17,7 +17,7 @@ export function message(msg:any){
             bot.removeListener('message', message);
     })
         .catch((error) => {
-          bot.sendMessage(msg.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+          bot.sendMessage(msg.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
         })
     }  
 }

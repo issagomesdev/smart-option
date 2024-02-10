@@ -3,7 +3,7 @@ import { callback } from "../components/index";
 import { bot } from "..";
 import  { _return } from "../components/mainMenu";
 import { RegisterService } from "../../services/bot/register.service";
-import { isLoggedIn} from "../components/auth";
+import { isLoggedIn } from "../components/auth";
 
 const questions:Array<any> = [
     {
@@ -54,12 +54,12 @@ export async function fields(msg:any) {
         if(field_correction || field_correction == 0){
             answers[questions[field_correction].field] = msg.text;
 
-            if(field_correction == 3){
-                field_correction = 4;
-                await bot.sendMessage(msg.chat.id, questions[field_correction].text + ":");
-            } else if(field_correction == 4 && answers.password !== answers.confirm_password){
-                await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
+            if(field_correction == 2){
                 field_correction = 3;
+                await bot.sendMessage(msg.chat.id, questions[field_correction].text + ":");
+            } else if(field_correction == 3 && answers.password !== answers.confirm_password){
+                await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
+                field_correction = 2;
             } else {
                 field_correction = null;
                 confirm_fields(msg.chat.id)
@@ -67,8 +67,8 @@ export async function fields(msg:any) {
         } else {
             answers[questions[current_field].field] = msg.text;
             if (current_field < questions.length - 1) {
-                if(current_field == 4 && answers.password !== answers.confirm_password){
-                    current_field = 3;
+                if(current_field == 3 && answers.password !== answers.confirm_password){
+                    current_field = 2;
                     await bot.sendMessage(msg.chat.id, "As senhas digitadas não coincidem, para realizar seu cadastro redigite sua senha: ");
                 } else{
                     current_field++;
@@ -99,7 +99,11 @@ export async function register_callbacks(query:any) {
                     answers = {};
                   })
                   .catch(async(error) => {
-                    await bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+                    await bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
+                    if(error.message == "Email já em uso") {
+                        await bot.sendMessage(query.message.chat.id, "Para realizar seu cadastro em nosso sistema, digite novamente o valor do campo " + questions[1].text + ":");
+                        field_correction = 1;
+                    }
                   });
                 return;
             } else {

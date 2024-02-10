@@ -24,6 +24,6 @@ export async function show_network_level(chatId:number, userId:number) {
          
      })
      .catch((error) =>{
-         bot.sendMessage(chatId, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+         bot.sendMessage(chatId, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
      })
 }

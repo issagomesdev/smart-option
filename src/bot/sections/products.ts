@@ -65,7 +65,7 @@ export async function products_callbacks(query:any){
         RequestsService.request('service', query.message.chat.id, plans[chosenPlan].id)
         .then(() => bot.sendMessage(query.message.chat.id, '_Pedido realizado com sucesso. Em breve nosso suporte entrará em contato._', { parse_mode: 'Markdown' }))
         .catch((error) =>{
-          bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+          bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
         })
         
       }

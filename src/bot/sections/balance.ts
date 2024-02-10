@@ -80,7 +80,7 @@ export async function depositRequests(userId:number) {
         
     })
     .catch((error) =>{
-        bot.sendMessage(userId, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+        bot.sendMessage(userId, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
     })
 }
 
@@ -118,7 +118,7 @@ if(mode == "confirm-withdrawal"){
                     bot.sendMessage(query.message.chat.id, "Seu pedido de saque está sendo analisado pela nossa equipe, acompanhe o andamento em *Solicitações de saque* dentro do menu financeiro.", { parse_mode: 'Markdown' });
                 })
                 .catch((error) =>{
-                    bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+                    bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
                 })
             } else {
                 await bot.sendMessage(query.message.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(query.message.chat.id)).toString().replace('.', ',')}). Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:`);
@@ -151,7 +151,7 @@ export async function withdrawalRequests(userId:number) {
         
     })
     .catch((error) =>{
-        bot.sendMessage(userId, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+        bot.sendMessage(userId, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
     })
 }
 
@@ -186,7 +186,7 @@ export async function make_transfer(msg:any) {
                 await bot.sendMessage(msg.chat.id, `Valor: R$ ${transfer_data.value.replace('.', ',')}\nEmail: ${transfer_data.email}`, callback([{ text: 'Confirmar', callback_data: "choice=confirm&for=confirm-transfer-infos"}, { text: 'Cancelar', callback_data: "choice=cancel&for=confirm-transfer-infos"}]));
 
             }).catch (async(error) => {
-                await bot.sendMessage(msg.chat.id, `${error.message}, insira novamente o e-mail do destinatário para o qual deseja realizar a transferência`);
+                await bot.sendMessage(msg.chat.id, `⚠ ${error.message}, insira novamente o e-mail do destinatário para o qual deseja realizar a transferência`);
             })
         }
     } else {
@@ -207,7 +207,7 @@ export async function transfer_callbacks(query:any) {
                     bot.sendMessage(query.message.chat.id, data, { parse_mode: 'Markdown' });
                 })
                 .catch((error) =>{
-                    bot.sendMessage(query.message.chat.id, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+                    bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
                 })
             } else {
                 await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
@@ -235,7 +235,7 @@ export async function extract(userId:number) {
         
     })
     .catch((error) =>{
-        bot.sendMessage(userId, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+        bot.sendMessage(userId, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
     })
 }
 
@@ -256,7 +256,7 @@ export async function subscriptionRequests(userId:number) {
         
     })
     .catch((error) =>{
-        bot.sendMessage(userId, `Erro: *${error.message}*`, { parse_mode: 'Markdown' });
+        bot.sendMessage(userId, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
     })
 }
 
