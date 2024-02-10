@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-// const token = '6962207233:AAH_eijZs5TI8MO17wuVTtRfHctj8C_QwHI';
+//const token = '6962207233:AAH_eijZs5TI8MO17wuVTtRfHctj8C_QwHI';
 const token = '6600468394:AAGs7ZCY_-LMH-iRtoQKD9Hn4R_K-cyHsa0';
 export const bot = new TelegramBot(token, { polling: true });
 import { goTo, main_menu } from "./components/mainMenu"
