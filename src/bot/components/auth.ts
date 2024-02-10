@@ -16,7 +16,7 @@ export const option:any = {
     one_time_keyboard: false, 
   };
 
-  export async function return_(chatId:number, userId:number = null) {
+  export async function return_(chatId:number, userId:number = null, msg:boolean = true) {
     switch (section) {
       case 1:
         bot.removeListener('message', fields);
@@ -29,7 +29,8 @@ export const option:any = {
     }
     section = null;
 
-    if(userId && await isLoggedIn(userId)){
+    if(msg){
+      if(userId && await isLoggedIn(userId)){
         bot.sendMessage(chatId, 'Para iniciar, clique no menu abaixo em “PRODUTOS E SERVIÇOS” para conhecer os planos mensais, serviços e produtos.', {
             reply_markup: main_menu,
           });
@@ -37,6 +38,7 @@ export const option:any = {
         bot.sendMessage(chatId, 'Entre em sua conta para continuar ou se ainda não possue uma conta cadastre-se agora', {
           reply_markup: option,
         });
+    }
     }
   }
 
