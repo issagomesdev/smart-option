@@ -132,6 +132,17 @@ export class UsersService {
     }
   }
 
+  static async deleteBotUser(id:number): Promise<any> {
+    try {
+      
+      await conn.query(`DELETE FROM bot_users WHERE id = '${id}'`)
+      return { status: true, message: "Usuário excluído com sucesso" }
+        
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async isActiveBotUser(userId:number, status:number): Promise<any> {
     try {
 

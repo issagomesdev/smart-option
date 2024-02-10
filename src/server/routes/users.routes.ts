@@ -79,6 +79,15 @@ export default express
     }
 
     })
+    .delete('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => {
+    try {
+        const response = await UsersService.deleteBotUser(Number(req.params.id));
+        res.status(200).json(response);
+    } catch (error) {
+        next(new HttpException(400, error));
+    }
+
+    })
     .put('/user-bot/:id/:status', async(req: Request, res: Response, next: NextFunction) => {
     try {
         const response = await UsersService.isActiveBotUser(Number(req.params.id), Number(req.params.status));
