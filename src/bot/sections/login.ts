@@ -49,7 +49,7 @@ export async function login_callbacks(query:any) {
                   })
                   .catch(async(error) => {
                     if(error.message == "Email não validado"){
-                        await bot.sendMessage(query.message.chat.id, `Alerta: Parece que seu e-mail ainda não foi validado. Por favor, verifique a caixa de entrada do e-mail associado à sua conta no momento do registro, abra o e-mail enviado e clique no link fornecido para ativar sua conta. Se você não conseguir encontrá-lo, verifique sua pasta de spam ou clique em reenviar validação para receber outro email. Se ainda estiver enfrentando problemas após isso, entre em contato conosco para obter assistência`, callback([{ text: 'Reenviar Validação', callback_data: "choice=enter&for=resend-validation"}]));
+                        await bot.sendMessage(query.message.chat.id, `⚠ Parece que seu e-mail ainda não foi validado. Por favor, verifique a caixa de entrada do e-mail associado à sua conta no momento do registro, abra o e-mail enviado e clique no link fornecido para ativar sua conta. Se você não conseguir encontrá-lo, verifique sua pasta de spam ou clique em reenviar validação para receber outro email. Se ainda estiver enfrentando problemas após isso, entre em contato conosco para obter assistência`, callback([{ text: 'Reenviar Validação', callback_data: "choice=enter&for=resend-validation"}]));
                     } else {
                         await bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
                         login_instructions(query.message.chat.id);
