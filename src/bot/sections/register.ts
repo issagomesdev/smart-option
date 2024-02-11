@@ -3,7 +3,6 @@ import { callback } from "../components/index";
 import { bot } from "..";
 import  { _return } from "../components/mainMenu";
 import { RegisterService } from "../../services/bot/register.service";
-import { isLoggedIn, return_ } from "../components/auth";
 
 const questions:Array<any> = [
     {
@@ -98,7 +97,8 @@ export async function register_callbacks(query:any) {
                     field_correction = null;
                     answers = {};
                     affiliate = null;
-                    return_(query.message.chat.id, null, false)
+                    bot.removeListener('message', fields);
+                    bot.removeListener('callback_query', register_callbacks);
                   })
                   .catch(async(error) => {
                     await bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });

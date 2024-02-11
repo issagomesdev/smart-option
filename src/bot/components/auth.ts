@@ -16,7 +16,7 @@ export const option:any = {
     one_time_keyboard: false, 
   };
 
-  export async function return_(chatId:number, userId:number = null, msg:boolean = true) {
+  export async function return_(chatId:number, userId:number = null) {
     switch (section) {
       case 1:
         bot.removeListener('message', fields);
