@@ -67,7 +67,21 @@ export class DashboardService {
 
         const totalEarnings = await Promise.all(
           users.map(async (user) => {
-            const balance = await TransactionsService.balance(null, false, user);
+            const balance_sum:any = (
+              await conn.query(`SELECT * FROM balance WHERE user_id = '${user.user_id}' ${interval !== 'all'? `AND DATE(created_at) BETWEEN '${start.split('-')[2]+'-'+start.split('-')[1]+'-'+start.split('-')[0]}' AND '${end.split('-')[2]+'-'+end.split('-')[1]+'-'+end.split('-')[0]}'` : ''} ORDER BY created_at`)
+            )[0];
+
+            let balance:number = 0;
+
+          if(balance_sum && balance_sum.length > 0){
+            
+            balance_sum.map((item) => {
+              balance += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
+            });
+
+            balance = Math.floor(balance * 100) / 100;
+          }
+
             const product = (
               await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)
             )[0][0];

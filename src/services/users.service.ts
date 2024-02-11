@@ -135,7 +135,15 @@ export class UsersService {
   static async deleteBotUser(id:number): Promise<any> {
     try {
       
-      await conn.query(`DELETE FROM bot_users WHERE id = '${id}'`)
+      await conn.query(`DELETE FROM bot_users WHERE id = '${id}'`);
+      await conn.query(`DELETE FROM balance WHERE user_id = '${id}'`);
+      await conn.query(`DELETE FROM checkouts WHERE user_id = '${id}'`);
+      await conn.query(`DELETE FROM requests WHERE user_id = '${id}'`);
+      await conn.query(`DELETE FROM users_plans WHERE user_id = '${id}'`);
+      await conn.query(`DELETE FROM verification_email WHERE user_id = '${id}'`);
+      await conn.query(`DELETE FROM withdrawals WHERE user_id = '${id}'`);
+      await conn.query(`DELETE FROM network WHERE affiliate_user_id = '${id}' OR guest_user_id = '${id}'`);
+
       return { status: true, message: "Usuário excluído com sucesso" }
         
     } catch (error) {
