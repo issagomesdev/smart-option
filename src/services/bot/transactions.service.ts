@@ -95,7 +95,7 @@ export class TransactionsService {
       )[0][0];
 
       const checkout:any = (
-        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', '${product? product.id : null}')`)
+        await conn.execute(`INSERT INTO checkouts(reference_id, type, value, user_id, product_id) VALUES ('${uuidv4()}','${product? 'subscription' : 'deposit'}', '${value}', '${user.id}', ${product? `${product.id}` : null})`)
         )[0];
 
       let item:any;
