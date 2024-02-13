@@ -50,8 +50,6 @@ async function checkExpiredUsers() {
 			await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${user.user_id}'`);
 		  }
 	  });
-
-	  
 }
 
 async function applyEarningsDaily() {
@@ -67,9 +65,8 @@ async function applyEarningsDaily() {
 			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)
 		  )[0][0];
 
-		const daily_earnings:any = Math.floor((product.earnings_monthly / 22) * 100) / 100;
-		const today_earnings:any = Math.floor(((daily_earnings / 100) * balance) * 100) / 100;
-
+		const daily_earnings:number = parseFloat((product.earnings_monthly / 22).toFixed(2));
+		const today_earnings:number = parseFloat(((daily_earnings / 100) * balance).toFixed(2));
 		await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${today_earnings}','${user.user_id}', 'sum', 'earnings')`);
 
 		NetworkService.networkRepass(user.user_id, today_earnings, "earnings", true)

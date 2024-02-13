@@ -122,8 +122,6 @@ export class RegisterService {
   if (!token) throw Error("Token ausente");
 
   const decodedToken: any = jwt.verify(token, process.env.SECRET_KEY);
-
-  console.log()
   const today = Math.floor(Date.now() / 1000);
   let user = (
     await conn.query(`SELECT user_id FROM verification_email WHERE token = '${token}'`)
