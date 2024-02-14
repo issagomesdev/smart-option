@@ -123,7 +123,7 @@ export class UsersService {
 
       if(!user) throw Error("Usuário Inexistente");
 
-      await conn.execute(`UPDATE bot_users SET name='${body.name}',email='${body.email}',cpf='${body.cpf}', ${body.password? `password='${SHA1(body.password).toString()}, ` : ''} phone_number='${body.phone_number}', adress='${body.adress}', pix_code='${body.pix_code}' WHERE id = '${body.id}'`)
+      await conn.execute(`UPDATE bot_users SET name='${body.name}',email='${body.email}',cpf='${body.cpf}', ${body.password? `password='${SHA1(body.password).toString()}',` : ''} phone_number='${body.phone_number}', adress='${body.adress}', pix_code='${body.pix_code}' WHERE id = '${body.id}'`)
 
         return { status: true, message: "Usuário atualizado com sucesso" }
         
