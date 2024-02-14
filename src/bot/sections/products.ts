@@ -49,11 +49,11 @@ export async function products_callbacks(query:any){
 
           if(await TransactionsService.balance(query.message.chat.id) >= plans[chosenPlan].price) {
 
-            await bot.sendMessage(query.message.chat.id, `Seu saldo atual é de ${(await TransactionsService.balance(query.message.chat.id)).toString().replace('.', ',')}, suficiente para cobrir o custo do produto selecionado. Você tem a opção de utilizar esse saldo para abater o valor ou gerar um link de pagamento para cobrir o valor total da compra!`, callback([{ text: 'Utilizar Saldo', callback_data: "choice=balance&for=choose-balance-link"}, { text: 'Gerar Link de Pagamento', callback_data: "choice=link&for=choose-balance-link" }]));
+            await bot.sendMessage(query.message.chat.id, `Seu saldo atual é de R$ ${(await TransactionsService.balance(query.message.chat.id)).toFixed(2).replace('.', ',')}, suficiente para cobrir o custo do produto selecionado. Você tem a opção de utilizar esse saldo para abater o valor ou gerar um link de pagamento para cobrir o valor total da compra!`, callback([{ text: 'Utilizar Saldo', callback_data: "choice=balance&for=choose-balance-link"}, { text: 'Gerar Link de Pagamento', callback_data: "choice=link&for=choose-balance-link" }]));
             
           } else {
 
-            await bot.sendMessage(query.message.chat.id, `Seu saldo atual é de R$ ${(await TransactionsService.balance(query.message.chat.id)).toString().replace('.', ',')}, suficiente para cobrir parte do custo do produto selecionado. Você tem a opção de fazer um depósito no valor restante e descontar diretamente do seu saldo ou gerar um link de pagamento para cobrir o valor total da compra!`, callback([{ text: 'Realizar Depósito', callback_data: "choice=deposit&for=choose-balance-link"}, { text: 'Gerar Link de Pagamento', callback_data: "choice=link&for=choose-balance-link" }]));
+            await bot.sendMessage(query.message.chat.id, `Seu saldo atual é de R$ ${(await TransactionsService.balance(query.message.chat.id)).toFixed(2).replace('.', ',')}, suficiente para cobrir parte do custo do produto selecionado. Você tem a opção de fazer um depósito no valor restante e descontar diretamente do seu saldo ou gerar um link de pagamento para cobrir o valor total da compra!`, callback([{ text: 'Realizar Depósito', callback_data: "choice=deposit&for=choose-balance-link"}, { text: 'Gerar Link de Pagamento', callback_data: "choice=link&for=choose-balance-link" }]));
 
           }
 
