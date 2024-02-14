@@ -55,7 +55,7 @@ export class DashboardService {
       
         const total = sum.reduce((acc, value) => acc + value, 0);
 
-        return total % 1 === 0? total.toFixed(2) : total.toFixed(3);
+        return total.toFixed(2);
         
       }
 

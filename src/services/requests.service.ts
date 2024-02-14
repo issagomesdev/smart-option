@@ -20,7 +20,7 @@ export class RequestService {
           result += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
         });
 
-        result = parseFloat(result % 1 === 0? result.toFixed(2) : result.toFixed(3));
+        result = parseFloat(result.toFixed(2));
       }
 
       return result;
