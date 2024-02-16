@@ -56,8 +56,8 @@ export const main_menu:any = {
     ['🎯 PRODUTOS E SERVIÇOS'],
     ['🪪 CADASTRO', '🔗 LINK DE AFILIADO'],
     ['🚻 REDE', '💲FINANCEIRO'],
-    ['📃 REGRAS DE USO E DÚVIDAS GERAIS'],
-    ['📱 SUPORTE & ATENDIMENTO AO CLIENTE'],
+    ['📃 DÚVIDAS GERAIS'],
+    ['📱 ATENDIMENTO AO CLIENTE'],
     ['🔚SAIR DA CONTA'],
   ],
   one_time_keyboard: false, 
@@ -152,10 +152,10 @@ export async function goTo(msg:any) {
     case "🛒 SOLICITAÇÕES DE ADESÃO":
       subscriptionRequests(msg.from.id)
     break;
-    case "📃 REGRAS DE USO E DÚVIDAS GERAIS":
+    case "📃 DÚVIDAS GERAIS":
       show_rules(msg.chat.id)
     break;
-    case "📱 SUPORTE & ATENDIMENTO AO CLIENTE":
+    case "📱 ATENDIMENTO AO CLIENTE":
       section = 9;
       suport(msg.chat.id);
       bot.on('message', message);
