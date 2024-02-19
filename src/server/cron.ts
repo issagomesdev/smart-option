@@ -65,8 +65,8 @@ async function applyEarningsDaily() {
 			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)
 		  )[0][0];
 
-		const daily_earnings:number = parseFloat((product.earnings_monthly / 22).toFixed(3));
-		const today_earnings:number = parseFloat(((daily_earnings / 100) * balance).toFixed(3));
+		const daily_earnings:number = (Math.floor((product.earnings_monthly / 22) * 100) / 100);
+		const today_earnings:number = (Math.floor(((daily_earnings / 100) * balance) * 100) / 100);
 
 		if(today_earnings > 0){
 			await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${today_earnings}','${user.user_id}', 'sum', 'earnings')`);

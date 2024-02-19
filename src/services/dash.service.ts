@@ -55,7 +55,7 @@ export class DashboardService {
       
         const total = sum.reduce((acc, value) => acc + value, 0);
 
-        return total.toFixed(2);
+        return (Math.floor(total  * 100) / 100);
         
       }
 

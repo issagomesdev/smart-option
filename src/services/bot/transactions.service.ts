@@ -27,7 +27,7 @@ export class TransactionsService {
           result += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
         });
 
-        result = parseFloat(result.toFixed(2));
+        result = (Math.floor(result  * 100) / 100);
       }
 
       return result;
