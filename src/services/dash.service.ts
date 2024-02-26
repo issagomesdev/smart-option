@@ -25,11 +25,15 @@ export class DashboardService {
             await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 2`)
         )[0][0].total;
 
+        const diamondUsers:any = (
+            await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 4`)
+        )[0][0].total;
+
         const goldUsers:any = (
             await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 3`)
         )[0][0].total;
 
-        return { allUsers, activeUsers, bronzeUsers, silverUsers, goldUsers }
+        return { allUsers, activeUsers, bronzeUsers, silverUsers, goldUsers, diamondUsers }
 
     } catch (error) {
       throw error;
@@ -73,6 +77,19 @@ export class DashboardService {
           value:  (await total('profitability'))
         }
       ];
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async getPlans(){
+    try {
+        const plans:any = (
+            await conn.query(`SELECT id, name FROM products WHERE purchase_type = 'auto' ORDER BY id ASC`)
+        )[0];
+
+        return plans
+
     } catch (error) {
       throw error;
     }

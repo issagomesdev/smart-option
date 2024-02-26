@@ -221,7 +221,7 @@ export async function extract(userId:number) {
     TransactionsService.extract(userId).then(data => {
        let items:any = [];
         data.map((item) => {
-            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdrawal"? "Saque" : item.origin == "subscription"? `${item.type == "sum"? `B.A.#${item.reference_id}` : 'Adesão'}` : item.origin == "tuition"? `${item.type == "sum"? `B.M.#${item.reference_id}` : 'Mensalidade'}` : item.origin == "earnings"? "Rentabilidade": item.origin == "profitability"? `B.R.#${item.reference_id}` : item.origin == "transfer"? `Transf#${item.reference_id}` : item.origin == "admin"? "Transf#ADM" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
+            items.push([`${item.type == "sum"? "+" : "-"}${item.value}`, `${item.origin == "deposit"? "Depósito" : item.origin == "withdrawal"? "Saque" : item.origin == "subscription"? `${item.type == "sum"? `B.A.#${item.reference_id}` : 'Adesão'}` : item.origin == "tuition"? `${item.type == "sum"? `B.M.#${item.reference_id}` : 'Mensalidade'}` : item.origin == "earnings"? "Rentabilidade": item.origin == "profitability"? `B.R.#${item.reference_id}` : item.origin == "transfer"? `Transf#${item.reference_id}` : item.origin == "admin"? "Transf#ADM" : item.origin == "diamond_tax"? "Taxa Diamante" : "Outros"}`, `${moment(item.created_at).format('DD/MM/YY HH:mm')}`]);
         })
 
         var extract = 

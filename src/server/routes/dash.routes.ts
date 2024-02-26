@@ -24,5 +24,14 @@ export default express
             console.log(error);
             next(new HttpException(400, error));
         }
+    })
+    .get('/plans', async(req: Request, res: Response, next: NextFunction) => {
+        try {
+            const response = await DashboardService.getPlans();
+            res.status(200).json(response);
+        } catch (error) {
+            console.log(error);
+            next(new HttpException(400, error));
+        }
     });
     

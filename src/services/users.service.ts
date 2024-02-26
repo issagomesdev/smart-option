@@ -3,6 +3,7 @@ import { SHA1 } from "crypto-js";
 import axios from "axios";
 import { bot } from "../bot/index"
 import { TransactionsService } from "./bot/transactions.service";
+import moment from 'moment';
 
 export class UsersService {
 
@@ -98,7 +99,7 @@ export class UsersService {
   static async botUser(id:string): Promise<any> {
     try {
         const user:any = (
-            await conn.query(`SELECT bot_users.id, bot_users.name, bot_users.email, bot_users.cpf, bot_users.phone_number, bot_users.adress, bot_users.pix_code, bot_users.is_active, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id WHERE bot_users.id = ${id}`)
+            await conn.query(`SELECT bot_users.id, users_plans.product_id, bot_users.name, bot_users.email, bot_users.phone_number, bot_users.adress, bot_users.pix_code, bot_users.is_active, COALESCE(products.name, 'without') as plan, bot_users.telegram_user_id as telegram, DATE_FORMAT(bot_users.created_at, '%d/%m/%Y') AS created_at, users_plans.status FROM bot_users LEFT JOIN users_plans ON bot_users.id = users_plans.user_id LEFT JOIN products ON products.id = users_plans.product_id WHERE bot_users.id = ${id}`)
         )[0][0];
 
         if (user.telegram) {
@@ -123,7 +124,19 @@ export class UsersService {
 
       if(!user) throw Error("Usuário Inexistente");
 
-      await conn.execute(`UPDATE bot_users SET name='${body.name}',email='${body.email}',cpf='${body.cpf}', ${body.password? `password='${SHA1(body.password).toString()}',` : ''} phone_number='${body.phone_number}', adress='${body.adress}', pix_code='${body.pix_code}' WHERE id = '${body.id}'`)
+      await conn.execute(`UPDATE bot_users SET name='${body.name}',email='${body.email}', ${body.password? `password='${SHA1(body.password).toString()}',` : ''} phone_number='${body.phone_number}', adress='${body.adress}', pix_code='${body.pix_code}' WHERE id = '${body.id}'`)
+
+      const hasPlan = (
+        await conn.query(`SELECT * FROM users_plans WHERE user_id = '${body.id}'`)
+      )[0][0];
+
+      if(body.product_id) {
+        if(hasPlan) await conn.query(`UPDATE users_plans SET product_id='${body.product_id}', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${body.id}'`);
+        
+        else await conn.execute(`INSERT INTO users_plans(user_id, product_id, expired_in) VALUES ('${body.id}','${body.product_id}', '${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}')`);
+      } else {
+        if(hasPlan) await conn.query(`DELETE FROM users_plans WHERE user_id = '${body.id}'`);
+      }
 
         return { status: true, message: "Usuário atualizado com sucesso" }
         

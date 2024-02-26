@@ -19,7 +19,11 @@ export class RegisterService {
        user = (
         await conn.execute(
           `INSERT INTO bot_users(name, email, password, phone_number, adress, pix_code) VALUES ('${body.name}','${body.email}', '${SHA1(body.password).toString()}','${body.phone_number}','${body.adress}','${body.pix_code}')`
-        ))[0]; 
+        ))[0];  
+
+        if(body.balance && body.type) await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${body.balance}','${user.insertId}','${body.type}','admin')`);
+        
+        if(body.product_id) await conn.execute(`INSERT INTO users_plans(user_id, product_id, expired_in) VALUES ('${user.insertId}','${body.product_id}', '${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}')`);
         
         if(affiliateId) NetworkService.upNetwork(affiliateId, user.insertId);
         RegisterService.sendVerificationEmail(body.email)
