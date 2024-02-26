@@ -5,7 +5,7 @@ import http from "http";
 import { errorHandler } from "./middlewares/error.handler";
 import cors from "cors";
 import path from "path";
-import { dailyCron, everyMinuteCron } from "./cron";
+import { dailyCron, everyMinuteCron, lastDayinMonthCron } from "./cron";
 
 const app = express();
 
@@ -39,6 +39,7 @@ export default class ExpressServer {
 		this.server.listen(p, welcome(p));
 		dailyCron.start();
 		everyMinuteCron.start();
+		lastDayinMonthCron.start();
 		return app;
 	}
 }

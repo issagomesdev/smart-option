@@ -5,7 +5,7 @@ import { TransactionsService } from "../services/bot/transactions.service";
 import { NetworkService } from "../services/bot/network.service";
 
 export const lastDayinMonthCron = cron.schedule(
-	"59 23 L * *",
+	"0 0 28-31 * *",
 	async () => {
 	  try {
 		await applyDiamondTax();
