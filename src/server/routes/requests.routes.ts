@@ -62,7 +62,7 @@ export default express
     })
     .post('/res-withdrawal', async(req: Request, res: Response, next: NextFunction) => {
       try {
-          const response = await RequestService.resWithdrawal(req.body);
+          const response = await RequestService.resWithdrawal(req.body.res);
           res.status(200).json(response);
       } catch (error) {
           console.log(error);
