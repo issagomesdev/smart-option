@@ -3,6 +3,7 @@ import * as https from 'https';
 const axios = require('axios');
 var fs = require('fs');
 import moment from 'moment';
+import { message } from "../bot/sections/suport";
 
 export class RequestService {
 
@@ -95,52 +96,71 @@ export class RequestService {
 
   static async resWithdrawal(body:any){
     try {
-        if(body.res){
+      if(body.res){
+
             const withdrawal = (
                 await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`)
             )[0][0];
 
             const user = (
-                await conn.query(`SELECT pix_code FROM bot_users WHERE id = '${withdrawal.user_id}'`)
+              await conn.query(`SELECT pix_code FROM bot_users WHERE id = '${withdrawal.user_id}'`)
             )[0][0];
-            
-            await axios.post(`${process.env.PAGBANK_SECURE_BASE_PATH}/transfers`, {
-                amount: {
-                    value: parseFloat(withdrawal.value)*100,
-                    currency: 'BRL'
-                },
-                instrument: {
-                    type: 'PIX',
-                    pix: {
-                        key: user.pix_code
-                    }
-                },
-                reference_id: withdrawal.id,
-                notification_urls: [
-                    `${process.env.API_BASE_PATH}/transactions/transfers/${withdrawal.id}`
-                ]
+          
+
+           try {
+
+            const res = await axios.post(`${process.env.PAGBANK_SECURE_BASE_PATH}/transfers`, {
+              amount: {
+                  value: parseFloat(withdrawal.value)*100,
+                  currency: 'BRL'
+              },
+              instrument: {
+                  type: 'PIX',
+                  pix: {
+                      key: user.pix_code
+                  }
+              },
+              reference_id: withdrawal.id,
+              notification_urls: [
+                  `${process.env.API_BASE_PATH}/transactions/transfers/${withdrawal.id}`
+              ]
             }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.PAGBANK_SECURE_TOKEN}`
-                },
-                httpsAgent: new https.Agent({
-                    key: fs.readFileSync(`${process.env.KEY_PATH}`),
-                    cert: fs.readFileSync(`${process.env.CERT_PATH}`),
-                }),
-            })
-            .then(async(res) => {
-                await conn.query(`UPDATE withdrawals SET status='authorized', reply_observation='${body.observation}', transaction_id='${res.data.id}' WHERE id = '${body.id}'`);
-            })
-            .catch(erro => console.log(erro));
-            return (await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`))[0][0];
-        } else {
-            await conn.query(`UPDATE withdrawals SET status='refused', reply_observation='${body.observation}' WHERE id = '${body.id}'`);
-            return (await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`))[0][0];
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${process.env.PAGBANK_SECURE_TOKEN}`
+              },
+              httpsAgent: new https.Agent({
+                  key: fs.readFileSync(`${process.env.KEY_PATH}`),
+                  cert: fs.readFileSync(`${process.env.CERT_PATH}`),
+              }),
+            });
+
+            await conn.query(`UPDATE withdrawals SET status='authorized', reply_observation='${body.observation}', transaction_id='${res.data.id}' WHERE id = '${body.id}'`);
+
+            return {
+              status: true,
+              message: 'Solicitação respondida com sucesso!'
+            }
+
+           } catch (error) {
+
+            return {
+              status: false,
+              message: error.response.data.error_messages[0].description
+            }
+            
+           }
+           
+      } else {
+        await conn.query(`UPDATE withdrawals SET status='refused', reply_observation='${body.observation}' WHERE id = '${body.id}'`);
+        return {
+          status: true,
+          message: 'Solicitação respondida com sucesso!'
         }
+      }
         
     } catch (error) {
-        console.log(error);
+      console.log(error)
     }
 }
 
@@ -150,29 +170,29 @@ export class RequestService {
         await conn.query(`SELECT status FROM withdrawals WHERE id = ${body.reference_id}`)
     )[0][0];
 
-    
-    if(withdrawal.status !== body.status.toLowerCase()) {
-      if(body.status == 'SUCCESS'){
-        await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}' WHERE id = '${body.reference_id}'`);
-        const withdrawal = (
-          await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.reference_id}`)
-        )[0][0];
-        await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
-  
-        const hasPlan = (
-          await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${withdrawal.user_id}' AND status = 1`)
-        )[0][0];
+    if(body.status == 'SUCCESS'){
+      if(withdrawal.status !== body.status.toLowerCase()) {
         
-        const balance:any = await RequestService.balance(withdrawal.user_id);
-  
-        if(hasPlan && hasPlan.product_id != 4 && balance >= 20000) await conn.query(`UPDATE users_plans SET product_id='4', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
-  
-        if(hasPlan && hasPlan.product_id == 4 && balance < 20000) await conn.query(`UPDATE users_plans SET product_id='3', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
-  
-      } else {
-        await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}', errors_cause='${JSON.stringify(body.error_messages)}' WHERE id = '${body.reference_id}'`);
-      } 
-    }
+      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}' WHERE id = '${body.reference_id}'`);
+      const withdrawal = (
+        await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.reference_id}`)
+      )[0][0];
+      await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
+
+      const hasPlan = (
+        await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${withdrawal.user_id}' AND status = 1`)
+      )[0][0];
+      
+      const balance:any = await RequestService.balance(withdrawal.user_id);
+
+      if(hasPlan && hasPlan.product_id != 4 && balance >= 20000) await conn.query(`UPDATE users_plans SET product_id='4', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
+
+      if(hasPlan && hasPlan.product_id == 4 && balance < 20000) await conn.query(`UPDATE users_plans SET product_id='3', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
+      }
+
+    } else {
+      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}', errors_cause='${JSON.stringify(body.error_messages)}' WHERE id = '${body.reference_id}'`);
+    } 
 
   }
 
