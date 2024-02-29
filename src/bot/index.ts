@@ -1,6 +1,6 @@
 import TelegramBot from 'node-telegram-bot-api';
-// const token = '6962207233:AAH_eijZs5TI8MO17wuVTtRfHctj8C_QwHI'; //teste
-const token = '6600468394:AAGs7ZCY_-LMH-iRtoQKD9Hn4R_K-cyHsa0'; //real
+const token = '6962207233:AAH_eijZs5TI8MO17wuVTtRfHctj8C_QwHI'; //teste
+// const token = '6600468394:AAGs7ZCY_-LMH-iRtoQKD9Hn4R_K-cyHsa0'; //real
 export const bot = new TelegramBot(token, { polling: true });
 import { goTo, main_menu } from "./components/mainMenu"
 import { isLoggedIn, logIn } from "./components/auth";

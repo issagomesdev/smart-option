@@ -52,7 +52,6 @@ export async function fields(msg:any) {
     if(msg.text !== "🔄 VOLTAR AO MENU PRINCIPAL" && msg.text !== "🔄 VOLTAR" ){
         if(field_correction || field_correction == 0){
             answers[questions[field_correction].field] = msg.text;
-
             if(field_correction == 2){
                 field_correction = 3;
                 await bot.sendMessage(msg.chat.id, questions[field_correction].text + ":");
@@ -73,6 +72,7 @@ export async function fields(msg:any) {
                     current_field++;
                     // if(current_field == 6) await bot.sendMessage(msg.chat.id, "Para terminar, agora responda com seus dados bancários");
                     await bot.sendMessage(msg.chat.id, questions[current_field].text + ":");
+                    if(questions[current_field].field == 'pix_code') await bot.sendMessage(msg.chat.id, "OBS: Para chaves PIX do tipo celular ou CPF, utilize apenas números, sem caracteres especiais. Exemplo: 11987654321 ou 12345678900.");
                 }
             } else {
                 confirm_fields(msg.chat.id)
@@ -131,6 +131,7 @@ export async function register_callbacks(query:any) {
                 await bot.sendMessage(query.message.chat.id, questions[current_field].text + ":");
             } else {
                 await bot.sendMessage(query.message.chat.id, "Para realizar seu cadastro em nosso sistema, digite novamente o valor do campo " + questions[Number(params.get("choice"))].text + ":");
+                if(questions[Number(params.get("choice"))].field == 'pix_code') await bot.sendMessage(query.message.chat.id, "OBS: Para chaves PIX do tipo celular ou CPF, utilize apenas números, sem caracteres especiais. Exemplo: 11987654321 ou 12345678900.");
                 field_correction = Number(params.get("choice"));
             }
         }
