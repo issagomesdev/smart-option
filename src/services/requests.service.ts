@@ -145,27 +145,34 @@ export class RequestService {
 }
 
   static async finishWithdrawal(body:any){
+
+    const withdrawal = (
+        await conn.query(`SELECT status FROM withdrawals WHERE id = ${body.reference_id}`)
+    )[0][0];
+
     
-    if(body.status == 'SUCCESS'){
-      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}' WHERE id = '${body.reference_id}'`);
-      const withdrawal = (
-        await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.reference_id}`)
-      )[0][0];
-      await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
-
-      const hasPlan = (
-        await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${withdrawal.user_id}' AND status = 1`)
-      )[0][0];
-      
-      const balance:any = await RequestService.balance(withdrawal.user_id);
-
-      if(hasPlan && hasPlan.product_id != 4 && balance >= 20000) await conn.query(`UPDATE users_plans SET product_id='4', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
-
-      if(hasPlan && hasPlan.product_id == 4 && balance < 20000) await conn.query(`UPDATE users_plans SET product_id='3', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
-
-    } else {
-      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}', errors_cause='${JSON.stringify(body.error_messages)}' WHERE id = '${body.reference_id}'`);
-    } 
+    if(withdrawal.status !== body.status.toLowerCase()) {
+      if(body.status == 'SUCCESS'){
+        await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}' WHERE id = '${body.reference_id}'`);
+        const withdrawal = (
+          await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.reference_id}`)
+        )[0][0];
+        await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
+  
+        const hasPlan = (
+          await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${withdrawal.user_id}' AND status = 1`)
+        )[0][0];
+        
+        const balance:any = await RequestService.balance(withdrawal.user_id);
+  
+        if(hasPlan && hasPlan.product_id != 4 && balance >= 20000) await conn.query(`UPDATE users_plans SET product_id='4', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
+  
+        if(hasPlan && hasPlan.product_id == 4 && balance < 20000) await conn.query(`UPDATE users_plans SET product_id='3', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
+  
+      } else {
+        await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}', errors_cause='${JSON.stringify(body.error_messages)}' WHERE id = '${body.reference_id}'`);
+      } 
+    }
 
   }
 
