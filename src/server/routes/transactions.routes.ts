@@ -7,22 +7,22 @@ import express from "express";
 
 export default express
   .Router()
-  .post('/checkouts/:reference_id', async(req, res) => {
+  .post('/checkouts/:reference_id', async (req, res) => { // Atualizar requisição de deposito ou adesão a um produto
 
     try {
-      if(req.body.charges){
+      if (req.body.charges) {
         TransactionsService.finishCheckout(req.params.reference_id, req.body.charges[0].status)
       }
     } catch (error) {
       console.log(error);
     }
 
-    })
-    .post('/transfers/:reference_id', async(req, res) => {
-      try {
-        RequestService.finishWithdrawal(req.body)
-      } catch (error) {
-        console.log(error);
-      }
-  
-      });
+  })
+  .post('/transfers/:reference_id', async (req, res) => { // Atualizar requisição de saque
+    try {
+      RequestService.finishWithdrawal(req.body)
+    } catch (error) {
+      console.log(error);
+    }
+
+  });

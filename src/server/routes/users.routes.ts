@@ -7,7 +7,7 @@ import { HttpException } from "../../exceptions/http.exception";
 
 export default express
   .Router()
-    .get('/', async(req: Request, res: Response, next: NextFunction) => {
+    .get('/', async(req: Request, res: Response, next: NextFunction) => { // Listagem de usuários (do painel)
     try {
         const response = await UsersService.users();
         res.status(200).json(response);
@@ -16,7 +16,7 @@ export default express
     }
 
     })
-    .patch('/update-user', async(req: Request, res: Response, next: NextFunction) => {
+    .patch('/update-user', async(req: Request, res: Response, next: NextFunction) => { // atualizar dados de um usuário (do painel)
       try {
           const response = await UsersService.updateUser(req.body);
           res.status(200).json(response);
@@ -25,7 +25,7 @@ export default express
       }
 
     })
-    .patch('/update-pass', async(req: Request, res: Response, next: NextFunction) => {
+    .patch('/update-pass', async(req: Request, res: Response, next: NextFunction) => { // atualizar senha de um usuário (do painel)
       try {
           const response = await UsersService.updatePass(req.body);
           res.status(200).json(response);
@@ -34,7 +34,7 @@ export default express
       }
 
     })
-    .get('/users-bot/:search', async(req: Request, res: Response, next: NextFunction) => {
+    .get('/users-bot/:search', async(req: Request, res: Response, next: NextFunction) => { // Listagem de usuários (do bot) com termo de busca
     try {
         const response = await UsersService.botUsers(req.params.search);
         res.status(200).json(response);
@@ -43,7 +43,7 @@ export default express
     }
 
     })
-    .post('/users-bot', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/users-bot', async(req: Request, res: Response, next: NextFunction) => { // Listagem de usuários (do bot) com filtros
     try {
         const response = await UsersService.botUsers('all', req.body);
         res.status(200).json(response);
@@ -52,7 +52,7 @@ export default express
     }
 
     })
-    .get('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .get('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => { // Obtém dados de um usuário (do bot)
     try {
         const response = await UsersService.botUser(req.params.id);
         res.status(200).json(response);
@@ -61,7 +61,7 @@ export default express
     }
 
     })
-    .post('/user-bot', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/user-bot', async(req: Request, res: Response, next: NextFunction) => { // Registrar um usuário (do bot)
     try {
         const response = await RegisterService.registerUser(req.body);
         res.status(200).json(response);
@@ -70,7 +70,7 @@ export default express
     }
 
     })
-    .patch('/user-bot', async(req: Request, res: Response, next: NextFunction) => {
+    .patch('/user-bot', async(req: Request, res: Response, next: NextFunction) =>  { // Atualizar dados de um usuário (do bot)
     try {
         const response = await UsersService.updateBotUser(req.body);
         res.status(200).json(response);
@@ -79,7 +79,7 @@ export default express
     }
 
     })
-    .delete('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .delete('/user-bot/:id', async(req: Request, res: Response, next: NextFunction) => { // Deletar um usuário (do bot)
     try {
         const response = await UsersService.deleteBotUser(Number(req.params.id));
         res.status(200).json(response);
@@ -88,7 +88,7 @@ export default express
     }
 
     })
-    .put('/user-bot/:id/:status', async(req: Request, res: Response, next: NextFunction) => {
+    .put('/user-bot/:id/:status', async(req: Request, res: Response, next: NextFunction) => { // Ativar ou desativar um usuário (do bot)
     try {
         const response = await UsersService.isActiveBotUser(Number(req.params.id), Number(req.params.status));
         res.status(200).json(response);
@@ -97,7 +97,7 @@ export default express
     }
 
     })
-    .post('/transf-user-admin', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/transf-user-admin', async(req: Request, res: Response, next: NextFunction) => { // Transferir valores para um usuário (do bot)
     try {
         const response = await UsersService.transfValuesAdmin(req.body);
         res.status(200).json(response);

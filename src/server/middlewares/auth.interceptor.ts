@@ -25,8 +25,7 @@ export const authenticateToken = async (token: string): Promise<any | null> => {
 	}
 };
 
-export const authorize = (...allowed: string[]) => {
-	const isAllowed = (Type) => allowed.indexOf(Type) > -1 || allowed.indexOf("all") > -1;
+export const authorize = () => {
 
 	return async (req: any, res: Response, next: NextFunction) => {
 		if (req.header("Authorization")) {

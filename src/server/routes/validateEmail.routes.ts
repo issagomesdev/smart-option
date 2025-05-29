@@ -7,7 +7,7 @@ import * as path from 'path';
 
 export default express
   .Router()
-  .get('/:token', async(req, res) => {
+  .get('/:token', async(req, res) => { // pagina de validação de email
         const logo1 = 'https://smartoptionea.com/images/logo1.png'; 
         const logo2 = 'https://smartoptionea.com/images/logo2.png'; 
         const image1 = await axios.get(logo1, { responseType: 'arraybuffer' });
@@ -29,5 +29,4 @@ export default express
         });
         
         res.send(result);
-
 });

@@ -10,7 +10,7 @@ export async function show_network_level(chatId:number, userId:number) {
         let items:any = [];
         
          data.map((item) => {
-             items.push([`#${item.id}${item.name}`, item.level, `${item.status? "Ativo" : "Inativo"}`]);
+             items.push([`#${item.id} ${item.name}`, item.level, `${item.status? "Ativo" : "Inativo"}`]);
          })
  
          var extract = 

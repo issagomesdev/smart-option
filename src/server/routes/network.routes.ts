@@ -6,7 +6,7 @@ import { HttpException } from "../../exceptions/http.exception";
 
 export default express
   .Router()
-    .post('/:id', async(req: Request, res: Response, next: NextFunction) => {
+    .post('/:id', async(req: Request, res: Response, next: NextFunction) => { // obter rede de um usuario
     try {
         const response = await NetworkService.network(Number(req.params.id), req.body);
         res.status(200).json(response);

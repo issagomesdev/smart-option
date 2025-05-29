@@ -6,10 +6,9 @@ import { HttpException } from "../../exceptions/http.exception";
 import jwt from 'jsonwebtoken';
 import conn from "../../db";
 
-
 export default express
   .Router()
-  .post('/', async(req: Request, res: Response, next: NextFunction) => {
+  .post('/', async(req: Request, res: Response, next: NextFunction) => { // Login no painel do front
     const { email, password, remember } = req.body;
     try {
         const response = await AuthenticationService.login(email, password, remember);
@@ -20,7 +19,7 @@ export default express
     }
 
     })
-  .post('/token', async(req: Request, res: Response, next: NextFunction) => {
+  .post('/token', async(req: Request, res: Response, next: NextFunction) => { // Validação do token no painel do front
     const token = req.headers.authorization.split(' ')[1]
     
     if (!token) {

@@ -25,7 +25,7 @@ export async function show_balance(chatId:number, userId:number) {
 }
 
 export async function deposit_instructions(chatId:number, userId:number) {
-        await bot.sendMessage(chatId, "Digite corretamente a quantia que deseja depositar, ultilize somente numeros e para separar os centavos use virgula:", {
+        await bot.sendMessage(chatId, "Digite corretamente a quantia que deseja depositar, utilize somente numeros e para separar os centavos use virgula:", {
             reply_markup: await _return(chatId, true),
           });
         mode = "deposit";
@@ -39,7 +39,7 @@ export async function make_deposit(msg:any) {
                 await bot.sendMessage(msg.chat.id, "Confirma?", callback([{ text: '✅ SIM', callback_data: `choice=yes&for=confirm-deposit-value&value=${msg.text}`}, { text: '❌ NÃO', callback_data: `choice=no&for=confirm-deposit-value&value=${msg.text}` }]));
                 mode = "confirm-deposit";
             } else {
-                await bot.sendMessage(msg.chat.id, "Valor incorreto! digite novamente a quantia que deseja depositar, ultilize somente numeros e para separar os centavos use virgula:");
+                await bot.sendMessage(msg.chat.id, "Valor incorreto! digite novamente a quantia que deseja depositar, utilize somente numeros e para separar os centavos use virgula:");
             } 
         }  
     } else {
@@ -55,7 +55,7 @@ export async function deposit_callbacks(query:any) {
                 generatePaymentLink(query.message.chat.id, parseFloat(params.get("value").replace(',', '.')));
                 mode = null;
             } else {
-                await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
+                await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, utilize somente numeros e para separar os centavos use virgula:");
                 mode = "deposit";
             }
         }
@@ -85,7 +85,7 @@ export async function depositRequests(userId:number) {
 }
 
 export async function withdrawal_instructions(chatId:number, userId:number) {
-    await bot.sendMessage(chatId, `Digite corretamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$ ${(await getBalance(userId)).toString().replace('.', ',')}), ultilize somente numeros e para separar os centavos use virgula:`, {
+    await bot.sendMessage(chatId, `Digite corretamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$ ${(await getBalance(userId)).toString().replace('.', ',')}), utilize somente numeros e para separar os centavos use virgula:`, {
         reply_markup: await _return(chatId, true),
       });
     mode = "withdrawal";
@@ -99,7 +99,7 @@ if(msg.text !== "🔄 VOLTAR AO MENU FINANCEIRO"){
             await bot.sendMessage(msg.chat.id, "Confirma?", callback([{ text: '✅ SIM', callback_data: `choice=yes&for=confirm-withdrawal-value&value=${msg.text}`}, { text: '❌ NÃO', callback_data: `choice=no&for=confirm-withdrawal-value&value=${msg.text}` }]));
             mode = "confirm-withdrawal";
         } else {
-            await bot.sendMessage(msg.chat.id, `Valor incorreto! digite novamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$ ${(await getBalance(msg.from.id)).toString().replace('.', ',')}), ultilize somente numeros e para separar os centavos use virgula:`);
+            await bot.sendMessage(msg.chat.id, `Valor incorreto! digite novamente a quantia que deseja sacar, que deve ser inferior ou igual ao saldo em conta (R$ ${(await getBalance(msg.from.id)).toString().replace('.', ',')}), utilize somente numeros e para separar os centavos use virgula:`);
         } 
     }  
 } else {
@@ -121,11 +121,11 @@ if(mode == "confirm-withdrawal"){
                     bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
                 })
             } else {
-                await bot.sendMessage(query.message.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(query.message.chat.id)).toString().replace('.', ',')}). Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:`);
+                await bot.sendMessage(query.message.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(query.message.chat.id)).toString().replace('.', ',')}). Para completar seu saque, digite novamente a quantia que desejada, utilize somente numeros e para separar os centavos use virgula:`);
                 mode = "withdrawal";
             }
         } else {
-            await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
+            await bot.sendMessage(query.message.chat.id, "Para completar seu saque, digite novamente a quantia que desejada, utilize somente numeros e para separar os centavos use virgula:");
             mode = "withdrawal";
         }
     }
@@ -156,7 +156,7 @@ export async function withdrawalRequests(userId:number) {
 }
 
 export async function transfer_instructions(chatId:number, userId:number) {
-    await bot.sendMessage(chatId, "Digite corretamente a quantia que deseja transferir, ultilize somente numeros e para separar os centavos use virgula:", {
+    await bot.sendMessage(chatId, "Digite corretamente a quantia que deseja transferir, utilize somente numeros e para separar os centavos use virgula:", {
         reply_markup: await _return(chatId, true),
       });
     mode = "transfer-value";
@@ -171,10 +171,10 @@ export async function make_transfer(msg:any) {
                     mode = "transfer-email"
                     await bot.sendMessage(msg.chat.id, "Agora informe o e-mail do destinatário para o qual deseja realizar a transferência");
                 } else {
-                    await bot.sendMessage(msg.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(msg.from.id)).toString().replace('.', ',')}). Para completar sua transferência, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:`);
+                    await bot.sendMessage(msg.chat.id, `O valor digitado é superior ao saldo em conta (R$ ${(await getBalance(msg.from.id)).toString().replace('.', ',')}). Para completar sua transferência, digite novamente a quantia que desejada, utilize somente numeros e para separar os centavos use virgula:`);
                 }
             } else {
-                await bot.sendMessage(msg.chat.id, "Valor incorreto! digite novamente a quantia que deseja transferir, ultilize somente numeros e para separar os centavos use virgula:");
+                await bot.sendMessage(msg.chat.id, "Valor incorreto! digite novamente a quantia que deseja transferir, utilize somente numeros e para separar os centavos use virgula:");
             } 
         } else if(mode == "transfer-email"){
             AuthenticationService.existingUser(msg.text, msg.from.id)
@@ -210,7 +210,7 @@ export async function transfer_callbacks(query:any) {
                     bot.sendMessage(query.message.chat.id, `⚠ *${error.message}*`, { parse_mode: 'Markdown' });
                 })
             } else {
-                await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, ultilize somente numeros e para separar os centavos use virgula:");
+                await bot.sendMessage(query.message.chat.id, "Para completar seu depósito, digite novamente a quantia que desejada, utilize somente numeros e para separar os centavos use virgula:");
                 mode = "transfer-value";
             }
         }
