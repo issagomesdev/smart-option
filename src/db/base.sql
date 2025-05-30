@@ -162,7 +162,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `surname`, `email`, `password`, `role_id`, `created_at`) VALUES
-(1, 'sr', 'admin', 'admin@mail.com', '6367c48dd193d56ea7b0baad25b19455e529f5ee', 1, '2023-12-07 03:24:26');
+(1, 'sr', 'admin', 'admin@admin.com', '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', 1, '2023-12-07 03:24:26');
 
 -- --------------------------------------------------------
 
