@@ -1,224 +1,327 @@
-import conn from "../db";
-import * as https from 'https';
-const axios = require('axios');
-var fs = require('fs');
-import moment from 'moment';
-import { message } from "../bot/sections/suport";
+import { and, eq, like, sql } from "drizzle-orm";
+import moment from "moment";
+import { paymentService } from "../payments/payment.service";
+import { ExternalServiceError, NotFoundError } from "../shared/errors";
+import { walletService } from "../wallet/wallet.service";
+import { db } from "../infrastructure/database/client";
+import {
+  botUsers,
+  checkouts,
+  products,
+  supportRequests as supportRequestsTable,
+  userPlans,
+  walletTransactions,
+  withdrawals,
+} from "../infrastructure/database/schema";
+
+/** Mesmo formato que `balance` (a tabela legada) expunha — preserva o contrato do painel admin. */
+function toLegacyLedgerShape(row: typeof walletTransactions.$inferSelect) {
+  const legacyOrigin =
+    row.origin === "transfer_in" || row.origin === "transfer_out"
+      ? "transfer"
+      : row.origin === "admin_adjustment"
+        ? "admin"
+        : row.origin;
+
+  return {
+    id: row.id,
+    type: row.direction === "credit" ? "sum" : "subtract",
+    value: row.amount,
+    origin: legacyOrigin,
+    reference_id: row.referenceId,
+    created_at: moment(row.createdAt).format("DD/MM/YYYY HH:mm"),
+  };
+}
+
+const ORIGIN_FILTER_MAP: Record<string, { origin?: string; direction?: "credit" | "debit" }> = {
+  deposit: { origin: "deposit" },
+  withdrawal: { origin: "withdrawal" },
+  subscription: { origin: "subscription", direction: "debit" },
+  tuition: { origin: "tuition", direction: "debit" },
+  earnings: { origin: "earnings" },
+  profitability: { origin: "profitability" },
+  admin: { origin: "admin_adjustment" },
+  "B.A": { origin: "subscription", direction: "credit" },
+  "B.M": { origin: "tuition", direction: "credit" },
+};
+
+interface ListFilters {
+  id?: string;
+  name?: string;
+  value?: string;
+  status?: string;
+  product_id?: string;
+  type?: string;
+  is_read?: string;
+  created_at?: string;
+}
+
+function createdAtFilter(column: any, createdAt?: string) {
+  return createdAt ? like(sql`CAST(${column} AS CHAR)`, `%${createdAt.replace("T", " ")}%`) : undefined;
+}
 
 export class RequestService {
+  static async balance(userId: number) {
+    return walletService.getBalance(userId);
+  }
 
-  static async balance(userId:number){
-    try {
+  static async extract(userId: number, filters: any = null) {
+    const conditions = [eq(walletTransactions.userId, userId)];
 
-      const balance:any = (
-        await conn.query(`SELECT * FROM balance WHERE user_id = ${userId} ORDER BY created_at`)
-      )[0];
+    if (filters?.value) {
+      if (filters.value.includes("+")) conditions.push(eq(walletTransactions.direction, "credit"));
+      else if (filters.value.includes("-")) conditions.push(eq(walletTransactions.direction, "debit"));
 
-      let result:number = 0;
-
-      if(balance && balance.length > 0){
-        
-        balance.map((item) => {
-          result += item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value)
-        });
-
-        result = (Math.floor(result  * 100) / 100);
-        
+      const numericMatch = filters.value.match(/\d+(\.\d+)?/);
+      if (numericMatch) {
+        conditions.push(sql`CAST(${walletTransactions.amount} AS CHAR) LIKE ${`%${numericMatch[0]}%`}`);
       }
-
-      return result;
-    } catch (error) {
-      throw error;
     }
+
+    if (filters?.origin && filters.origin !== "all" && ORIGIN_FILTER_MAP[filters.origin]) {
+      const { origin, direction } = ORIGIN_FILTER_MAP[filters.origin];
+      if (origin) conditions.push(eq(walletTransactions.origin, origin as never));
+      if (direction) conditions.push(eq(walletTransactions.direction, direction));
+    }
+
+    if (filters?.created_at) {
+      conditions.push(
+        sql`LOWER(CAST(${walletTransactions.createdAt} AS CHAR)) LIKE LOWER(${`%${filters.created_at.replace("T", " ")}%`})`,
+      );
+    }
+
+    const rows = await db
+      .select()
+      .from(walletTransactions)
+      .where(and(...conditions))
+      .orderBy(walletTransactions.createdAt);
+
+    return { extract: rows.map(toLegacyLedgerShape), balance: await RequestService.balance(userId) };
   }
 
-  static async extract(userId:number, filters:any = null){
-    try {
+  static async withdrawalRequests(userId: number | null = null, filters: ListFilters) {
+    const conditions = [
+      like(sql`CAST(${withdrawals.id} AS CHAR)`, `%${filters.id ?? ""}%`),
+      like(botUsers.name, `%${filters.name ?? ""}%`),
+      like(sql`CAST(${withdrawals.value} AS CHAR)`, `%${filters.value ?? ""}%`),
+    ];
+    if (filters.status && filters.status !== "all") conditions.push(eq(withdrawals.status, filters.status as never));
+    const dateFilter = createdAtFilter(withdrawals.createdAt, filters.created_at);
+    if (dateFilter) conditions.push(dateFilter);
+    if (userId) conditions.push(eq(withdrawals.userId, userId));
 
-      const balance:any = (
-        await conn.query(`SELECT *, DATE_FORMAT(created_at, '%d/%m/%Y %H:%i') AS created_at FROM balance WHERE user_id = ${userId} ${filters? `${filters.value.includes('+')? `AND balance.type = 'sum'`: filters.value.includes('-')? `AND balance.type = 'subtract'` : ''} AND LOWER(balance.value) LIKE LOWER('%${filters.value.match(/[+-]?\d+(\.\d+)?/)? filters.value.match(/[+-]?\d+(\.\d+)?/)[0] : '' }%') ${filters.origin !== 'all'? `AND ${filters.origin == 'deposit'? 'balance.origin = "deposit"' : filters.origin == 'withdrawal'? 'balance.origin = "withdrawal"' : filters.origin == 'subscription'? 'balance.origin = "subscription" AND balance.type = "subtract"' : filters.origin == 'tuition'? 'balance.origin = "tuition" AND balance.type = "subtract"' : filters.origin == 'earnings'? 'balance.origin = "earnings"' : filters.origin == 'profitability'? 'balance.origin = "profitability"' : filters.origin == 'transfer'? 'balance.origin = "transfer"' : filters.origin == 'admin'? 'balance.origin = "admin"' : filters.origin == 'B.A'? 'balance.origin = "subscription" AND balance.type = "sum"' : filters.origin == 'B.M'? 'balance.origin = "tuition" AND balance.type = "sum"' : '' }` : ''} ${filters.created_at? `AND LOWER(balance.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}` : '' } ORDER BY created_at`)
-      )[0];
-
-      return {extract: balance, balance: await RequestService.balance(userId)}
-    } catch (error) {
-      throw error;
-    }
+    return db
+      .select({
+        id: withdrawals.id,
+        user_id: withdrawals.userId,
+        value: withdrawals.value,
+        status: withdrawals.status,
+        reply_observation: withdrawals.replyObservation,
+        errors_cause: withdrawals.errorsCause,
+        reference_id: withdrawals.referenceId,
+        transaction_id: withdrawals.transactionId,
+        created_at: sql<string>`DATE_FORMAT(${withdrawals.createdAt}, '%d/%m/%Y %H:%i')`,
+        name: botUsers.name,
+      })
+      .from(withdrawals)
+      .innerJoin(botUsers, eq(withdrawals.userId, botUsers.id))
+      .where(and(...conditions))
+      .orderBy(withdrawals.createdAt);
   }
 
-  static async withdrawalRequests(userId:number = null, filters:any){
-    try {
+  static async depositsRequests(userId: number | null = null, filters: ListFilters) {
+    const conditions = [
+      eq(checkouts.type, "deposit"),
+      like(sql`CAST(${checkouts.id} AS CHAR)`, `%${filters.id ?? ""}%`),
+      like(botUsers.name, `%${filters.name ?? ""}%`),
+      like(sql`CAST(${checkouts.value} AS CHAR)`, `%${filters.value ?? ""}%`),
+    ];
+    if (filters.status && filters.status !== "all") conditions.push(eq(checkouts.status, filters.status as never));
+    const dateFilter = createdAtFilter(checkouts.createdAt, filters.created_at);
+    if (dateFilter) conditions.push(dateFilter);
+    if (userId) conditions.push(eq(checkouts.userId, userId));
 
-      const requests:any = (
-        await conn.query(`SELECT withdrawals.*, DATE_FORMAT(withdrawals.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name FROM withdrawals JOIN bot_users ON withdrawals.user_id = bot_users.id WHERE ${`LOWER(withdrawals.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(withdrawals.value) LIKE LOWER('%${filters.value}%') ${filters.status !== 'all'? `AND withdrawals.status = "${filters.status}"` : ''} ${filters.created_at? `AND LOWER(withdrawals.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND withdrawals.user_id = ${userId}` : ''} ORDER BY created_at`)
-      )[0];
-
-      return requests
-    } catch (error) {
-      throw error;
-    }
+    return db
+      .select({
+        id: checkouts.id,
+        reference_id: checkouts.referenceId,
+        type: checkouts.type,
+        value: checkouts.value,
+        status: checkouts.status,
+        transaction_id: checkouts.transactionId,
+        user_id: checkouts.userId,
+        created_at: sql<string>`DATE_FORMAT(${checkouts.createdAt}, '%d/%m/%Y %H:%i')`,
+        name: botUsers.name,
+      })
+      .from(checkouts)
+      .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
+      .where(and(...conditions))
+      .orderBy(checkouts.createdAt);
   }
 
-  static async depositsRequests(userId:number = null, filters:any){
-    try {
-      const requests:any = (
-        await conn.query(`SELECT checkouts.*, DATE_FORMAT(checkouts.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name FROM checkouts JOIN bot_users ON checkouts.user_id = bot_users.id WHERE ${`LOWER(checkouts.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(checkouts.value) LIKE LOWER('%${filters.value}%') ${filters.status !== 'all'? `AND checkouts.status = "${filters.status}"` : ''} ${filters.created_at? `AND LOWER(checkouts.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND checkouts.user_id = ${userId}` : ''} AND checkouts.type = 'deposit' ORDER BY created_at`)
-      )[0];
+  static async subscriptionsRequests(userId: number | null = null, filters: ListFilters) {
+    const conditions = [
+      eq(checkouts.type, "subscription"),
+      like(sql`CAST(${checkouts.id} AS CHAR)`, `%${filters.id ?? ""}%`),
+      like(botUsers.name, `%${filters.name ?? ""}%`),
+      like(sql`CAST(${checkouts.value} AS CHAR)`, `%${filters.value ?? ""}%`),
+    ];
+    if (filters.status && filters.status !== "all") conditions.push(eq(checkouts.status, filters.status as never));
+    if (filters.product_id && filters.product_id !== "all") conditions.push(eq(checkouts.productId, Number(filters.product_id)));
+    const dateFilter = createdAtFilter(checkouts.createdAt, filters.created_at);
+    if (dateFilter) conditions.push(dateFilter);
+    if (userId) conditions.push(eq(checkouts.userId, userId));
 
-      return requests
-    } catch (error) {
-      throw error;
-    }
+    return db
+      .select({
+        id: checkouts.id,
+        reference_id: checkouts.referenceId,
+        type: checkouts.type,
+        value: checkouts.value,
+        status: checkouts.status,
+        transaction_id: checkouts.transactionId,
+        user_id: checkouts.userId,
+        created_at: sql<string>`DATE_FORMAT(${checkouts.createdAt}, '%d/%m/%Y %H:%i')`,
+        name: botUsers.name,
+        product: products.name,
+      })
+      .from(checkouts)
+      .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
+      .leftJoin(products, eq(products.id, checkouts.productId))
+      .where(and(...conditions))
+      .orderBy(checkouts.createdAt);
   }
 
-  static async subscriptionsRequests(userId:number = null, filters:any){
-    try {
-      const requests:any = (
-        await conn.query(`SELECT checkouts.*, DATE_FORMAT(checkouts.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, products.name as product FROM checkouts JOIN bot_users ON checkouts.user_id = bot_users.id LEFT JOIN products ON products.id = checkouts.product_id WHERE ${`LOWER(checkouts.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') AND LOWER(checkouts.value) LIKE LOWER('%${filters.value}%') ${filters.status !== 'all'? `AND checkouts.status = "${filters.status}"` : ''} ${filters.product_id !== 'all'? `AND checkouts.product_id = "${filters.product_id}"` : ''} ${filters.created_at? `AND LOWER(checkouts.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND checkouts.user_id = ${userId}` : ''} AND checkouts.type = 'subscription' ORDER BY created_at`)
-      )[0];
+  static async supportRequests(userId: number | null = null, filters: ListFilters) {
+    const conditions = [
+      like(sql`CAST(${supportRequestsTable.id} AS CHAR)`, `%${filters.id ?? ""}%`),
+      like(botUsers.name, `%${filters.name ?? ""}%`),
+    ];
+    if (filters.type && filters.type !== "all") conditions.push(eq(supportRequestsTable.type, filters.type as never));
+    if (filters.is_read !== undefined && filters.is_read !== "all") conditions.push(eq(supportRequestsTable.isRead, Number(filters.is_read)));
+    const dateFilter = createdAtFilter(supportRequestsTable.createdAt, filters.created_at);
+    if (dateFilter) conditions.push(dateFilter);
+    if (userId) conditions.push(eq(supportRequestsTable.userId, userId));
 
-      return requests
-    } catch (error) {
-      throw error;
-    }
+    return db
+      .select({
+        id: supportRequestsTable.id,
+        type: supportRequestsTable.type,
+        subject: supportRequestsTable.subject,
+        is_read: supportRequestsTable.isRead,
+        user_id: botUsers.id,
+        created_at: sql<string>`DATE_FORMAT(${supportRequestsTable.createdAt}, '%d/%m/%Y %H:%i')`,
+        name: botUsers.name,
+      })
+      .from(supportRequestsTable)
+      .innerJoin(botUsers, eq(supportRequestsTable.userId, botUsers.id))
+      .where(and(...conditions))
+      .orderBy(supportRequestsTable.createdAt);
   }
 
-  static async supportRequests(userId:number = null, filters:any){
-    try {
-      const requests:any = (
-        await conn.query(`SELECT requests.*, DATE_FORMAT(requests.created_at, '%d/%m/%Y %H:%i') AS created_at, bot_users.name, bot_users.id as user_id, products.name as product FROM requests JOIN bot_users ON requests.user_id = bot_users.id LEFT JOIN products ON products.id = requests.subject WHERE ${`LOWER(requests.id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') ${filters.type !== 'all'? `AND requests.type = "${filters.type}"` : ''} ${filters.is_read !== 'all'? `AND requests.is_read = "${filters.is_read}"` : ''} ${filters.created_at? `AND LOWER(requests.created_at) LIKE LOWER('%${filters.created_at.replace('T', ' ')}%')` : ''}`} ${userId? `AND requests.user_id = ${userId}` : ''} ORDER BY created_at`)
-      )[0];
+  static async resWithdrawal(body: { res: boolean; id: number; observation?: string }) {
+    if (body.res) {
+      const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, body.id));
+      if (!withdrawal) throw new NotFoundError("Solicitação de saque não encontrada");
 
-      return requests
-    } catch (error) {
-      throw error;
-    }
-  }
+      const [user] = await db.select({ id: botUsers.id, pixCode: botUsers.pixCode }).from(botUsers).where(eq(botUsers.id, withdrawal.userId));
+      if (!user) throw new NotFoundError("Usuário não encontrado");
 
-  static async resWithdrawal(body:any){
-    try {
-      if(body.res){
+      try {
+        const transfer = await paymentService.createWithdrawalTransfer(
+          { id: user.id },
+          {
+            userId: user.id,
+            amount: parseFloat(withdrawal.value),
+            pixKey: user.pixCode,
+            description: `SMART OPTION E.A. Saque #${withdrawal.id}`,
+            legacyReferenceId: String(withdrawal.id),
+          },
+        );
 
-            const withdrawal = (
-                await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.id}`)
-            )[0][0];
+        await db
+          .update(withdrawals)
+          .set({ status: "authorized", replyObservation: body.observation, transactionId: transfer.externalId })
+          .where(eq(withdrawals.id, body.id));
 
-            const user = (
-              await conn.query(`SELECT pix_code FROM bot_users WHERE id = '${withdrawal.user_id}'`)
-            )[0][0];
-          
-
-           try {
-
-            const res = await axios.post(`${process.env.PAGBANK_SECURE_BASE_PATH}/transfers`, {
-              amount: {
-                  value: parseFloat(withdrawal.value)*100,
-                  currency: 'BRL'
-              },
-              instrument: {
-                  type: 'PIX',
-                  pix: {
-                      key: user.pix_code
-                  }
-              },
-              reference_id: withdrawal.id,
-              notification_urls: [
-                  `${process.env.API_BASE_PATH}/transactions/transfers/${withdrawal.id}`
-              ]
-            }, {
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${process.env.PAGBANK_SECURE_TOKEN}`
-              },
-              httpsAgent: new https.Agent({
-                  key: fs.readFileSync(`${process.env.KEY_PATH}`),
-                  cert: fs.readFileSync(`${process.env.CERT_PATH}`),
-              }),
-            });
-
-            await conn.query(`UPDATE withdrawals SET status='authorized', reply_observation='${body.observation}', transaction_id='${res.data.id}' WHERE id = '${body.id}'`);
-
-            return {
-              status: true,
-              message: 'Solicitação respondida com sucesso!'
-            }
-
-           } catch (error) {
-
-            return {
-              status: false,
-              message: error.response.data.error_messages[0].description
-            }
-            
-           }
-           
-      } else {
-        await conn.query(`UPDATE withdrawals SET status='refused', reply_observation='${body.observation}' WHERE id = '${body.id}'`);
+        return { status: true, message: "Solicitação respondida com sucesso!" };
+      } catch (error) {
         return {
-          status: true,
-          message: 'Solicitação respondida com sucesso!'
-        }
+          status: false,
+          message: error instanceof ExternalServiceError ? error.message : "Falha ao processar a transferência PIX.",
+        };
       }
-        
-    } catch (error) {
-      console.log(error)
     }
-}
 
-  static async finishWithdrawal(body:any){
+    await db.update(withdrawals).set({ status: "refused", replyObservation: body.observation }).where(eq(withdrawals.id, body.id));
+    return { status: true, message: "Solicitação respondida com sucesso!" };
+  }
 
-    const withdrawal = (
-        await conn.query(`SELECT status FROM withdrawals WHERE id = ${body.reference_id}`)
-    )[0][0];
+  static async finishWithdrawal(body: { reference_id: string; status: string; error_messages?: unknown }) {
+    const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, Number(body.reference_id)));
+    if (!withdrawal) return;
 
-    if(body.status == 'SUCCESS'){
-      if(withdrawal.status !== body.status.toLowerCase()) {
-        
-      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}' WHERE id = '${body.reference_id}'`);
-      const withdrawal = (
-        await conn.query(`SELECT * FROM withdrawals WHERE id = ${body.reference_id}`)
-      )[0][0];
-      await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${withdrawal.value}','${withdrawal.user_id}', 'subtract', 'withdrawal', '${withdrawal.id}')`);
+    const newStatus = body.status.toLowerCase() as (typeof withdrawals.status.enumValues)[number];
 
-      const hasPlan = (
-        await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${withdrawal.user_id}' AND status = 1`)
-      )[0][0];
-      
-      const balance:any = await RequestService.balance(withdrawal.user_id);
+    if (body.status === "SUCCESS") {
+      if (withdrawal.status === newStatus) return;
 
-      if(hasPlan && hasPlan.product_id != 4 && balance >= 20000) await conn.query(`UPDATE users_plans SET product_id='4', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
+      await db.update(withdrawals).set({ status: newStatus }).where(eq(withdrawals.id, withdrawal.id));
 
-      if(hasPlan && hasPlan.product_id == 4 && balance < 20000) await conn.query(`UPDATE users_plans SET product_id='3', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${withdrawal.user_id}'`);
+      // `allowNegative: true` de propósito: neste ponto o PIX já foi enviado
+      // pela Asaas (dinheiro já saiu de verdade) — recusar o débito por saldo
+      // insuficiente aqui só esconderia a inconsistência em vez de registrá-la.
+      await walletService.debit({
+        userId: withdrawal.userId,
+        amount: parseFloat(withdrawal.value),
+        origin: "withdrawal",
+        idempotencyKey: `withdrawal:${withdrawal.id}`,
+        referenceType: "withdrawals",
+        referenceId: String(withdrawal.id),
+        allowNegative: true,
+      });
+
+      const [hasPlan] = await db
+        .select({ productId: userPlans.productId })
+        .from(userPlans)
+        .where(and(eq(userPlans.userId, withdrawal.userId), eq(userPlans.status, 1)));
+
+      const balance = await RequestService.balance(withdrawal.userId);
+      const tierUpdate = { status: 1 as const, acquiredIn: new Date(), expiredIn: moment().add(1, "months").toDate() };
+
+      if (hasPlan && hasPlan.productId !== 4 && balance >= 20000) {
+        await db.update(userPlans).set({ ...tierUpdate, productId: 4 }).where(eq(userPlans.userId, withdrawal.userId));
       }
-
+      if (hasPlan && hasPlan.productId === 4 && balance < 20000) {
+        await db.update(userPlans).set({ ...tierUpdate, productId: 3 }).where(eq(userPlans.userId, withdrawal.userId));
+      }
     } else {
-      await conn.query(`UPDATE withdrawals SET status='${body.status.toLowerCase()}', errors_cause='${JSON.stringify(body.error_messages)}' WHERE id = '${body.reference_id}'`);
-    } 
-
-  }
-
-  static async wasRead(id:string, status:string){
-    try {
-
-      await conn.query(`UPDATE requests SET is_read='${status}' WHERE id=${id}`);
-      return { status: true, message: "Solicitação atualizado com sucesso" }
-      
-    } catch (error) {
-      console.log(error)
+      await db
+        .update(withdrawals)
+        .set({ status: newStatus, errorsCause: JSON.stringify(body.error_messages) })
+        .where(eq(withdrawals.id, withdrawal.id));
     }
   }
 
-  static async pendingRequests(){
-    try {
-
-      const pendings:any = (
-        await conn.query(`SELECT 'withdrawals' AS requests, COUNT(*) AS pendings FROM withdrawals WHERE status = 'pending' UNION SELECT 'support' AS requests, COUNT(*) AS pendings FROM requests WHERE is_read = 0;`)
-      )[0];
-
-      return pendings
-    } catch (error) {
-      console.log(error)
-    }
+  static async wasRead(id: string, status: string) {
+    await db.update(supportRequestsTable).set({ isRead: Number(status) }).where(eq(supportRequestsTable.id, Number(id)));
+    return { status: true, message: "Solicitação atualizado com sucesso" };
   }
 
+  static async pendingRequests() {
+    const [{ pendingWithdrawals }] = await db
+      .select({ pendingWithdrawals: sql<number>`count(*)` })
+      .from(withdrawals)
+      .where(eq(withdrawals.status, "pending"));
+
+    const [{ unreadSupport }] = await db
+      .select({ unreadSupport: sql<number>`count(*)` })
+      .from(supportRequestsTable)
+      .where(eq(supportRequestsTable.isRead, 0));
+
+    return [
+      { requests: "withdrawals", pendings: pendingWithdrawals },
+      { requests: "support", pendings: unreadSupport },
+    ];
+  }
 }
-

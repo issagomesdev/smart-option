@@ -1,98 +1,113 @@
-import conn from "../db";
-import { v4 as uuidv4 } from 'uuid';
-import moment from 'moment';
-import { TransactionsService } from "./bot/transactions.service";
-import { NetworkService } from "./bot/network.service";
+import { and, count, eq, gte, inArray, lte, asc } from "drizzle-orm";
+import { db } from "../infrastructure/database/client";
+import { botUsers, products, userPlans, walletTransactions } from "../infrastructure/database/schema";
+import { ValidationError } from "../shared/errors";
+
+const BR_DATE = /^(\d{2})-(\d{2})-(\d{4})$/;
+
+/** Converte "DD-MM-YYYY - DD-MM-YYYY" (formato enviado pelo painel) em datas reais, validando o formato em vez de interpolar direto na query. */
+function parseDateRange(interval: string): { start: Date; end: Date } {
+  const [startRaw, endRaw] = interval.split(" - ").map((part) => part.trim());
+  const start = parseBrDate(startRaw);
+  const end = parseBrDate(endRaw);
+  if (!start || !end) {
+    throw new ValidationError("Período inválido — use o formato DD-MM-YYYY - DD-MM-YYYY");
+  }
+  return { start, end };
+}
+
+function parseBrDate(value: string | undefined): Date | null {
+  const match = value ? BR_DATE.exec(value) : null;
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+const PRODUCT_TIERS = [
+  { key: "bronzeUsers", productId: 1 },
+  { key: "silverUsers", productId: 2 },
+  { key: "goldUsers", productId: 3 },
+  { key: "diamondUsers", productId: 4 },
+] as const;
 
 export class DashboardService {
+  static async users() {
+    const [{ total: allUsers }] = await db.select({ total: count() }).from(botUsers);
 
-  static async users(){
-    try {
+    const [{ total: activeUsers }] = await db
+      .select({ total: count() })
+      .from(botUsers)
+      .innerJoin(userPlans, eq(botUsers.id, userPlans.userId))
+      .where(eq(userPlans.status, 1));
 
-        const allUsers:any = (
-            await conn.query(`SELECT COUNT(*) as total FROM bot_users`)
-        )[0][0].total;
+    const tierCounts = await Promise.all(
+      PRODUCT_TIERS.map(async ({ productId }) => {
+        const [{ total }] = await db
+          .select({ total: count() })
+          .from(botUsers)
+          .innerJoin(userPlans, eq(botUsers.id, userPlans.userId))
+          .where(and(eq(userPlans.status, 1), eq(userPlans.productId, productId)));
+        return total;
+      }),
+    );
 
-        const activeUsers:any = (
-            await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1`)
-        )[0][0].total;
-
-        const bronzeUsers:any = (
-            await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 1`)
-        )[0][0].total;
-
-        const silverUsers:any = (
-            await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 2`)
-        )[0][0].total;
-
-        const diamondUsers:any = (
-            await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 4`)
-        )[0][0].total;
-
-        const goldUsers:any = (
-            await conn.query(`SELECT COUNT(*) as total FROM bot_users JOIN users_plans ON bot_users.id = users_plans.user_id WHERE users_plans.status = 1 AND users_plans.product_id = 3`)
-        )[0][0].total;
-
-        return { allUsers, activeUsers, bronzeUsers, silverUsers, goldUsers, diamondUsers }
-
-    } catch (error) {
-      throw error;
-    }
+    return {
+      allUsers,
+      activeUsers,
+      bronzeUsers: tierCounts[0],
+      silverUsers: tierCounts[1],
+      goldUsers: tierCounts[2],
+      diamondUsers: tierCounts[3],
+    };
   }
 
-  static async balance(user_id:string, product_id:string, interval:string){
-    try {
+  /** Somas calculadas sobre `wallet_transactions` (o ledger vigente desde a Fase 4). */
+  static async balance(userId: string, productId: string, interval: string) {
+    const range = interval !== "all" ? parseDateRange(interval) : null;
 
-      const [start, end] = interval !== 'all'? interval.split(' - ') : '';
+    let userIdsForProduct: number[] | null = null;
+    if (productId !== "all") {
+      const rows = await db
+        .select({ userId: userPlans.userId })
+        .from(userPlans)
+        .where(eq(userPlans.productId, Number(productId)));
+      userIdsForProduct = rows.map((row) => row.userId);
+    }
 
-      async function total(type:string = null) {
+    const total = async (origin?: "earnings" | "profitability"): Promise<number> => {
+      if (userIdsForProduct && userIdsForProduct.length === 0) return 0;
 
-        const balance:any = (
-          await conn.query(`SELECT * FROM balance ${product_id !== 'all'? `JOIN users_plans ON balance.user_id = users_plans.user_id WHERE users_plans.product_id = '${product_id}'` : ''} ${user_id !== 'all'? `WHERE user_id = '${user_id}'` : ''} ${type? `${user_id !== 'all' || product_id !== 'all'? 'AND' : 'WHERE'} origin = '${type}'` : ''} ${interval !== 'all'? `${user_id !== 'all' || product_id !== 'all' || type? 'AND' : 'WHERE'} DATE(created_at) BETWEEN '${start.split('-')[2]+'-'+start.split('-')[1]+'-'+start.split('-')[0]}' AND '${end.split('-')[2]+'-'+end.split('-')[1]+'-'+end.split('-')[0]}'` : ''} ORDER BY created_at`)
-        )[0];
-
-        const sum = await Promise.all(
-          balance.map(async(item) => {
-           return item.type == "sum"? parseFloat(item.value) : - parseFloat(item.value);
-          })
-        );
-      
-        const total = sum.reduce((acc, value) => acc + value, 0);
-
-        return (Math.floor(total  * 100) / 100);
-        
+      const conditions = [];
+      if (userId !== "all") conditions.push(eq(walletTransactions.userId, Number(userId)));
+      if (userIdsForProduct) conditions.push(inArray(walletTransactions.userId, userIdsForProduct));
+      if (origin) conditions.push(eq(walletTransactions.origin, origin));
+      if (range) {
+        conditions.push(gte(walletTransactions.createdAt, range.start));
+        conditions.push(lte(walletTransactions.createdAt, range.end));
       }
 
-      return [
-        {
-          name: 'Total na Plataforma (R$)',
-          value: await total()
-        },
-        {
-          name: 'Rentabilidade da rede (R$)',
-          value: (await total('earnings'))
-        },
-        {
-          name: 'Repasse da rede (R$)',
-          value:  (await total('profitability'))
-        }
-      ];
-    } catch (error) {
-      throw error;
-    }
+      const rows = await db
+        .select({ direction: walletTransactions.direction, amount: walletTransactions.amount })
+        .from(walletTransactions)
+        .where(conditions.length ? and(...conditions) : undefined);
+
+      const sum = rows.reduce((acc, row) => acc + (row.direction === "credit" ? 1 : -1) * Number(row.amount), 0);
+      return Math.floor(sum * 100) / 100;
+    };
+
+    return [
+      { name: "Total na Plataforma (R$)", value: await total() },
+      { name: "Rentabilidade da rede (R$)", value: await total("earnings") },
+      { name: "Repasse da rede (R$)", value: await total("profitability") },
+    ];
   }
 
-  static async getPlans(){
-    try {
-        const plans:any = (
-            await conn.query(`SELECT id, name FROM products WHERE purchase_type = 'auto' ORDER BY id ASC`)
-        )[0];
-
-        return plans
-
-    } catch (error) {
-      throw error;
-    }
+  static async getPlans() {
+    return db
+      .select({ id: products.id, name: products.name })
+      .from(products)
+      .where(eq(products.purchaseType, "auto"))
+      .orderBy(asc(products.id));
   }
-
 }

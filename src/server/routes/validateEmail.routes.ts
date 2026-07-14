@@ -8,9 +8,9 @@ import * as path from 'path';
 export default express
   .Router()
   .get('/:token', async(req, res) => { // pagina de validação de email
-        const logo1 = 'https://smartoptionea.com/images/logo1.png'; 
-        const logo2 = 'https://smartoptionea.com/images/logo2.png'; 
-        const image1 = await axios.get(logo1, { responseType: 'arraybuffer' });
+        const logo = 'https://media.byissa.dev/smart-option/logo.png'; 
+        const logo2 = 'https://media.byissa.dev/smart-option/logo.png'; 
+        const image1 = await axios.get(logo, { responseType: 'arraybuffer' });
         const imageData1 = Buffer.from(image1.data, 'binary').toString('base64');
         const imageSrc1 = `data:${image1.headers['content-type']};base64,${imageData1}`;
         const image2 = await axios.get(logo2, { responseType: 'arraybuffer' });

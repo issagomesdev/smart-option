@@ -1,18 +1,19 @@
-
+import express, { NextFunction, Request, Response } from "express";
 import { NetworkService } from "../../services/network.service";
-import express from "express";
-import { NextFunction, Request, Response } from "express";
-import { HttpException } from "../../exceptions/http.exception";
+import { validate } from "../../infrastructure/http/middlewares/validate";
+import { networkFiltersDto, networkIdParamDto } from "../../interfaces/http/dtos/admin.dto";
+import { ok } from "../../shared/http/response";
 
 export default express
   .Router()
-    .post('/:id', async(req: Request, res: Response, next: NextFunction) => { // obter rede de um usuario
-    try {
-        const response = await NetworkService.network(Number(req.params.id), req.body);
-        res.status(200).json(response);
-    } catch (error) {
-        console.log(error);
-        next(new HttpException(400, error));
-    }
-    });
-    
+  .post(
+    "/:id",
+    validate({ params: networkIdParamDto, body: networkFiltersDto }),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        ok(res, await NetworkService.network(Number(req.params.id), req.body));
+      } catch (error) {
+        next(error);
+      }
+    },
+  );

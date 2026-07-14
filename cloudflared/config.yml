@@ -1,0 +1,21 @@
+# Template do Cloudflare Tunnel — NÃO é lido diretamente pelo `cloudflared`.
+#
+# Os placeholders {{CF_TUNNEL_ID}}/{{CF_TUNNEL_DOMAIN}}/{{CF_TUNNEL_HOST}}/
+# {{APP_PORT}} são substituídos pelos scripts `scripts/start-tunnel.sh` e
+# `scripts/start-tunnel.ps1` a partir do `.env`, gerando
+# `cloudflared/config.runtime.yml` (gitignored — contém o ID real do túnel)
+# a cada execução. Isso mantém uma única fonte de verdade (o `.env`) em vez
+# de duplicar a porta/domínio aqui manualmente.
+#
+# Veja o README ("Cloudflare Tunnel") para o passo a passo completo de
+# instalação, login e criação do túnel nomeado.
+
+tunnel: {{CF_TUNNEL_ID}}
+credentials-file: cloudflared/credentials/{{CF_TUNNEL_ID}}.json
+
+ingress:
+  - hostname: {{CF_TUNNEL_DOMAIN}}
+    service: http://{{CF_TUNNEL_HOST}}:{{APP_PORT}}
+  # Regra "catch-all" obrigatória do cloudflared — qualquer hostname que não
+  # bata com a regra acima recebe 404 em vez de o túnel recusar subir.
+  - service: http_status:404

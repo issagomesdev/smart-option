@@ -1,61 +1,56 @@
-import conn from "../../db";
-import { SHA1 } from "crypto-js";
-import moment from 'moment';
+import { and, eq, isNull, ne, or } from "drizzle-orm";
+import { db } from "../../infrastructure/database/client";
+import { botUsers } from "../../infrastructure/database/schema";
+import { UnauthorizedError, NotFoundError } from "../../shared/errors";
+import { hashPassword, isBcryptHash, verifyPassword } from "../../shared/security/password";
 
 export class AuthenticationService {
+  static async login(email: string, password: string, userId: number) {
+    const [user] = await db.select().from(botUsers).where(eq(botUsers.email, email));
 
-  static async login(email: string, password: string, userId:number): Promise<any> {
-    try {
-        const user = (
-            await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
-        )[0][0];
-        if(!user || user.password != SHA1(password)) throw Error("Email e/ou senha inválidos");
-        if(!user.verified_email_at) throw Error("Email não validado");
-        if(!user.is_active) throw Error("Acesso bloqueado, contate o suporte");
+    // Mensagem sempre genérica — não revela se o e-mail existe.
+    if (!user) throw new UnauthorizedError("Email e/ou senha inválidos");
 
-        await conn.query(`UPDATE bot_users SET telegram_user_id='${userId}', last_activity='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.id}'`);
+    const matches = await verifyPassword(user.password, password);
+    if (!matches) throw new UnauthorizedError("Email e/ou senha inválidos");
 
-        return user;
-    } catch (error) {
-      throw error;
+    if (!isBcryptHash(user.password)) {
+      await db.update(botUsers).set({ password: await hashPassword(password) }).where(eq(botUsers.id, user.id));
     }
+
+    if (!user.verifiedEmailAt) throw new UnauthorizedError("Email não validado");
+    if (!user.isActive) throw new UnauthorizedError("Acesso bloqueado, contate o suporte");
+
+    await db
+      .update(botUsers)
+      .set({ telegramUserId: String(userId), lastActivity: new Date() })
+      .where(eq(botUsers.id, user.id));
+
+    return user;
   }
 
-  static async isLoggedIn(userId:number): Promise<any> {
-    try {
-        const user = (
-            await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
-        )[0][0];
+  static async isLoggedIn(userId: number) {
+    const [user] = await db.select().from(botUsers).where(eq(botUsers.telegramUserId, String(userId)));
 
-        if(user) await conn.query(`UPDATE bot_users SET last_activity='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.id}'`);
-
-        return user
-    } catch (error) {
-      throw error;
+    if (user) {
+      await db.update(botUsers).set({ lastActivity: new Date() }).where(eq(botUsers.id, user.id));
     }
+
+    return user ?? null;
   }
 
-  static async logout(userId: number){
-    try {
-      await conn.query(`UPDATE bot_users SET telegram_user_id=NULL WHERE telegram_user_id = '${userId}'`)
-    } catch (error) {
-      throw error;
-    }
+  static async logout(userId: number): Promise<void> {
+    await db.update(botUsers).set({ telegramUserId: null }).where(eq(botUsers.telegramUserId, String(userId)));
   }
 
-  static async existingUser(email: string, telegramUser:string): Promise<any> {
-    try {
-        const user = (
-            await conn.query(`SELECT * FROM bot_users WHERE email = '${email}' AND (telegram_user_id != '${telegramUser}' OR telegram_user_id IS NULL)`)
-        )[0][0];
+  static async existingUser(email: string, telegramUserId: string) {
+    const [user] = await db
+      .select()
+      .from(botUsers)
+      .where(and(eq(botUsers.email, email), or(ne(botUsers.telegramUserId, telegramUserId), isNull(botUsers.telegramUserId))));
 
-        if(!user) throw Error("o email fornecido não corresponde a nenhum usuário registrado em nossa base de dados");
+    if (!user) throw new NotFoundError("O e-mail fornecido não corresponde a nenhum usuário registrado em nossa base de dados");
 
-        return user;
-    } catch (error) {
-      throw error;
-    }
+    return user;
   }
-
 }
-

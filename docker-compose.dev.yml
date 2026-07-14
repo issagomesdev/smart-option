@@ -1,0 +1,72 @@
+name: smart-option-dev
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-smart_option}
+      MYSQL_DATABASE: ${DB_DATABASE:-smart_option}
+      MYSQL_USER: ${DB_USER:-smart_option}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-smart_option}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - smart_option_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-smart_option}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - smart_option_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      target: dev
+    restart: unless-stopped
+    # NÃO usar `env_file: .env` aqui: o Docker Compose interpola `${...}` (e
+    # engole qualquer "$" não seguido de "{") também dentro de arquivos
+    # carregados por `env_file`, não só na própria docker-compose.yml — uma
+    # chave de API da Asaas de verdade (formato `$aact_...`) vira string
+    # vazia silenciosamente. Em vez disso, o `.env` é montado como arquivo
+    # dentro do container e lido pelo `dotenv` da própria aplicação (mesmo
+    # caminho de código do `npm run dev` fora do Docker), sem passar pelo
+    # interpolador do Compose.
+    environment:
+      # A app fala com mysql/redis pelo nome do serviço na rede do compose —
+      # nunca "localhost" aqui dentro, mesmo que o ".env" (pensado para uso
+      # fora do Docker) esteja configurado com localhost. Vars sem "$" são
+      # seguras para declarar diretamente aqui.
+      DB_HOST: mysql
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "${APP_PORT:-3000}:${APP_PORT:-3000}"
+    volumes:
+      # Hot reload: o código-fonte vem do host, node_modules fica isolado
+      # dentro do container (evita conflito de binários nativos entre SOs).
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./confirm.html:/app/confirm.html
+      - ./.env:/app/.env:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  smart_option_mysql_data:
+  smart_option_redis_data:

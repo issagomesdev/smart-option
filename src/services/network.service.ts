@@ -1,24 +1,51 @@
-import conn from "../db";
-import { v4 as uuidv4 } from 'uuid';
-import moment from 'moment';
+import { and, eq, like, or, sql } from "drizzle-orm";
+import { db } from "../infrastructure/database/client";
+import { affiliateNetwork, botUsers, userPlans } from "../infrastructure/database/schema";
 
+interface NetworkFilters {
+  id?: string;
+  name?: string;
+  level?: string;
+  status?: string;
+}
+
+const statusExpr = sql<number>`CASE WHEN ${userPlans.status} = 1 THEN 1 ELSE 0 END`;
+
+function buildFilterConditions(filters: NetworkFilters | undefined, idColumn: typeof affiliateNetwork.guestUserId) {
+  if (!filters) return [];
+
+  const conditions = [];
+  if (filters.id) conditions.push(like(sql`CAST(${idColumn} AS CHAR)`, `%${filters.id}%`));
+  if (filters.name) conditions.push(like(botUsers.name, `%${filters.name}%`));
+  if (filters.level && filters.level !== "all") conditions.push(eq(affiliateNetwork.level, filters.level as "1" | "2" | "3"));
+  if (filters.status && filters.status !== "all") {
+    conditions.push(
+      filters.status === "0"
+        ? or(eq(statusExpr, 0), sql`${userPlans.status} IS NULL`)
+        : eq(statusExpr, Number(filters.status)),
+    );
+  }
+  return conditions;
+}
 
 export class NetworkService {
+  static async network(userId: number, filters?: NetworkFilters) {
+    const guests = await db
+      .select({ id: botUsers.id, name: botUsers.name, level: affiliateNetwork.level, status: statusExpr })
+      .from(botUsers)
+      .innerJoin(affiliateNetwork, eq(botUsers.id, affiliateNetwork.guestUserId))
+      .leftJoin(userPlans, eq(botUsers.id, userPlans.userId))
+      .where(and(eq(affiliateNetwork.affiliateUserId, userId), ...buildFilterConditions(filters, affiliateNetwork.guestUserId)))
+      .orderBy(affiliateNetwork.level);
 
-  static async network(userId:number, filters:any){
-    try {
-        const guests = (
-        await conn.query(`SELECT bot_users.id, bot_users.name, network.level, CASE WHEN users_plans.status = 1 THEN 1 ELSE 0 END AS status FROM bot_users INNER JOIN network ON bot_users.id = network.guest_user_id LEFT JOIN users_plans ON bot_users.id = users_plans.user_id WHERE network.affiliate_user_id = ${userId} ${filters? `AND LOWER(network.guest_user_id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') ${filters.level !== 'all'? `AND network.level = ${filters.level}` : ''} ${filters.status !== 'all'? `AND ${!filters.status? `(users_plans.status = ${filters.status} OR users_plans.status IS NULL)` : `users_plans.status = ${filters.status}`}` : ''}` : ''} ORDER BY level;`)
-        )[0];
+    const affiliates = await db
+      .select({ id: botUsers.id, name: botUsers.name, level: affiliateNetwork.level, status: statusExpr })
+      .from(botUsers)
+      .innerJoin(affiliateNetwork, eq(botUsers.id, affiliateNetwork.affiliateUserId))
+      .leftJoin(userPlans, eq(botUsers.id, userPlans.userId))
+      .where(and(eq(affiliateNetwork.guestUserId, userId), ...buildFilterConditions(filters, affiliateNetwork.affiliateUserId)))
+      .orderBy(affiliateNetwork.level);
 
-        const affiliates = (
-        await conn.query(`SELECT bot_users.id, bot_users.name, network.level, CASE WHEN users_plans.status = 1 THEN 1 ELSE 0 END AS status FROM bot_users INNER JOIN network ON bot_users.id = network.affiliate_user_id LEFT JOIN users_plans ON bot_users.id = users_plans.user_id WHERE network.guest_user_id = ${userId} ${filters? `AND LOWER(network.affiliate_user_id) LIKE LOWER('%${filters.id}%') AND LOWER(bot_users.name) LIKE LOWER('%${filters.name}%') ${filters.level !== 'all'? `AND network.level = ${filters.level}` : ''} ${filters.status !== 'all'? `AND ${!filters.status? `(users_plans.status = ${filters.status} OR users_plans.status IS NULL)` : `users_plans.status = ${filters.status}`}` : ''}` : ''} ORDER BY level;`)
-        )[0];
-
-        return { guests, affiliates }
-    } catch (error) {
-      throw error;
-    }
+    return { guests, affiliates };
   }
-
 }

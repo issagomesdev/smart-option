@@ -1,45 +1,54 @@
-
+import express, { NextFunction, Request, Response } from "express";
 import { AuthenticationService } from "../../services/authentication.service";
-import express from "express";
-import { NextFunction, Request, Response } from "express";
-import { HttpException } from "../../exceptions/http.exception";
-import jwt from 'jsonwebtoken';
-import conn from "../../db";
+import { authenticateToken } from "../middlewares/auth.interceptor";
+import { validate } from "../../infrastructure/http/middlewares/validate";
+import { loginDto, refreshTokenDto } from "../../interfaces/http/dtos/auth.dto";
+import { createRateLimiter } from "../../infrastructure/http/security";
+import { ok } from "../../shared/http/response";
+import { UnauthorizedError } from "../../shared/errors";
+
+/** Limite mais restrito que o global — o login é o principal alvo de brute-force. */
+const loginRateLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 10, prefix: "rl:auth-login:" });
 
 export default express
   .Router()
-  .post('/', async(req: Request, res: Response, next: NextFunction) => { // Login no painel do front
-    const { email, password, remember } = req.body;
+  .post("/", loginRateLimiter, validate({ body: loginDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const response = await AuthenticationService.login(email, password, remember);
-        res.status(200).json(response);
+      const { email, password, remember } = req.body;
+      const response = await AuthenticationService.login(email, password, remember);
+      ok(res, response);
     } catch (error) {
-        console.log(error);
-        next(new HttpException(400, error));
+      next(error);
     }
-
-    })
-  .post('/token', async(req: Request, res: Response, next: NextFunction) => { // Validação do token no painel do front
-    const token = req.headers.authorization.split(' ')[1]
-    
-    if (!token) {
-      return res.status(200).json({ message: 'Token inválido' });
+  })
+  .post("/refresh", validate({ body: refreshTokenDto }), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const tokens = await AuthenticationService.refresh(req.body.refreshToken);
+      ok(res, tokens);
+    } catch (error) {
+      next(error);
     }
-    
-    jwt.verify(token, process.env.SECRET_KEY, async(err:any, decoded:any) => {
-      
-      if (err) {
-        return res.status(200).json({ message: 'Falha na autenticação do token' });
-      }
+  })
+  .post("/logout", validate({ body: refreshTokenDto }), async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await AuthenticationService.logout(req.body.refreshToken);
+      ok(res, { loggedOut: true });
+    } catch (error) {
+      next(error);
+    }
+  })
+  // Mantido por compatibilidade com o painel atual, que ainda envia o token
+  // manualmente em vez de usar o header Authorization + `authorize()`.
+  .post("/token", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const token = req.header("Authorization")?.replace("Bearer ", "");
+      if (!token) throw new UnauthorizedError("Token não informado");
 
-      const user = (
-        await conn.query(`SELECT * FROM users where id = ${decoded.userId}`)
-      )[0][0];
+      const user = await authenticateToken(token);
+      if (!user) throw new UnauthorizedError("Token inválido ou expirado");
 
-      delete user.password;
-
-      return res.status(200).json({ message: 'Token validado com sucesso', user: user });
-     
-    });
-
+      ok(res, { user });
+    } catch (error) {
+      next(error);
+    }
   });

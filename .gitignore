@@ -5,8 +5,15 @@ dist/
 estrutura.txt
 
 .env
+.env.development
+.env.production
 # TypeScript
 *.tsbuildinfo
+
+# Cloudflare Tunnel — gerado por scripts/start-tunnel.* a partir do .env, e
+# credenciais reais do túnel (nunca commitar; ver README, "Cloudflare Tunnel")
+cloudflared/config.runtime.yml
+cloudflared/credentials/
 
 # Visual Studio Code
 .vscode/
@@ -16,3 +23,4 @@ coverage/
 
 # Testing library
 __tests__/
+

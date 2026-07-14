@@ -1,132 +1,129 @@
-import conn from "../../db";
+import { and, eq, sql } from "drizzle-orm";
+import { db } from "../../infrastructure/database/client";
+import { affiliateNetwork as affiliateNetworkTable, botUsers, productEarnings, userPlans } from "../../infrastructure/database/schema";
+import { walletService, WalletOrigin } from "../../wallet/wallet.service";
+
+type NetworkLevel = "1" | "2" | "3";
+const LEVELS: NetworkLevel[] = ["1", "2", "3"];
 
 export class NetworkService {
+  static async affiliateNetwork(telegramUserId: number) {
+    const [user] = await db.select().from(botUsers).where(eq(botUsers.telegramUserId, String(telegramUserId)));
+    if (!user) return [];
 
-  static async affiliateNetwork(userId: number){
-    try {
+    const rows = await db
+      .select({
+        name: botUsers.name,
+        id: botUsers.id,
+        level: affiliateNetworkTable.level,
+        planStatus: userPlans.status,
+      })
+      .from(affiliateNetworkTable)
+      .innerJoin(botUsers, eq(botUsers.id, affiliateNetworkTable.guestUserId))
+      .leftJoin(userPlans, eq(userPlans.userId, botUsers.id))
+      .where(eq(affiliateNetworkTable.affiliateUserId, user.id))
+      .orderBy(affiliateNetworkTable.level);
 
-        const user = (
-            await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = ${userId}`)
-          )[0][0];
-          
-        const network = (
-        await conn.query(`SELECT bot_users.name, bot_users.id, network.level, CASE WHEN users_plans.status = 1 THEN 1 ELSE 0 END AS status FROM bot_users INNER JOIN network ON bot_users.id = network.guest_user_id LEFT JOIN users_plans ON bot_users.id = users_plans.user_id WHERE network.affiliate_user_id = ${user.id} ORDER BY level;`)
-        )[0];
-
-        return network
-    } catch (error) {
-        throw error;
-    }
+    return rows.map((row) => ({ ...row, status: row.planStatus === 1 ? 1 : 0 }));
   }
 
-  static async networkRepass(userId: number, value:number, type:string, profitability:boolean = false){
-    try {
-        const L1 = (
-            await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '1' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
-        )[0][0];
+  static async earningsPercentage(productId: number, type: "subscription" | "earnings", level: NetworkLevel): Promise<number> {
+    const [row] = await db
+      .select({ percentage: productEarnings.percentage })
+      .from(productEarnings)
+      .where(and(eq(productEarnings.productId, productId), eq(productEarnings.level, level), eq(productEarnings.type, type)));
 
-        if(L1) {
-            
-            const L1HasPlan = (
-                await conn.query(`SELECT * FROM users_plans WHERE user_id = ${L1.affiliate_user_id} AND status = 1`)
-            )[0][0];
+    return row ? Number(row.percentage) : 0;
+  }
 
-            if(L1HasPlan) {
-                NetworkService.earningsPercentage(L1HasPlan.product_id, type, 1)
-                .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${(prctg / 100) * value}','${L1.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}', '${userId}')`))
-             } 
+  /**
+   * Repassa comissão de até 3 níveis de afiliados acima de `userId`. Cada
+   * nível só recebe se tiver plano ativo e estiver entre os 3 primeiros
+   * afiliados daquele nível marcados com `earnings=1` (mesma regra de cap
+   * que já existia). `sourceIdempotencyKey` identifica o evento de origem
+   * (ex.: `payment_transaction:42`, `earnings:7:2026-07-12`) — cada nível
+   * gera sua própria chave derivada, então reprocessar o evento de origem
+   * nunca duplica o repasse.
+   */
+  static async networkRepass(
+    userId: number,
+    value: number,
+    type: "subscription" | "earnings",
+    sourceIdempotencyKey: string,
+    profitability = false,
+  ): Promise<void> {
+    let currentGuestId = userId;
 
-            const L2 = (
-                await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '2' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
-            )[0][0];
+    for (const level of LEVELS) {
+      const [edge] = await db
+        .select()
+        .from(affiliateNetworkTable)
+        .where(
+          and(
+            eq(affiliateNetworkTable.guestUserId, currentGuestId),
+            eq(affiliateNetworkTable.level, level),
+            ...(type === "earnings" ? [eq(affiliateNetworkTable.earnings, 1)] : []),
+          ),
+        );
 
-            if(L2){
-                const L2HasPlan = (
-                    await conn.query(`SELECT * FROM users_plans WHERE user_id = ${L2.affiliate_user_id} AND status = 1`)
-                )[0][0];
-    
-                if(L2HasPlan) {
-                    NetworkService.earningsPercentage(L2HasPlan.product_id, type, 2)
-                    .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${(prctg / 100) * value}','${L2.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}', '${userId}')`))
-                }
+      if (!edge) break;
 
-                const L3 = (
-                    await conn.query(`SELECT * FROM network WHERE guest_user_id = ${userId} AND level = '3' ${type == 'earnings'? 'AND earnings = 1' : ''}`)
-                )[0][0];
+      const [hasPlan] = await db
+        .select({ productId: userPlans.productId })
+        .from(userPlans)
+        .where(and(eq(userPlans.userId, edge.affiliateUserId), eq(userPlans.status, 1)));
 
-                if(L3){
+      if (hasPlan) {
+        const percentage = await NetworkService.earningsPercentage(hasPlan.productId, type, level);
 
-                    const L3HasPlan = (
-                        await conn.query(`SELECT * FROM users_plans WHERE user_id = ${L3.affiliate_user_id} AND status = 1`)
-                    )[0][0];
-        
-                    if(L3HasPlan) {
-                        NetworkService.earningsPercentage(L3HasPlan.product_id, type, 3)
-                        .then(async(prctg) => await conn.execute(`INSERT INTO balance(value, user_id, type, origin, reference_id) VALUES ('${(prctg / 100) * value}','${L3.affiliate_user_id}', 'sum', '${profitability? 'profitability' : type}', '${userId}')`))
-                    }
-                }
-                
-            }
+        if (percentage > 0) {
+          const origin: WalletOrigin = profitability ? "profitability" : "subscription";
+          await walletService.credit({
+            userId: edge.affiliateUserId,
+            amount: Math.round((percentage / 100) * value * 100) / 100,
+            origin,
+            idempotencyKey: `${sourceIdempotencyKey}:repass:L${level}`,
+            referenceType: "bot_users",
+            referenceId: String(userId),
+          });
         }
-        
-    } catch (error) {
-        throw error;
+      }
+
+      currentGuestId = edge.affiliateUserId;
     }
   }
 
-  static async earningsPercentage(id: number, type:string, level:number){
-    try {
+  /** Insere o novo usuário na árvore de afiliados de até 3 níveis acima do indicador. */
+  static async upNetwork(affiliateId: number, guestId: number): Promise<void> {
+    let currentAffiliateId: number | undefined = affiliateId;
 
-        const earning = (
-            await conn.query(`SELECT percentage FROM product_earnings WHERE product_id = ${id} AND level = '${level}' AND type = '${type}'`)
-        )[0][0].percentage;
+    for (const level of LEVELS) {
+      if (!currentAffiliateId) break;
 
-        return earning;
-        
-    } catch (error) {
-        throw error;
-    }
-  }
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(affiliateNetworkTable)
+        .where(
+          and(
+            eq(affiliateNetworkTable.affiliateUserId, currentAffiliateId),
+            eq(affiliateNetworkTable.level, level),
+            eq(affiliateNetworkTable.earnings, 1),
+          ),
+        );
 
-  static async upNetwork(affiliateId: number, guestId: number){
-    try {
+      await db.insert(affiliateNetworkTable).values({
+        affiliateUserId: currentAffiliateId,
+        guestUserId: guestId,
+        level,
+        earnings: count < 3 ? 1 : 0,
+      });
 
-        const earningsUsersL1 = (
-            await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliateId} AND level = '1' AND earnings = 1`)
-       )[0][0];
+      const [parentEdge] = await db
+        .select()
+        .from(affiliateNetworkTable)
+        .where(and(eq(affiliateNetworkTable.guestUserId, currentAffiliateId), eq(affiliateNetworkTable.level, "1")));
 
-            await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, earnings) VALUES ('${affiliateId}','${guestId}','1', ${earningsUsersL1.amount < 3? 1 : 0 })`);
-
-            const affiliateIsGuest = (
-                await conn.query(`SELECT * FROM network WHERE guest_user_id = ${affiliateId} AND level = '1'`)
-            )[0][0];
-
-            if(affiliateIsGuest){
-
-                const earningsUsersL2 = (
-                    await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliateIsGuest.affiliate_user_id} AND level = '2' AND earnings = 1`)
-               )[0][0];
-
-                    await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, earnings) VALUES ('${affiliateIsGuest.affiliate_user_id}','${guestId}','2', ${earningsUsersL2.amount < 3? 1 : 0 })`);
-
-                    const affiliate2IsGuest = (
-                        await conn.query(`SELECT * FROM network WHERE guest_user_id = ${affiliateIsGuest.affiliate_user_id} AND level = '1'`)
-                    )[0][0];
-                    
-
-                    if(affiliate2IsGuest){
-
-                        const earningsUsersL3 = (
-                            await conn.query(`SELECT COUNT(*) AS amount FROM network WHERE affiliate_user_id = ${affiliate2IsGuest.affiliate_user_id} AND level = '3' AND earnings = 1`)
-                       )[0][0];
-
-                        await conn.query(`INSERT INTO network(affiliate_user_id, guest_user_id, level, earnings) VALUES ('${affiliate2IsGuest.affiliate_user_id}','${guestId}','3', ${earningsUsersL3.amount < 3? 1 : 0 })`);
-                    }
-                }
-
-    } catch (error) {
-        throw error;
+      currentAffiliateId = parentEdge?.affiliateUserId;
     }
   }
 }
-

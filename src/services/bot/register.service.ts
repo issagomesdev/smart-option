@@ -1,163 +1,114 @@
-import conn from "../../db";
-import { SHA1 } from "crypto-js";
-import { NetworkService } from "./network.service";
-import * as nodemailer from 'nodemailer';
+import { eq } from "drizzle-orm";
+import { v4 as uuidv4 } from "uuid";
 import * as jwt from 'jsonwebtoken';
 import moment from 'moment';
+import { db } from "../../infrastructure/database/client";
+import { botUsers, userPlans, emailVerifications } from "../../infrastructure/database/schema";
+import { walletService } from "../../wallet/wallet.service";
+import { ConflictError, ValidationError } from "../../shared/errors";
+import { env } from "../../config/env";
+import { hashPassword } from "../../shared/security/password";
+import { isValidCpf, normalizeCpf } from "../../shared/validation/cpf";
+import { NetworkService } from "./network.service";
+import { logger } from "../../shared/logger";
+import { notificationService } from "../../notifications/services/notification.service";
 
-export class RegisterService {
-
-  static async registerUser(body:any, affiliateId:number = null): Promise<any> {
-    try {
-
-      let user = (
-        await conn.query(`SELECT * FROM bot_users WHERE email = '${body.email}'`)
-      )[0][0];
-
-      if(user) throw Error("Email já em uso");
-
-       user = (
-        await conn.execute(
-          `INSERT INTO bot_users(name, email, password, phone_number, adress, pix_code) VALUES ('${body.name}','${body.email}', '${SHA1(body.password).toString()}','${body.phone_number}','${body.adress}','${body.pix_code}')`
-        ))[0];  
-
-        if(body.balance && body.type) await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${body.balance}','${user.insertId}','${body.type}','admin')`);
-        
-        if(body.product_id) await conn.execute(`INSERT INTO users_plans(user_id, product_id, expired_in) VALUES ('${user.insertId}','${body.product_id}', '${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}')`);
-        
-        if(affiliateId) NetworkService.upNetwork(affiliateId, user.insertId);
-        RegisterService.sendVerificationEmail(body.email)
-
-        return { status: true, message: "Usuário cadastrado com sucesso" }
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  static async sendVerificationEmail(email:string){
-    let user = (
-      await conn.query(`SELECT * FROM bot_users WHERE email = '${email}'`)
-    )[0][0];
-    const token = jwt.sign({ email }, process.env.SECRET_KEY, { expiresIn: '1h' });
-    
-    await conn.query(`INSERT INTO verification_email(user_id, token) VALUES ('${user.id}','${token}')`);
-
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.titan.email',
-      port: 465,
-      secure: true,
-      auth: {
-        user: 'no-reply@smartoptionea.com',
-        pass: 'Opea.Bot23',
-      },
-      tls: {
-        rejectUnauthorized: false,
-       }
-    });
-
-    const mailOptions = {
-      from: 'no-reply@smartoptionea.com',
-      to: `${email}`,
-      subject: 'Confirmação de e-mail',
-      html: `<div>
-      <p> 
-      <img style="width: 25em;" src="https://smartoptionea.com/images/logo1.png" alt="SmartOption">
-      </p>
-      
-      <table cellspacing="0" style="width:100%;margin:0 auto" bgcolor="#F2F3F4">
-          <tbody>
-              <tr>
-                  <td style="background: #000000; height: 5em;">
-                      <table cellspacing="0" cellpadding="0" align="center">
-                          <tbody>
-                              <tr>
-                                  <td>
-                                      <img style="margin: 1em; width: 100px;" src="https://smartoptionea.com/images/logo2.png" alt="SmartOption">
-                                  </td>
-                              </tr>
-                          </tbody>
-                      </table>
-                  </td>
-              </tr>
-              <tr>
-                  <td>
-                      <table align="center" style="max-width:552px">
-                          <tbody>
-                              <tr>
-                                  <td>
-                                      <div style="margin:10px;width:552px;height:auto;background:#ffffff 0% 0% no-repeat padding-box">
-                                          <div style="text-align:center">
-                                              <p style="margin:0;text-align:left;padding:24px 24px 24px;font-size:18px;color:#333333">Para seguir, basta confirmar seu endereço de e-mail clicando no botão abaixo:</p>
-                                              <a href="${process.env.API_BASE_PATH}/email/verify/${token}" style="display:inline-block;width:300px;margin:24px;padding:20px;border-radius:5px;font-size:20px;text-align:center;letter-spacing:0;background:linear-gradient(to bottom, #51d176 10%,#29c1b1 80%);text-decoration:none;color:#fff" target="_blank">Confirmar meu e-mail</a>
-                                              <p style="text-align:center;margin:0 24px 24px 24px;font-size:14px;color:#333333">Caso não tenha sido você que tentou criar esta conta, desconsidere este e-mail.</p>
-                                          </div>
-                                          <div>
-                                              <p style="padding:24px;color:#333333;text-align:left;font-size:12px">Caso tenha alguma dificuldade para fazer a confirmação no botão acima, copie e cole a URL a seguir no seu navegador:
-                                              
-                                              <span style="text-decoration:underline;color:#4480c5;word-break:break-all">
-                                              
-                                              <a href="${process.env.API_BASE_PATH}/email/verify/${token}" target="_blank"> ${process.env.API_BASE_PATH}/email/verify/${token} </a>
-                                              
-                                              </span>
-                                              </p>
-                                          </div>
-                                      </div>
-                                  </td>
-                              </tr>
-                          </tbody>
-                      </table>
-                  </td>
-              </tr>
-          </tbody>
-      </table>
-  </div>`,
-    };
-
-      transporter.sendMail(mailOptions, async(error, info) => {
-        //console.log(info)
-        if (error) {
-         // console.log(error.message)
-        }
-    });
-  }
-
-  static async verificationEmail(token:string){
-
-  if (!token) throw Error("Token ausente");
-
-  const decodedToken: any = jwt.verify(token, process.env.SECRET_KEY);
-  const today = Math.floor(Date.now() / 1000);
-  let user = (
-    await conn.query(`SELECT user_id FROM verification_email WHERE token = '${token}'`)
-  )[0][0];
-
-  if(user && user.user_id){
-
-    let verified_email_at = (
-      await conn.query(`SELECT verified_email_at FROM bot_users WHERE id = '${user.user_id}'`)
-    )[0][0];
-
-    if(verified_email_at && verified_email_at.verified_email_at){
-
-      await conn.query(`UPDATE verification_email SET status='checked' WHERE user_id = '${user.user_id}'`)
-      throw Error("Email já validado");
-
-    } else if (decodedToken.exp && decodedToken.exp < today){
-
-      await conn.query(`UPDATE verification_email SET status='expired' WHERE token = '${token}'`)
-      throw Error("Token inválido ou expirado! Realize o login para solicitar um novo email de confirmação");
-
-    } else {
-
-        await conn.query(`UPDATE verification_email SET status='checked' WHERE user_id = '${user.user_id}'`)
-        await conn.query(`UPDATE bot_users SET verified_email_at='${moment().format('YYYY-MM-DD HH:mm:ss')}' WHERE id = '${user.user_id}'`);
-    }
-    
-  } else {
-    throw Error("Token inválido");
-  }
-  }
-
+export interface RegisterUserInput {
+  name: string;
+  email: string;
+  password: string;
+  phone_number: string;
+  cpf: string;
+  adress: string;
+  pix_code: string;
+  balance?: string;
+  type?: "sum" | "subtract";
+  product_id?: number;
 }
 
+export class RegisterService {
+  static async registerUser(body: RegisterUserInput, affiliateId: number | null = null) {
+    const [existing] = await db.select({ id: botUsers.id }).from(botUsers).where(eq(botUsers.email, body.email));
+    if (existing) throw new ConflictError("Email já em uso");
 
+    if (!isValidCpf(body.cpf)) throw new ValidationError("CPF inválido");
+
+    const [inserted] = await db
+      .insert(botUsers)
+      .values({
+        name: body.name,
+        email: body.email,
+        password: await hashPassword(body.password),
+        phoneNumber: body.phone_number,
+        cpf: normalizeCpf(body.cpf),
+        adress: body.adress,
+        pixCode: body.pix_code,
+      })
+      .$returningId();
+
+    if (body.balance && body.type) {
+      await walletService[body.type === "sum" ? "credit" : "debit"]({
+        userId: inserted.id,
+        amount: parseFloat(body.balance),
+        origin: "admin_adjustment",
+        idempotencyKey: uuidv4(),
+      });
+    }
+
+    if (body.product_id) {
+      await db.insert(userPlans).values({
+        userId: inserted.id,
+        productId: body.product_id,
+        expiredIn: moment().add(1, "months").toDate(),
+      });
+    }
+
+    if (affiliateId) await NetworkService.upNetwork(affiliateId, inserted.id);
+    await RegisterService.sendVerificationEmail(body.email);
+
+    return { status: true, message: "Usuário cadastrado com sucesso" };
+  }
+
+  static async sendVerificationEmail(email: string): Promise<void> {
+    const [user] = await db.select({ id: botUsers.id }).from(botUsers).where(eq(botUsers.email, email));
+    if (!user) return;
+
+    const token = jwt.sign({ email }, env.SECRET_KEY, { expiresIn: '1h' });
+
+    await db.insert(emailVerifications).values({ userId: user.id, token });
+
+    try {
+      await notificationService.sendEmailVerification({
+        to: email,
+        verificationUrl: `${env.API_BASE_PATH}/email/verify/${token}`,
+      });
+    } catch (error) {
+      logger.error({ err: error }, "Falha ao enviar e-mail de verificação");
+    }
+  }
+
+  static async verificationEmail(token: string): Promise<void> {
+    if (!token) throw new ValidationError("Token ausente");
+
+    const decodedToken = jwt.verify(token, env.SECRET_KEY) as { email: string; exp?: number };
+    const today = Math.floor(Date.now() / 1000);
+
+    const [verification] = await db.select().from(emailVerifications).where(eq(emailVerifications.token, token));
+    if (!verification) throw new ValidationError("Token inválido");
+
+    const [user] = await db.select({ verifiedEmailAt: botUsers.verifiedEmailAt }).from(botUsers).where(eq(botUsers.id, verification.userId));
+
+    if (user?.verifiedEmailAt) {
+      await db.update(emailVerifications).set({ status: "checked" }).where(eq(emailVerifications.userId, verification.userId));
+      throw new ConflictError("Email já validado");
+    }
+
+    if (decodedToken.exp && decodedToken.exp < today) {
+      await db.update(emailVerifications).set({ status: "expired" }).where(eq(emailVerifications.token, token));
+      throw new ValidationError("Token inválido ou expirado! Realize o login para solicitar um novo email de confirmação");
+    }
+
+    await db.update(emailVerifications).set({ status: "checked" }).where(eq(emailVerifications.userId, verification.userId));
+    await db.update(botUsers).set({ verifiedEmailAt: new Date() }).where(eq(botUsers.id, verification.userId));
+  }
+}

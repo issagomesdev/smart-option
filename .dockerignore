@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.git
+.history
+*.tsbuildinfo
+.env
+.env.development
+.env.development.example
+.env.production
+.env.production.example
+.vscode
+docs
+README.md
+scripts
+cloudflared

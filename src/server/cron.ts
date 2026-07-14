@@ -3,6 +3,8 @@ import conn from "./../db";
 import moment from 'moment';
 import { TransactionsService } from "../services/bot/transactions.service";
 import { NetworkService } from "../services/bot/network.service";
+import { walletService } from "../wallet/wallet.service";
+import { logger } from "../shared/logger";
 
 export const lastDayinMonthCron = cron.schedule(
 	"0 0 28-31 * *",
@@ -10,7 +12,7 @@ export const lastDayinMonthCron = cron.schedule(
 	  try {
 		await applyDiamondTax();
 	  } catch (error) {
-		console.log("Erro:", error);
+		logger.error({ err: error }, "Erro no cron mensal (taxa diamante)");
 	  }
 	},
 	{
@@ -26,7 +28,7 @@ export const dailyCron = cron.schedule(
 		await applyEarningsDaily();
 		await checkDiamondUsers();
 	  } catch (error) {
-		console.log("Erro:", error);
+		logger.error({ err: error }, "Erro no cron diário");
 	  }
 	},
 	{
@@ -40,7 +42,7 @@ export const everyMinuteCron = cron.schedule(
 		try {
 			await checkUsersWithoutPlan();
 		  } catch (error) {
-			console.log("Erro:", error);
+			logger.error({ err: error }, "Erro no cron de verificação de planos");
 		  }
 	},
 	{
@@ -53,11 +55,21 @@ async function applyDiamondTax() {
 		await conn.query(`SELECT user_id FROM users_plans WHERE status = '1' AND product_id = '4'`)
 	  )[0];
 
-	  await users.map(async(user) => {
+	  const today = moment().format('YYYY-MM');
+
+	  for (const user of users) {
 		const balance = await TransactionsService.balance(null, true, user);
 		const tax = 0.04 * balance;
-		await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${tax}','${user.user_id}', 'subtract', 'diamond_tax')`);
-	  }); 
+
+		if (tax > 0) {
+			await walletService.debit({
+				userId: user.user_id,
+				amount: tax,
+				origin: "diamond_tax",
+				idempotencyKey: `diamond_tax:${user.user_id}:${today}`,
+			});
+		}
+	  }
 }
 
 async function checkExpiredUsers() {
@@ -65,18 +77,18 @@ async function checkExpiredUsers() {
 		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE expired_in < NOW() AND status = '1'`)
 	  )[0];
 
-	  await expired.map(async(user) => {
+	  for (const user of expired) {
 		const balance = await TransactionsService.balance(null, true, user);
 		const product:any = (
-			await conn.query(`SELECT price FROM products WHERE id = '${user.product_id}'`)
+			await conn.query(`SELECT id, price FROM products WHERE id = '${user.product_id}'`)
 		  )[0][0];
 
-		  if(product.price <= balance){	
-            await TransactionsService.renewTuition(user, product)
+		  if(product.price <= balance){
+			await TransactionsService.renewTuition(user, product)
 		  } else {
 			await conn.query(`UPDATE users_plans SET status='0' WHERE user_id = '${user.user_id}'`);
 		  }
-	  });
+	  }
 }
 
 async function applyEarningsDaily() {
@@ -85,9 +97,11 @@ async function applyEarningsDaily() {
 		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE status = '1'`)
 	  )[0];
 
-	  await users.map(async(user) => {
-		const balance:any = await TransactionsService.balance(null, false, user);
-		
+	  const today = moment().format('YYYY-MM-DD');
+
+	  for (const user of users) {
+		const balance = await TransactionsService.balance(null, false, user);
+
 		const product:any = (
 			await conn.query(`SELECT earnings_monthly FROM products WHERE products.id = '${user.product_id}'`)
 		  )[0][0];
@@ -96,12 +110,19 @@ async function applyEarningsDaily() {
 		const today_earnings:number = (daily_earnings / 100) * balance;
 
 		if(today_earnings > 0){
-			await conn.execute(`INSERT INTO balance(value, user_id, type, origin) VALUES ('${today_earnings}','${user.user_id}', 'sum', 'earnings')`);
+			const idempotencyKey = `earnings:${user.user_id}:${today}`;
 
-			NetworkService.networkRepass(user.user_id, today_earnings, "earnings", true)
+			await walletService.credit({
+				userId: user.user_id,
+				amount: today_earnings,
+				origin: "earnings",
+				idempotencyKey,
+			});
+
+			await NetworkService.networkRepass(user.user_id, today_earnings, "earnings", idempotencyKey, true);
 		}
 
-	  });
+	  }
 
 }
 
@@ -110,18 +131,18 @@ async function checkDiamondUsers() {
 		await conn.query(`SELECT user_id FROM users_plans WHERE status = '1'`)
 	  )[0];
 
-	  await users.map(async(user) => {
+	  for (const user of users) {
 		const hasPlan = (
 			await conn.query(`SELECT product_id FROM users_plans WHERE user_id = '${user.user_id}' AND status = 1`)
 		  )[0][0];
-		
+
 		  const balance = await TransactionsService.balance(null, true, user);
-	
+
 		  if(hasPlan && hasPlan.product_id != 4 && balance >= 20000) await conn.query(`UPDATE users_plans SET product_id='4', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${user.user_id}'`);
-	
+
 		  if(hasPlan && hasPlan.product_id == 4 && balance < 20000) await conn.query(`UPDATE users_plans SET product_id='3', status='1', acquired_in='${moment().format('YYYY-MM-DD HH:mm:ss')}', expired_in='${moment().add(1, 'months').format('YYYY-MM-DD HH:mm:ss')}' WHERE user_id = '${user.user_id}'`);
-	  });  
-	
+	  }
+
 }
 
 async function checkUsersWithoutPlan() {
@@ -129,16 +150,14 @@ async function checkUsersWithoutPlan() {
 		await conn.query(`SELECT user_id, product_id FROM users_plans WHERE status = '0'`)
 	  )[0];
 
-	  await expired.map(async(user) => {
+	  for (const user of expired) {
 		const balance = await TransactionsService.balance(null, true, user);
 		const product:any = (
-			await conn.query(`SELECT price FROM products WHERE id = '${user.product_id}'`)
+			await conn.query(`SELECT id, price FROM products WHERE id = '${user.product_id}'`)
 		  )[0][0];
 
-		  if(product.price <= balance){	
-            await TransactionsService.renewTuition(user, product)
-		  } 
-	  });  
+		  if(product.price <= balance){
+			await TransactionsService.renewTuition(user, product)
+		  }
+	  }
 }
-
-

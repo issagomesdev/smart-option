@@ -1,63 +1,65 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import { verify } from "jsonwebtoken";
-import conn from "../../db";
-import { httpErrors } from "../../exceptions/http.exception";
+import { eq } from "drizzle-orm";
+import { db } from "../../infrastructure/database/client";
+import { staffUsers } from "../../infrastructure/database/schema";
+import { env } from "../../config/env";
+import { UnauthorizedError } from "../../shared/errors";
 
-const HTTP_NOT_AUTHORIZED = { auth: false, error: httpErrors(401) },
-	HTTP_FORBIDDEN = { auth: false, error: httpErrors(402) };
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: number;
+    name: string;
+    surname: string;
+    email: string;
+    roleId: number;
+  };
+}
 
-export const authenticateToken = async (token: string): Promise<any | null> => {
-	try {
-		let id: string;
-		try {
-			const data:any = verify(token, process.env.SECRET_KEY);
-			if (data) id = data.userId;
-		} catch (err) {
-			console.error(err);
-			return null;
-		}
-		const user = (await conn.query(`SELECT name, surname, email, role_id, created_at FROM users where id = ${id}`))[0][0];
+export async function authenticateToken(token: string) {
+  let payload: { userId: number };
+  try {
+    payload = verify(token, env.SECRET_KEY) as { userId: number };
+  } catch {
+    return null;
+  }
 
-		return user || null;
-	} catch (error) {
-		console.error(error);
-		return null;
-	}
-};
+  const [user] = await db
+    .select({ id: staffUsers.id, name: staffUsers.name, surname: staffUsers.surname, email: staffUsers.email, roleId: staffUsers.roleId })
+    .from(staffUsers)
+    .where(eq(staffUsers.id, payload.userId));
 
-export const authorize = () => {
+  return user ?? null;
+}
 
-	return async (req: any, res: Response, next: NextFunction) => {
-		if (req.header("Authorization")) {
+/**
+ * Corrige um bug do código original: as respostas de erro chamavam `next()`
+ * logo depois de `res.status(...).json(...)`, continuando a cadeia de
+ * middlewares após já ter respondido (risco de "headers already sent"). Aqui
+ * só existe um caminho de saída por requisição: ou `next()` sem resposta
+ * prévia, ou `next(error)` sem nunca ter chamado `res.json` antes.
+ */
+export function authorize() {
+  return async (req: AuthenticatedRequest, _res: Response, next: NextFunction): Promise<void> => {
+    const header = req.header("Authorization");
+    const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : undefined;
 
-			const token = req.header("Authorization").replace("Bearer ", "");
+    if (!token) {
+      next(new UnauthorizedError());
+      return;
+    }
 
-			if (!token) {
-				console.log(`token not found`);
-				res.status(401).json(HTTP_NOT_AUTHORIZED);
-				next();
-				return;
-			}
-			const user = await authenticateToken(token);
+    try {
+      const user = await authenticateToken(token);
+      if (!user) {
+        next(new UnauthorizedError());
+        return;
+      }
 
-			if (!user) {
-				console.log(`user not found`);
-				res.status(401).json(HTTP_NOT_AUTHORIZED);
-				next();
-				return;
-			}
-
-			// if (!(user && isAllowed(user.Type))) {
-			// 	console.log(`user not allowed to access this route`);
-			// 	res.status(402).json(HTTP_FORBIDDEN);
-			// }
-
-			req.user = user;
-
-			next();
-		} else {
-			res.status(401).json(HTTP_NOT_AUTHORIZED);
-			next();
-		}
-	};
-};
+      req.user = user;
+      next();
+    } catch {
+      next(new UnauthorizedError("Token inválido ou expirado"));
+    }
+  };
+}

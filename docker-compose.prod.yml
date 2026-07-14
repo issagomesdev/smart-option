@@ -1,0 +1,130 @@
+name: smart-option
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - smart_option_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - smart_option_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  app:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    # NÃO usar `env_file: .env`: o Compose interpola `${...}`/engole "$" solto
+    # também dentro de arquivos carregados por `env_file` — uma
+    # ASAAS_API_KEY de verdade (formato `$aact_...`) vira string vazia
+    # silenciosamente (bug real encontrado na Fase 11, verificado com
+    # `docker compose config`). Em vez disso, o `.env` é montado como arquivo
+    # e lido pelo `dotenv` da própria aplicação, sem passar pelo interpolador
+    # do Compose.
+    environment:
+      # Force NODE_ENV=production neste compose independentemente do que
+      # estiver em ".env" — um ".env" copiado de um ambiente de
+      # desenvolvimento não deve conseguir religar o transport "pino-pretty"
+      # (devDependency, removido da imagem "runtime" por `npm prune --omit=dev`)
+      # nem desativar outros comportamentos condicionados a `isProduction`.
+      NODE_ENV: production
+      # Fixo para casar com o upstream "app:3000" hard-coded em nginx/*.conf
+      # — nunca deixar um APP_PORT herdado de um ".env" de outro ambiente
+      # (ex.: dev local usando 3001 para não colidir com outro serviço)
+      # quebrar o proxy silenciosamente.
+      APP_PORT: 3000
+      DB_HOST: mysql
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./.env:/app/.env:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # Container efêmero para aplicar migrations/seed contra o banco de produção.
+  # Não sobe com `docker compose up` (fora do profile default) — rodar sob
+  # demanda: `docker compose -f docker-compose.prod.yml --profile tools run --rm migrate`.
+  migrate:
+    build:
+      context: .
+      target: builder
+    # Mesmo motivo do serviço "app" acima — sem `env_file`, `.env` montado.
+    environment:
+      NODE_ENV: production
+      DB_HOST: mysql
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./.env:/app/.env:ro
+    command: ["npm", "run", "db:migrate"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - internal
+    profiles:
+      - tools
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - smart_option_certbot_www:/var/www/certbot:ro
+      - smart_option_certbot_conf:/etc/letsencrypt:ro
+    depends_on:
+      - app
+    networks:
+      - internal
+
+  # Emissão/renovação do certificado TLS via desafio HTTP-01 (o Nginx serve
+  # o arquivo de desafio a partir do volume `smart_option_certbot_www`, que
+  # este container também escreve). Ver o passo-a-passo em docs/deploy.md —
+  # é preciso rodar isto antes do bloco HTTPS do nginx.conf fazer sentido.
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - smart_option_certbot_www:/var/www/certbot
+      - smart_option_certbot_conf:/etc/letsencrypt
+    networks:
+      - internal
+    profiles:
+      - tools
+
+networks:
+  internal:
+
+volumes:
+  smart_option_mysql_data:
+  smart_option_redis_data:
+  smart_option_certbot_www:
+  smart_option_certbot_conf:

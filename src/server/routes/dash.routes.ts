@@ -1,37 +1,33 @@
-
-
+import express, { NextFunction, Request, Response } from "express";
 import { DashboardService } from "../../services/dash.service";
-import express from "express";
-import { NextFunction, Request, Response } from "express";
-import { HttpException } from "../../exceptions/http.exception";
+import { validate } from "../../infrastructure/http/middlewares/validate";
+import { dashBalanceParamsDto } from "../../interfaces/http/dtos/admin.dto";
+import { ok } from "../../shared/http/response";
 
 export default express
   .Router()
-    .get('/users', async(req: Request, res: Response, next: NextFunction) => { // Listagem de usuários do bot
-        try {
-            const response = await DashboardService.users();
-            res.status(200).json(response);
-        } catch (error) {
-            console.log(error);
-            next(new HttpException(400, error));
-        }
-    })
-    .get('/balance/:user_id/:product_id/:period', async(req: Request, res: Response, next: NextFunction) => { // obter o saldo de um usuário podendo filtrar por plano/produto atual e período
-        try {
-            const response = await DashboardService.balance(req.params.user_id, req.params.product_id, req.params.period);
-            res.status(200).json(response);
-        } catch (error) {
-            console.log(error);
-            next(new HttpException(400, error));
-        }
-    })
-    .get('/plans', async(req: Request, res: Response, next: NextFunction) => { // Listagem de planos/produtos
-        try {
-            const response = await DashboardService.getPlans();
-            res.status(200).json(response);
-        } catch (error) {
-            console.log(error);
-            next(new HttpException(400, error));
-        }
-    });
-    
+  .get("/users", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      ok(res, await DashboardService.users());
+    } catch (error) {
+      next(error);
+    }
+  })
+  .get(
+    "/balance/:user_id/:product_id/:period",
+    validate({ params: dashBalanceParamsDto }),
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        ok(res, await DashboardService.balance(req.params.user_id, req.params.product_id, req.params.period));
+      } catch (error) {
+        next(error);
+      }
+    },
+  )
+  .get("/plans", async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      ok(res, await DashboardService.getPlans());
+    } catch (error) {
+      next(error);
+    }
+  });

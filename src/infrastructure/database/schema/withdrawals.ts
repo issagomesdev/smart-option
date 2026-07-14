@@ -1,0 +1,24 @@
+import { longtext, mysqlEnum, mysqlTable, varchar } from "drizzle-orm/mysql-core";
+import { createdAtColumn, idColumn, moneyColumn, refIdColumn } from "./_columns";
+import { botUsers } from "./bot-users";
+
+/**
+ * Fila de solicitações de saque, incluindo a aprovação humana pelo painel
+ * admin antes de qualquer chamada à Asaas — um estado que `payment_transactions`
+ * não representa (ela só passa a existir quando o saque já foi aprovado e
+ * enviado ao gateway). Por isso `withdrawals` continua sendo a entidade de
+ * negócio "saque pedido por este usuário", mesmo após a Fase 4.
+ */
+export const withdrawals = mysqlTable("withdrawals", {
+  id: idColumn(),
+  userId: refIdColumn("user_id")
+    .notNull()
+    .references(() => botUsers.id),
+  value: moneyColumn("value").notNull(),
+  status: mysqlEnum("status", ["pending", "authorized", "refused", "failed", "success"]).notNull().default("pending"),
+  replyObservation: longtext("reply_observation"),
+  errorsCause: varchar("errors_cause", { length: 255 }),
+  referenceId: varchar("reference_id", { length: 255 }).notNull(),
+  transactionId: varchar("transaction_id", { length: 255 }),
+  createdAt: createdAtColumn(),
+});

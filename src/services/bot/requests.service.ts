@@ -1,19 +1,18 @@
-import conn from "../../db";
+import { eq } from "drizzle-orm";
+import { db } from "../../infrastructure/database/client";
+import { botUsers, supportRequests } from "../../infrastructure/database/schema";
+import { NotFoundError } from "../../shared/errors";
 
 export class RequestsService {
+  static async request(type: "support" | "service", telegramUserId: number, subject: string) {
+    const [user] = await db.select({ id: botUsers.id }).from(botUsers).where(eq(botUsers.telegramUserId, String(telegramUserId)));
+    if (!user) throw new NotFoundError("Usuário não encontrado");
 
-  static async request(type:string, userId: number, subject:string): Promise<any> {
-    try {
-
-      let user = (
-        await conn.query(`SELECT * FROM bot_users WHERE telegram_user_id = '${userId}'`)
-      )[0][0];
-
-        await conn.execute(`INSERT INTO requests(type, user_id, telegram_user_id, subject) VALUES ('${type}','${user.id}', '${userId}', '${subject}')`);
-    } catch (error) {
-      throw error;
-    }
+    await db.insert(supportRequests).values({
+      type,
+      userId: user.id,
+      telegramUserId,
+      subject,
+    });
   }
-
 }
-
