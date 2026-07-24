@@ -109,7 +109,7 @@ function Invoke-CloudflaredCapture {
 function Confirm-Tunnel {
     $tunnelName = "smart-option-dev"
     $tunnelId = Get-EnvValue -Key "CF_TUNNEL_ID"
-    $domain = Get-EnvValue -Key "CF_TUNNEL_DOMAIN" -Default "smartoptiondev.byissa.dev"
+    $domain = Get-EnvValue -Key "CF_TUNNEL_DOMAIN"
     $cfHost = Get-EnvValue -Key "CF_TUNNEL_HOST" -Default "localhost"
     $appPort = Get-EnvValue -Key "APP_PORT" -Default "3000"
 

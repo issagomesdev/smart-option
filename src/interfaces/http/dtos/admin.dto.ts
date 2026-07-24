@@ -2,15 +2,31 @@ import { z } from "zod";
 
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 
+/**
+ * Aplicado às rotas de listagem paginadas — mantém `page`/`limit` com
+ * defaults e um teto sensato. `sortBy` é texto livre de propósito — a
+ * validação de quais colunas são aceitas acontece no service (allowlist por
+ * recurso, `shared/http/sorting.ts#resolveSort`), não aqui, já que cada
+ * recurso tem colunas ordenáveis diferentes.
+ */
+const paginationParams = {
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().positive().max(100).optional().default(20),
+  sortBy: z.string().optional(),
+  sortDirection: z.enum(["asc", "desc"]).optional(),
+};
+
+// Sem `id`/`userId` de propósito: o alvo destas duas rotas de self-service é
+// sempre `req.user!.id` (a sessão autenticada), nunca um valor vindo do
+// cliente — aceitar um id no corpo permitia qualquer staff editar/trocar a
+// senha de qualquer outro staff (bug real, corrigido junto com este DTO).
 export const updateStaffUserDto = z.object({
-  id: z.coerce.number().int().positive(),
   name: z.string().min(1).max(255),
   surname: z.string().min(1).max(255),
   email: z.email(),
 });
 
 export const updatePassDto = z.object({
-  userId: z.coerce.number().int().positive(),
   currentPassword: z.string().min(1),
   newPassword: z.string().min(8, "A nova senha deve ter pelo menos 8 caracteres"),
 });
@@ -27,6 +43,7 @@ export const botUsersFiltersDto = z.object({
   created_at: z.string().optional(),
   telegram: z.string().optional(),
   balance: z.string().optional(),
+  ...paginationParams,
 });
 
 export const botUserIdParamDto = idParam;
@@ -67,6 +84,7 @@ export const networkFiltersDto = z
     name: z.string().optional().default(""),
     level: z.string().optional().default("all"),
     status: z.string().optional().default("all"),
+    ...paginationParams,
   })
   .optional();
 
@@ -76,6 +94,7 @@ const listFiltersBase = {
   value: z.string().optional().default(""),
   status: z.string().optional().default("all"),
   created_at: z.string().optional(),
+  ...paginationParams,
 };
 
 export const withdrawalFiltersDto = z.object(listFiltersBase);
@@ -87,6 +106,7 @@ export const supportFiltersDto = z.object({
   type: z.string().optional().default("all"),
   is_read: z.string().optional().default("all"),
   created_at: z.string().optional(),
+  ...paginationParams,
 });
 
 export const extractFiltersDto = z
@@ -97,7 +117,14 @@ export const extractFiltersDto = z
   })
   .optional();
 
-export const requestsUserIdParamDto = z.object({ id: z.coerce.number().int().positive().optional() });
+// `id` também aceita o literal `"all"` — é assim que o painel pede a fila
+// global (todos os usuários) nas rotas de listagem (`withdrawal`/`deposit`/
+// `support`/`subscription`); o route handler já convertia `Number("all") ||
+// null` corretamente, mas a validação aqui rejeitava a string antes disso
+// (`z.coerce.number()` produz `NaN`, que falha em `.positive()`).
+export const requestsUserIdParamDto = z.object({
+  id: z.union([z.literal("all"), z.coerce.number().int().positive()]).optional(),
+});
 
 export const resWithdrawalDto = z.object({
   res: z.boolean(),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resWithdrawalDto, transfValuesAdminDto, updateBotUserDto } from "./admin.dto";
+import { requestsUserIdParamDto, resWithdrawalDto, transfValuesAdminDto, updateBotUserDto } from "./admin.dto";
 
 describe("resWithdrawalDto", () => {
   it("aceita o corpo completo (res, id, observation) — o formato que o service sempre esperou", () => {
@@ -27,6 +27,32 @@ describe("transfValuesAdminDto", () => {
 
   it("rejeita valor monetário em formato inválido", () => {
     expect(transfValuesAdminDto.safeParse({ user_id: 1, value: "abc", type: "sum" }).success).toBe(false);
+  });
+});
+
+/**
+ * Regressão: o painel administrativo pede a fila global de solicitações
+ * (todos os usuários) chamando `/api/requests/withdrawal/all` — o literal
+ * `"all"` no lugar de um id real. `z.coerce.number()` sozinho vira `NaN` e
+ * falha em `.positive()`, então essa validação rejeitava a rota inteira com
+ * 400 antes mesmo do route handler (que já sabia converter `"all"` para
+ * `null`) rodar. Reproduzido ao vivo pelo painel (tela `/requests`) antes
+ * desta correção.
+ */
+describe("requestsUserIdParamDto", () => {
+  it('aceita o literal "all" (fila global de solicitações)', () => {
+    expect(requestsUserIdParamDto.safeParse({ id: "all" }).success).toBe(true);
+  });
+
+  it("aceita um id numérico válido (fila de um usuário específico)", () => {
+    const result = requestsUserIdParamDto.safeParse({ id: "42" });
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.id).toBe(42);
+  });
+
+  it("rejeita valores que não são nem número nem o literal all", () => {
+    expect(requestsUserIdParamDto.safeParse({ id: "abc" }).success).toBe(false);
+    expect(requestsUserIdParamDto.safeParse({ id: "-1" }).success).toBe(false);
   });
 });
 

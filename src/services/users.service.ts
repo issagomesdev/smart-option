@@ -6,22 +6,29 @@ import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 import { walletService } from "../wallet/wallet.service";
 import { db } from "../infrastructure/database/client";
+import { offsetFor, paginate, type PaginatedResult, type PaginationParams } from "../shared/http/pagination";
+import { resolveSort } from "../shared/http/sorting";
 import {
   affiliateNetwork,
   auditLogs,
   botUsers,
   checkouts,
   emailVerifications,
+  legacyBalance,
+  paymentTransactions,
   products,
   staffUsers,
   supportRequests,
   userPlans,
+  walletTransactions,
+  wallets,
   withdrawals,
 } from "../infrastructure/database/schema";
 import { ValidationError, NotFoundError } from "../shared/errors";
 import { hashPassword, verifyPassword } from "../shared/security/password";
+import { logger } from "../shared/logger";
 
-interface BotUserFilters {
+interface BotUserFilters extends Partial<PaginationParams> {
   user_id?: string;
   name?: string;
   email?: string;
@@ -33,27 +40,88 @@ interface BotUserFilters {
   balance?: string;
 }
 
+/**
+ * `telegram`/`balance` só existem depois do enriquecimento em JS (chamada ao
+ * Telegram, cálculo de saldo via `TransactionsService.balance`) — não dá pra
+ * ordenar via SQL. Usados só no caminho lento (`needsPostFilter`), depois que
+ * cada linha já foi enriquecida; `created_at` usa `created_at_raw` (o `Date`
+ * cru, não a string `DD/MM/YYYY` formatada para exibição) para ordenar
+ * cronologicamente de verdade.
+ */
+const BOT_USER_SORT_ACCESSORS: Record<string, (user: any) => number | string> = {
+  id: (user) => user.id,
+  name: (user) => String(user.name ?? "").toLowerCase(),
+  email: (user) => String(user.email ?? "").toLowerCase(),
+  plan: (user) => String(user.plan ?? "").toLowerCase(),
+  telegram: (user) => String(user.telegram ?? "").toLowerCase(),
+  created_at: (user) => (user.created_at_raw instanceof Date ? user.created_at_raw.getTime() : 0),
+  is_active: (user) => (user.is_active ? 1 : 0),
+  status: (user) => user.status ?? -1,
+  balance: (user) => Number(user.balance) || 0,
+};
+
+function sortBotUsersInMemory<T>(users: T[], sortBy: string | undefined, sortDirection: "asc" | "desc" | undefined): T[] {
+  const accessor = (sortBy && BOT_USER_SORT_ACCESSORS[sortBy]) || BOT_USER_SORT_ACCESSORS.id;
+  const direction = sortDirection === "desc" ? -1 : 1;
+
+  return [...users].sort((a, b) => {
+    const left = accessor(a);
+    const right = accessor(b);
+    if (left < right) return -1 * direction;
+    if (left > right) return 1 * direction;
+    return 0;
+  });
+}
+
 export class UsersService {
-  static async users() {
-    return db.select().from(staffUsers);
+  /**
+   * `bot.getChat` falha com `ETELEGRAM: 400 chat not found` quando o
+   * `telegram_user_id` gravado não corresponde mais a um chat válido (conta
+   * apagada, bot bloqueado, dado de teste sujo) — sem este try/catch, uma
+   * única linha nessas condições derrubava a listagem inteira com 500,
+   * mesmo filtrando por outro usuário. `"indisponível"` distingue esse caso
+   * de "off" (nunca vinculou telegram).
+   */
+  private static async resolveTelegramUsername(telegramUserId: string | null): Promise<string> {
+    if (!telegramUserId) return "off";
+
+    try {
+      const chat = await bot.getChat(telegramUserId);
+      return chat.username ?? "off";
+    } catch (error) {
+      logger.warn({ err: error, telegramUserId }, "Falha ao buscar chat do Telegram (dado possivelmente inválido)");
+      return "indisponível";
+    }
   }
 
-  static async updateUser(user: { id: number; name: string; surname: string; email: string }) {
-    await db.update(staffUsers).set({ name: user.name, surname: user.surname, email: user.email }).where(eq(staffUsers.id, user.id));
+  /**
+   * `id` vem sempre de `req.user!.id` (a sessão autenticada), nunca do corpo
+   * da requisição — antes desta correção, `update-user`/`update-pass`
+   * confiavam num `id`/`userId` mandado pelo cliente sem checar posse:
+   * qualquer staff autenticado conseguia editar o perfil ou trocar a senha
+   * de qualquer outro staff, não só a própria conta.
+   */
+  static async updateUser(id: number, patch: { name: string; surname: string; email: string }) {
+    await db.update(staffUsers).set({ name: patch.name, surname: patch.surname, email: patch.email }).where(eq(staffUsers.id, id));
     return { status: true };
   }
 
-  static async updatePass(data: { userId: number; currentPassword: string; newPassword: string }) {
-    const [user] = await db.select({ password: staffUsers.password }).from(staffUsers).where(eq(staffUsers.id, data.userId));
+  static async updatePass(id: number, data: { currentPassword: string; newPassword: string }) {
+    const [user] = await db.select({ password: staffUsers.password }).from(staffUsers).where(eq(staffUsers.id, id));
     if (!user) throw new NotFoundError("Usuário inexistente");
 
     const matches = await verifyPassword(user.password, data.currentPassword);
     if (!matches) throw new ValidationError("A senha atual inserida não corresponde à senha da conta em questão.");
 
-    await db.update(staffUsers).set({ password: await hashPassword(data.newPassword) }).where(eq(staffUsers.id, data.userId));
+    await db.update(staffUsers).set({ password: await hashPassword(data.newPassword) }).where(eq(staffUsers.id, id));
     return { status: true };
   }
 
+  // `search: "all"` + `filters` sempre presentes é o caminho de listagem paginada
+  // (`POST /users-bot`); qualquer outra chamada (busca por termo/id, `GET
+  // /users-bot/:search`) devolve o array simples de sempre, sem paginação.
+  static async botUsers(search: "all", filters: BotUserFilters): Promise<PaginatedResult<any>>;
+  static async botUsers(search: string, filters?: BotUserFilters | null): Promise<any[]>;
   static async botUsers(search: string, filters: BotUserFilters | null = null) {
     const conditions = [];
 
@@ -77,6 +145,75 @@ export class UsersService {
       if (filters.is_active && filters.is_active !== "all") conditions.push(eq(botUsers.isActive, filters.is_active === "1"));
     }
 
+    const where = conditions.length ? and(...conditions) : undefined;
+    // `filters !== null` (não só `search === "all"`) distingue a listagem
+    // paginada (`POST /users-bot`, sempre manda um body) da busca por termo
+    // (`GET /users-bot/:search`, nunca manda filtros) — mesmo no caso raro de
+    // alguém buscar literalmente pelo termo "all".
+    const isListQuery = search === "all" && filters !== null;
+    // telegram/balance dependem de chamadas externas por linha (bot.getChat,
+    // TransactionsService.balance) — filtrar por eles só é possível depois de
+    // já ter os dados na mão, então paginar no banco antes cortaria linhas
+    // válidas da página. Nesses dois casos caímos para o comportamento
+    // antigo: busca tudo, filtra em memória, só então pagina o array.
+    // `sortBy` em `telegram`/`balance` também força o caminho lento — esses
+    // dois campos só existem depois do enriquecimento em JS (mesmo motivo já
+    // documentado acima para `needsPostFilter` via filtro), então não dá pra
+    // resolver a ordenação num `.orderBy()` de SQL.
+    const needsPostFilter = Boolean(
+      filters?.telegram || filters?.balance || filters?.sortBy === "telegram" || filters?.sortBy === "balance",
+    );
+    const page = filters?.page ?? 1;
+    const limit = filters?.limit ?? 20;
+
+    if (isListQuery && !needsPostFilter) {
+      const listColumns = {
+        id: botUsers.id,
+        name: botUsers.name,
+        email: botUsers.email,
+        plan: sql<string>`COALESCE(${products.name}, 'without')`,
+        created_at: botUsers.createdAt,
+        is_active: botUsers.isActive,
+        status: userPlans.status,
+      };
+      const orderBy = resolveSort(listColumns, filters, botUsers.id);
+
+      const [rows, [{ total }]] = await Promise.all([
+        db
+          .select({
+            id: botUsers.id,
+            name: botUsers.name,
+            email: botUsers.email,
+            plan: sql<string>`COALESCE(${products.name}, 'without')`,
+            telegram: botUsers.telegramUserId,
+            created_at: sql<string>`DATE_FORMAT(${botUsers.createdAt}, '%d/%m/%Y')`,
+            is_active: botUsers.isActive,
+            status: userPlans.status,
+          })
+          .from(botUsers)
+          .leftJoin(userPlans, eq(botUsers.id, userPlans.userId))
+          .leftJoin(products, eq(products.id, userPlans.productId))
+          .where(where)
+          .orderBy(orderBy)
+          .limit(limit)
+          .offset(offsetFor({ page, limit })),
+        db
+          .select({ total: sql<number>`count(*)` })
+          .from(botUsers)
+          .leftJoin(userPlans, eq(botUsers.id, userPlans.userId))
+          .leftJoin(products, eq(products.id, userPlans.productId))
+          .where(where),
+      ]);
+
+      const users: any[] = rows;
+      for (const user of users) {
+        user.telegram = await UsersService.resolveTelegramUsername(user.telegram);
+        user.balance = await TransactionsService.balance(null, true, user);
+      }
+
+      return paginate(users, { page, limit }, Number(total));
+    }
+
     const rows = await db
       .select({
         id: botUsers.id,
@@ -85,13 +222,16 @@ export class UsersService {
         plan: sql<string>`COALESCE(${products.name}, 'without')`,
         telegram: botUsers.telegramUserId,
         created_at: sql<string>`DATE_FORMAT(${botUsers.createdAt}, '%d/%m/%Y')`,
+        // `Date` cru, só para ordenar em memória (`sortBotUsersInMemory`) —
+        // removido de cada linha antes de devolver a resposta.
+        created_at_raw: botUsers.createdAt,
         is_active: botUsers.isActive,
         status: userPlans.status,
       })
       .from(botUsers)
       .leftJoin(userPlans, eq(botUsers.id, userPlans.userId))
       .leftJoin(products, eq(products.id, userPlans.productId))
-      .where(conditions.length ? and(...conditions) : undefined);
+      .where(where);
 
     const users: any[] = rows;
 
@@ -100,7 +240,7 @@ export class UsersService {
 
       if (filters && filters.telegram) {
         if (user.telegram) {
-          const telegramUsername = (await bot.getChat(user.telegram)).username;
+          const telegramUsername = await UsersService.resolveTelegramUsername(user.telegram);
           user.telegram = telegramUsername;
           if (!telegramUsername.includes(filters.telegram)) {
             users.splice(i, 1);
@@ -111,7 +251,7 @@ export class UsersService {
           continue;
         }
       } else {
-        user.telegram = user.telegram ? (await bot.getChat(user.telegram)).username : "off";
+        user.telegram = await UsersService.resolveTelegramUsername(user.telegram);
       }
 
       if (filters && filters.balance) {
@@ -126,7 +266,13 @@ export class UsersService {
       }
     }
 
-    return users;
+    const sorted = sortBotUsersInMemory(users, filters?.sortBy, filters?.sortDirection);
+    for (const user of sorted) delete (user as { created_at_raw?: Date }).created_at_raw;
+
+    if (!isListQuery) return sorted;
+
+    const start = offsetFor({ page, limit });
+    return paginate(sorted.slice(start, start + limit), { page, limit }, sorted.length);
   }
 
   static async botUser(id: string) {
@@ -153,7 +299,7 @@ export class UsersService {
     if (!user) throw new NotFoundError("Usuário inexistente");
 
     const result: any = user;
-    result.telegram = result.telegram ? (await bot.getChat(result.telegram)).username : "off";
+    result.telegram = await UsersService.resolveTelegramUsername(result.telegram);
 
     return result;
   }
@@ -205,14 +351,31 @@ export class UsersService {
     return { status: true, message: "Usuário atualizado com sucesso" };
   }
 
+  /**
+   * Ordem importa: `bot_users` é referenciada por FK de todas as tabelas
+   * abaixo, então precisa ser a última a ser apagada (senão a constraint
+   * rejeita o delete assim que existir qualquer linha filha — o que é o caso
+   * de praticamente todo usuário real, já que o cadastro sempre grava em
+   * `email_verifications`). `wallet_transactions` também referencia
+   * `wallet.id`, então sai antes de `wallet`. Tudo numa única transação para
+   * não deixar dados órfãos se alguma etapa falhar no meio.
+   */
   static async deleteBotUser(id: number) {
-    await db.delete(botUsers).where(eq(botUsers.id, id));
-    await db.delete(checkouts).where(eq(checkouts.userId, id));
-    await db.delete(supportRequests).where(eq(supportRequests.userId, id));
-    await db.delete(userPlans).where(eq(userPlans.userId, id));
-    await db.delete(emailVerifications).where(eq(emailVerifications.userId, id));
-    await db.delete(withdrawals).where(eq(withdrawals.userId, id));
-    await db.delete(affiliateNetwork).where(or(eq(affiliateNetwork.affiliateUserId, id), eq(affiliateNetwork.guestUserId, id)));
+    await db.transaction(async (tx) => {
+      await tx.delete(checkouts).where(eq(checkouts.userId, id));
+      await tx.delete(supportRequests).where(eq(supportRequests.userId, id));
+      await tx.delete(userPlans).where(eq(userPlans.userId, id));
+      await tx.delete(emailVerifications).where(eq(emailVerifications.userId, id));
+      await tx.delete(withdrawals).where(eq(withdrawals.userId, id));
+      await tx
+        .delete(affiliateNetwork)
+        .where(or(eq(affiliateNetwork.affiliateUserId, id), eq(affiliateNetwork.guestUserId, id)));
+      await tx.delete(legacyBalance).where(eq(legacyBalance.userId, id));
+      await tx.delete(paymentTransactions).where(eq(paymentTransactions.userId, id));
+      await tx.delete(walletTransactions).where(eq(walletTransactions.userId, id));
+      await tx.delete(wallets).where(eq(wallets.userId, id));
+      await tx.delete(botUsers).where(eq(botUsers.id, id));
+    });
 
     return { status: true, message: "Usuário excluído com sucesso" };
   }

@@ -26,7 +26,15 @@ export default defineConfig({
       // WalletService) precisam de uma transação de banco real para provar
       // `SELECT ... FOR UPDATE`/idempotência; testes que não tocam `db`
       // simplesmente nunca abrem conexão (pool do mysql2 é lazy).
-      DB_HOST: "localhost",
+      // DB_HOST/REDIS_URL usam o valor já presente em `process.env` quando
+      // existir (achado real da Fase 24: dentro do container de dev,
+      // `docker-compose.dev.yml` já injeta `DB_HOST=mysql`/
+      // `REDIS_URL=redis://redis:6379` — os nomes de serviço da rede do
+      // Compose, não alcançáveis por "localhost" de dentro do container).
+      // Rodando fora do Docker (`npm test` direto no host), essas vars não
+      // vêm pré-setadas, e caem no fallback "localhost", que é onde o
+      // `docker-compose.dev.yml` expõe as portas do MySQL/Redis para o host.
+      DB_HOST: process.env.DB_HOST ?? "localhost",
       DB_PORT: "3306",
       DB_USER: "smart_option",
       DB_PASSWORD: "smart_option",
@@ -35,7 +43,7 @@ export default defineConfig({
       JWT_REFRESH_SECRET: "test-refresh-secret-please-ignore",
       BOT_TOKEN: "test-bot-token",
       BOT_USER: "test_bot",
-      REDIS_URL: "redis://localhost:6379",
+      REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6379",
       ASAAS_API_KEY: "test-asaas-api-key",
       ASAAS_BASE_URL: "https://sandbox.asaas.com/api/v3",
       ASAAS_WEBHOOK_TOKEN: "test-asaas-webhook-token",
@@ -50,7 +58,13 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       include: ["src/**/*.ts"],
-      exclude: ["src/**/*.test.ts", "src/bot/**", "src/services/**"],
+      // `src/bot/**`/`src/services/**` já foram excluídos daqui na Fase 1,
+      // quando eram SQL cru legado sem teste nenhum — hoje são o código mais
+      // testado do projeto (7 arquivos de teste em `services/`), e a
+      // exclusão nunca foi revisada. Removida na Fase 6 (auditoria de
+      // cobertura, achado real: escondia tanto boa cobertura quanto lacunas
+      // reais desses diretórios).
+      exclude: ["src/**/*.test.ts"],
     },
   },
 });

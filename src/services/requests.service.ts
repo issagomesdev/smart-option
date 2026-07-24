@@ -4,7 +4,10 @@ import { paymentService } from "../payments/payment.service";
 import { ExternalServiceError, NotFoundError } from "../shared/errors";
 import { walletService } from "../wallet/wallet.service";
 import { db } from "../infrastructure/database/client";
+import { offsetFor, paginate, type PaginationParams } from "../shared/http/pagination";
+import { resolveSort } from "../shared/http/sorting";
 import {
+  auditLogs,
   botUsers,
   checkouts,
   products,
@@ -45,7 +48,7 @@ const ORIGIN_FILTER_MAP: Record<string, { origin?: string; direction?: "credit" 
   "B.M": { origin: "tuition", direction: "credit" },
 };
 
-interface ListFilters {
+interface ListFilters extends PaginationParams {
   id?: string;
   name?: string;
   value?: string;
@@ -109,24 +112,50 @@ export class RequestService {
     const dateFilter = createdAtFilter(withdrawals.createdAt, filters.created_at);
     if (dateFilter) conditions.push(dateFilter);
     if (userId) conditions.push(eq(withdrawals.userId, userId));
+    const where = and(...conditions);
+    // Allowlist de ordenação usa a coluna crua `withdrawals.createdAt`
+    // (não o `sql<string>` formatado do SELECT abaixo) — ordenar pela string
+    // "DD/MM/YYYY HH:mm" não produziria ordem cronológica.
+    const withdrawalColumns = {
+      id: withdrawals.id,
+      user_id: withdrawals.userId,
+      value: withdrawals.value,
+      status: withdrawals.status,
+      reference_id: withdrawals.referenceId,
+      transaction_id: withdrawals.transactionId,
+      created_at: withdrawals.createdAt,
+      name: botUsers.name,
+    };
+    const orderBy = resolveSort(withdrawalColumns, filters, withdrawals.createdAt);
 
-    return db
-      .select({
-        id: withdrawals.id,
-        user_id: withdrawals.userId,
-        value: withdrawals.value,
-        status: withdrawals.status,
-        reply_observation: withdrawals.replyObservation,
-        errors_cause: withdrawals.errorsCause,
-        reference_id: withdrawals.referenceId,
-        transaction_id: withdrawals.transactionId,
-        created_at: sql<string>`DATE_FORMAT(${withdrawals.createdAt}, '%d/%m/%Y %H:%i')`,
-        name: botUsers.name,
-      })
-      .from(withdrawals)
-      .innerJoin(botUsers, eq(withdrawals.userId, botUsers.id))
-      .where(and(...conditions))
-      .orderBy(withdrawals.createdAt);
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select({
+          id: withdrawals.id,
+          user_id: withdrawals.userId,
+          value: withdrawals.value,
+          status: withdrawals.status,
+          reply_observation: withdrawals.replyObservation,
+          errors_cause: withdrawals.errorsCause,
+          reference_id: withdrawals.referenceId,
+          transaction_id: withdrawals.transactionId,
+          created_at: sql<string>`DATE_FORMAT(${withdrawals.createdAt}, '%d/%m/%Y %H:%i')`,
+          name: botUsers.name,
+        })
+        .from(withdrawals)
+        .innerJoin(botUsers, eq(withdrawals.userId, botUsers.id))
+        .where(where)
+        .orderBy(orderBy)
+        .limit(filters.limit)
+        .offset(offsetFor(filters)),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(withdrawals)
+        .innerJoin(botUsers, eq(withdrawals.userId, botUsers.id))
+        .where(where),
+    ]);
+
+    return paginate(rows, filters, Number(total));
   }
 
   static async depositsRequests(userId: number | null = null, filters: ListFilters) {
@@ -140,23 +169,46 @@ export class RequestService {
     const dateFilter = createdAtFilter(checkouts.createdAt, filters.created_at);
     if (dateFilter) conditions.push(dateFilter);
     if (userId) conditions.push(eq(checkouts.userId, userId));
+    const where = and(...conditions);
+    const depositColumns = {
+      id: checkouts.id,
+      reference_id: checkouts.referenceId,
+      value: checkouts.value,
+      status: checkouts.status,
+      transaction_id: checkouts.transactionId,
+      user_id: checkouts.userId,
+      created_at: checkouts.createdAt,
+      name: botUsers.name,
+    };
+    const orderBy = resolveSort(depositColumns, filters, checkouts.createdAt);
 
-    return db
-      .select({
-        id: checkouts.id,
-        reference_id: checkouts.referenceId,
-        type: checkouts.type,
-        value: checkouts.value,
-        status: checkouts.status,
-        transaction_id: checkouts.transactionId,
-        user_id: checkouts.userId,
-        created_at: sql<string>`DATE_FORMAT(${checkouts.createdAt}, '%d/%m/%Y %H:%i')`,
-        name: botUsers.name,
-      })
-      .from(checkouts)
-      .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
-      .where(and(...conditions))
-      .orderBy(checkouts.createdAt);
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select({
+          id: checkouts.id,
+          reference_id: checkouts.referenceId,
+          type: checkouts.type,
+          value: checkouts.value,
+          status: checkouts.status,
+          transaction_id: checkouts.transactionId,
+          user_id: checkouts.userId,
+          created_at: sql<string>`DATE_FORMAT(${checkouts.createdAt}, '%d/%m/%Y %H:%i')`,
+          name: botUsers.name,
+        })
+        .from(checkouts)
+        .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
+        .where(where)
+        .orderBy(orderBy)
+        .limit(filters.limit)
+        .offset(offsetFor(filters)),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(checkouts)
+        .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
+        .where(where),
+    ]);
+
+    return paginate(rows, filters, Number(total));
   }
 
   static async subscriptionsRequests(userId: number | null = null, filters: ListFilters) {
@@ -171,25 +223,49 @@ export class RequestService {
     const dateFilter = createdAtFilter(checkouts.createdAt, filters.created_at);
     if (dateFilter) conditions.push(dateFilter);
     if (userId) conditions.push(eq(checkouts.userId, userId));
+    const where = and(...conditions);
+    const subscriptionColumns = {
+      id: checkouts.id,
+      reference_id: checkouts.referenceId,
+      value: checkouts.value,
+      status: checkouts.status,
+      transaction_id: checkouts.transactionId,
+      user_id: checkouts.userId,
+      created_at: checkouts.createdAt,
+      name: botUsers.name,
+      product: products.name,
+    };
+    const orderBy = resolveSort(subscriptionColumns, filters, checkouts.createdAt);
 
-    return db
-      .select({
-        id: checkouts.id,
-        reference_id: checkouts.referenceId,
-        type: checkouts.type,
-        value: checkouts.value,
-        status: checkouts.status,
-        transaction_id: checkouts.transactionId,
-        user_id: checkouts.userId,
-        created_at: sql<string>`DATE_FORMAT(${checkouts.createdAt}, '%d/%m/%Y %H:%i')`,
-        name: botUsers.name,
-        product: products.name,
-      })
-      .from(checkouts)
-      .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
-      .leftJoin(products, eq(products.id, checkouts.productId))
-      .where(and(...conditions))
-      .orderBy(checkouts.createdAt);
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select({
+          id: checkouts.id,
+          reference_id: checkouts.referenceId,
+          type: checkouts.type,
+          value: checkouts.value,
+          status: checkouts.status,
+          transaction_id: checkouts.transactionId,
+          user_id: checkouts.userId,
+          created_at: sql<string>`DATE_FORMAT(${checkouts.createdAt}, '%d/%m/%Y %H:%i')`,
+          name: botUsers.name,
+          product: products.name,
+        })
+        .from(checkouts)
+        .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
+        .leftJoin(products, eq(products.id, checkouts.productId))
+        .where(where)
+        .orderBy(orderBy)
+        .limit(filters.limit)
+        .offset(offsetFor(filters)),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(checkouts)
+        .innerJoin(botUsers, eq(checkouts.userId, botUsers.id))
+        .where(where),
+    ]);
+
+    return paginate(rows, filters, Number(total));
   }
 
   static async supportRequests(userId: number | null = null, filters: ListFilters) {
@@ -202,24 +278,46 @@ export class RequestService {
     const dateFilter = createdAtFilter(supportRequestsTable.createdAt, filters.created_at);
     if (dateFilter) conditions.push(dateFilter);
     if (userId) conditions.push(eq(supportRequestsTable.userId, userId));
+    const where = and(...conditions);
+    const supportColumns = {
+      id: supportRequestsTable.id,
+      type: supportRequestsTable.type,
+      subject: supportRequestsTable.subject,
+      is_read: supportRequestsTable.isRead,
+      user_id: botUsers.id,
+      created_at: supportRequestsTable.createdAt,
+      name: botUsers.name,
+    };
+    const orderBy = resolveSort(supportColumns, filters, supportRequestsTable.createdAt);
 
-    return db
-      .select({
-        id: supportRequestsTable.id,
-        type: supportRequestsTable.type,
-        subject: supportRequestsTable.subject,
-        is_read: supportRequestsTable.isRead,
-        user_id: botUsers.id,
-        created_at: sql<string>`DATE_FORMAT(${supportRequestsTable.createdAt}, '%d/%m/%Y %H:%i')`,
-        name: botUsers.name,
-      })
-      .from(supportRequestsTable)
-      .innerJoin(botUsers, eq(supportRequestsTable.userId, botUsers.id))
-      .where(and(...conditions))
-      .orderBy(supportRequestsTable.createdAt);
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select({
+          id: supportRequestsTable.id,
+          type: supportRequestsTable.type,
+          subject: supportRequestsTable.subject,
+          is_read: supportRequestsTable.isRead,
+          user_id: botUsers.id,
+          created_at: sql<string>`DATE_FORMAT(${supportRequestsTable.createdAt}, '%d/%m/%Y %H:%i')`,
+          name: botUsers.name,
+        })
+        .from(supportRequestsTable)
+        .innerJoin(botUsers, eq(supportRequestsTable.userId, botUsers.id))
+        .where(where)
+        .orderBy(orderBy)
+        .limit(filters.limit)
+        .offset(offsetFor(filters)),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(supportRequestsTable)
+        .innerJoin(botUsers, eq(supportRequestsTable.userId, botUsers.id))
+        .where(where),
+    ]);
+
+    return paginate(rows, filters, Number(total));
   }
 
-  static async resWithdrawal(body: { res: boolean; id: number; observation?: string }) {
+  static async resWithdrawal(body: { res: boolean; id: number; observation?: string }, actor: { id: number; email: string } | null = null) {
     if (body.res) {
       const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, body.id));
       if (!withdrawal) throw new NotFoundError("Solicitação de saque não encontrada");
@@ -244,6 +342,19 @@ export class RequestService {
           .set({ status: "authorized", replyObservation: body.observation, transactionId: transfer.externalId })
           .where(eq(withdrawals.id, body.id));
 
+        // Gap encontrado na pesquisa da Fase 5 (RBAC): a aprovação/rejeição de
+        // saque — a ação mais sensível do sistema, dispara PIX real — nunca
+        // gravava em `audit_logs`, ao contrário do ajuste manual de saldo
+        // (`UsersService.transfValuesAdmin`), que já gravava desde a Fase 4.
+        await db.insert(auditLogs).values({
+          actorType: "staff_user",
+          actorId: actor?.id ?? null,
+          action: "withdrawal.approved",
+          entityType: "withdrawals",
+          entityId: String(body.id),
+          after: { transactionId: transfer.externalId, observation: body.observation ?? null, actorEmail: actor?.email ?? null },
+        });
+
         return { status: true, message: "Solicitação respondida com sucesso!" };
       } catch (error) {
         return {
@@ -254,6 +365,16 @@ export class RequestService {
     }
 
     await db.update(withdrawals).set({ status: "refused", replyObservation: body.observation }).where(eq(withdrawals.id, body.id));
+
+    await db.insert(auditLogs).values({
+      actorType: "staff_user",
+      actorId: actor?.id ?? null,
+      action: "withdrawal.refused",
+      entityType: "withdrawals",
+      entityId: String(body.id),
+      after: { observation: body.observation ?? null, actorEmail: actor?.email ?? null },
+    });
+
     return { status: true, message: "Solicitação respondida com sucesso!" };
   }
 

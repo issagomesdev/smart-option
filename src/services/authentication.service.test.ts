@@ -57,6 +57,35 @@ describe("AuthenticationService (integração, banco real)", () => {
     expect(result.user).toMatchObject({ id: bcryptUserId, email: user.email });
   });
 
+  it("login devolve permissions do papel atual (role_id=2 'staff', seed sem nenhuma permissão)", async () => {
+    const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, bcryptUserId));
+    const result = await AuthenticationService.login(user.email, plainPassword);
+
+    expect(result.user.permissions).toEqual([]);
+  });
+
+  it("login com conta desativada (deletedAt setado) lança a mesma mensagem genérica, sem emitir token", async () => {
+    const stamp = Date.now();
+    const [deactivated] = await db
+      .insert(staffUsers)
+      .values({
+        name: "Auth Test",
+        surname: "Deactivated",
+        email: `auth-test-deactivated-${stamp}@test.local`,
+        password: await hashPassword(plainPassword),
+        deletedAt: new Date(),
+      })
+      .$returningId();
+
+    try {
+      await expect(AuthenticationService.login(`auth-test-deactivated-${stamp}@test.local`, plainPassword)).rejects.toThrow(
+        "Email e/ou senha inválidos",
+      );
+    } finally {
+      await db.delete(staffUsers).where(eq(staffUsers.id, deactivated.id));
+    }
+  });
+
   it("login com senha incorreta lança erro genérico", async () => {
     const [user] = await db.select().from(staffUsers).where(eq(staffUsers.id, bcryptUserId));
     await expect(AuthenticationService.login(user.email, "senha-errada")).rejects.toThrow("Email e/ou senha inválidos");

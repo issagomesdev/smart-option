@@ -61,6 +61,14 @@ services:
       - ./package.json:/app/package.json
       - ./confirm.html:/app/confirm.html
       - ./.env:/app/.env:ro
+      # vitest.config.ts/eslint.config.mjs não estavam aqui nem no COPY do
+      # Dockerfile (só usados via `docker exec ... npx vitest|eslint`, nunca
+      # pelo processo da app em si) — achado real da Fase 24: `npx vitest run`
+      # rodava inteiro nos defaults do Vitest, sem nenhuma das configs de
+      # `vitest.config.ts` (test.env, testTimeout, fileParallelism etc.)
+      # chegando a valer dentro do container.
+      - ./vitest.config.ts:/app/vitest.config.ts:ro
+      - ./eslint.config.mjs:/app/eslint.config.mjs:ro
     depends_on:
       mysql:
         condition: service_healthy

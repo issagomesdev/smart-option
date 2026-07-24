@@ -1,0 +1,34 @@
+# Reverse proxy de produção para o Smart Option Backend.
+#
+# Ao contrário do Nginx que este arquivo substituiu, não há nada aqui para
+# editar antes do deploy: o domínio e o e-mail de contato do ACME vêm de
+# variáveis de ambiente (DOMAIN/ACME_EMAIL em .env, injetadas no container
+# via docker-compose.prod.yml) — o mesmo Caddyfile serve qualquer domínio
+# sem troca manual de texto. Certificado TLS (Let's Encrypt) é emitido e
+# renovado automaticamente pelo próprio Caddy, sem certbot, sem cron no
+# host, sem passo de "config HTTP temporária até o certificado existir".
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	# Compressão de resposta — equivalente ao bloco "gzip" do nginx.conf antigo.
+	encode gzip zstd
+
+	# Proxy para o container "app" (mesma rede Docker "internal"). Diferente
+	# do Nginx, o Caddy já encaminha Host e X-Forwarded-For/Proto/Host para o
+	# upstream por padrão — não é preciso repetir `proxy_set_header` linha a
+	# linha.
+	reverse_proxy app:3000
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+	}
+
+	# Sem `caddy-ratelimit` (exigiria uma imagem custom via xcaddy) — decisão
+	# consciente de manter a imagem oficial `caddy:2-alpine` sem build extra.
+	# O rate limit de aplicação (Redis, ver src/infrastructure/http) continua
+	# sendo a defesa primária; a borda perde a segunda camada que o
+	# `limit_req` do Nginx antigo dava, não a proteção em si.
+}

@@ -1,424 +1,596 @@
-# 🤖 Smart Option — Backend (API + Bot Telegram)
+<p align="center">
+  <b>🇺🇸 English</b> |
+  <a href="./README.pt-BR.md">🇧🇷 Português</a> |
+  <a href="./README.es.md">🇪🇸 Español</a>
+</p>
+
+# 🤖 Smart Option — Backend (API + Telegram Bot)
 
 ![Node.js](https://img.shields.io/badge/Node.js-24.x-green?style=for-the-badge&logo=node.js&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) ![Express.js](https://img.shields.io/badge/Express.js-4.x-%23404d59.svg?style=for-the-badge&logo=express&logoColor=white) ![Telegram](https://img.shields.io/badge/Telegram-Bot-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white) ![Asaas](https://img.shields.io/badge/Asaas-PIX%20Gateway-00D084?style=for-the-badge) ![Drizzle](https://img.shields.io/badge/Drizzle-ORM-C5F74F?style=for-the-badge) ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <p align="center">
-  <a href="#sobre">Sobre</a> •
-  <a href="#arquitetura">Arquitetura</a> •
-  <a href="#funcionalidades">Funcionalidades</a> •
+  <a href="#about">About</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#features">Features</a> •
   <a href="#stack">Stack</a> •
-  <a href="#estrutura">Estrutura</a> •
-  <a href="#rotas">Rotas</a> •
-  <a href="#comecando">Começando</a> •
-  <a href="#ambientes">Configuração de Ambientes</a> •
-  <a href="#emails">E-mails</a> •
+  <a href="#structure">Structure</a> •
+  <a href="#routes">Routes</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#environment-configuration">Environment Configuration</a> •
+  <a href="#emails">Emails</a> •
   <a href="#cloudflare-tunnel">Cloudflare Tunnel</a> •
-  <a href="#testes">Testes</a> •
+  <a href="#testing">Testing</a> •
   <a href="#deploy">Deploy</a> •
-  <a href="#seguranca">Segurança</a> •
-  <a href="#troubleshooting">Troubleshooting</a>
+  <a href="#security">Security</a> •
+  <a href="#troubleshooting">Troubleshooting</a> •
+  <a href="#license">License</a> •
+  <a href="#related-projects">Related Projects</a>
 </p>
 
-> ⚠️ **Aviso**: ambiente de demonstração/desenvolvimento. Não use credenciais reais de produção (Asaas, Resend/SMTP, bot Telegram) fora de um deploy controlado.
+> ⚠️ **Heads up**: this is a demo/development environment. Don't use real production credentials (Asaas, Resend/SMTP, Telegram bot) outside a controlled deployment.
 
-<h2 id="sobre">📌 Sobre</h2>
+<h2 id="about">📌 About</h2>
 
-**Smart Option** é uma plataforma de investimento automatizado operada inteiramente via **bot do Telegram**, com um **painel administrativo** (repositório à parte) consumindo esta API. Usuários se cadastram, depositam via **PIX** (gateway **Asaas**), aderem a planos de rendimento mensal, indicam afiliados (rede de até 3 níveis com comissão) e solicitam saques — tudo dentro da conversa do Telegram.
+**Smart Option** is an automated investment platform made up of two main projects: a **Telegram bot** that handles the user-facing experience, and an **admin panel**, kept in a separate repository, used to manage, monitor, and operate the platform. Through the Telegram bot, users sign up, deposit via **PIX** using **Asaas**, subscribe to monthly-yield plans, build a referral network with up to **three commission tiers**, track their transaction history, and request withdrawals — all without leaving the chat.
 
-Este repositório contém o **backend em Node.js/TypeScript**: a API REST do painel admin e o bot do Telegram, sobre uma base de dados MySQL (via **Drizzle ORM**) e Redis (cache, sessão do bot e filas **BullMQ**).
+This repository holds the platform's **backend**, written in **Node.js** and **TypeScript**, powering both the **REST API** consumed by the admin panel and all of the bot's business logic. The application uses **MySQL** with **Drizzle ORM** for persistence, **Redis** for caching, bot session storage, and async task processing via **BullMQ** — a modern, scalable architecture built for production.
 
-<h2 id="arquitetura">🏗️ Arquitetura</h2>
+<h2 id="architecture">🏗️ Architecture</h2>
 
-Camadas principais (Clean Architecture, de fora para dentro):
+The application follows **Clean Architecture** principles, organized into layers with clearly defined responsibilities:
 
+```text
+config/          → env validated with zod, fail-fast on boot
+shared/          → errors, standard HTTP response shape, logger (pino), security, validation
+infrastructure/  → database (Drizzle), cache (Redis), queues (BullMQ), HTTP (middlewares/security/OpenAPI)
+interfaces/      → DTOs (zod) and HTTP routes outside the legacy admin panel
+payments/        → payments module: PaymentProvider (interface) + AsaasProvider (single implementation)
+notifications/   → email module: EmailProvider (interface) + ResendProvider/SmtpProvider, picked via EMAIL_TYPE
+wallet/          → WalletService — the only place balances get mutated (append-only, idempotent ledger)
+services/        → business rules for the admin panel and the bot (Drizzle)
+server/          → Express bootstrap, admin panel routes, middlewares, cron
+bot/             → Telegram dispatcher, flows (per-user session via Redis), read-only views
 ```
-config/          → env validado com zod, fail-fast no boot
-shared/          → erros, resposta HTTP padrão, logger (pino), segurança, validação
-infrastructure/  → banco (Drizzle), cache (Redis), filas (BullMQ), HTTP (middlewares/segurança/OpenAPI)
-interfaces/      → DTOs (zod) e rotas HTTP que não pertencem ao painel legado
-payments/        → módulo financeiro: PaymentProvider (interface) + AsaasProvider (implementação única)
-notifications/   → módulo de e-mail: EmailProvider (interface) + ResendProvider/SmtpProvider, selecionado por EMAIL_TYPE
-wallet/          → WalletService — único ponto de mutação de saldo (ledger append-only, idempotente)
-services/        → regras de negócio do painel admin e do bot (Drizzle)
-server/          → bootstrap do Express, rotas do painel admin, middlewares, cron
-bot/             → dispatcher do Telegram, fluxos (sessão por usuário via Redis), views somente-leitura
-```
 
-Decisões estruturais centrais:
-- **`WalletService` é o único caminho permitido para alterar saldo.** Todo crédito/débito é uma linha em `wallet_transactions` (nunca um `UPDATE` solto), dentro de uma transação com `SELECT ... FOR UPDATE` e `idempotencyKey` obrigatória — reprocessar o mesmo evento nunca duplica.
-- **`payments/` isola completamente o gateway de pagamento.** O resto da aplicação só conhece a interface `PaymentProvider`; hoje a única implementação é `AsaasProvider`. Trocar de gateway no futuro não vaza para `wallet/`, `services/` ou `bot/`.
-- **`notifications/` isola completamente o envio de e-mail**, no mesmo padrão de `payments/`. O resto da aplicação só conhece `notificationService` (interface `EmailProvider` por trás); a escolha entre `ResendProvider` (padrão, API HTTP) e `SmtpProvider` é feita por uma única variável de ambiente (`EMAIL_TYPE`), sem nenhum condicional espalhado pelo código — ver [seção E-mails](#emails).
-- **Webhooks são assíncronos.** `POST /api/webhooks/asaas` só valida a assinatura (comparação constant-time) e enfileira (BullMQ) — o processamento de negócio roda no worker, com retry e deduplicação em duas camadas (fila + `UNIQUE` no banco).
-- **Sessão do bot vive no Redis, por usuário do Telegram**, roteada por um único dispatcher persistente (`src/bot/index.ts`) — não existe estado global em variáveis de módulo em lugar nenhum do bot.
+### Architecture decisions
 
-<h2 id="funcionalidades">✨ Funcionalidades</h2>
+Beyond the layered layout, a few deliberate architectural choices keep coupling low, behavior predictable, and maintenance simple.
 
-### 🤖 Bot do Telegram
-- Cadastro (nome, e-mail, senha, telefone, **CPF** validado por dígito verificador, endereço, chave PIX) com verificação de e-mail.
-- Login com sessão isolada por usuário (Redis) — múltiplas conversas simultâneas nunca se cruzam.
-- **Depósito e adesão de plano via PIX** (Asaas): QR Code + copia-e-cola, confirmação automática por webhook.
-- **Saque via PIX**: fila de aprovação humana no painel antes do envio real à Asaas.
-- **Transferência interna** entre usuários (por e-mail), débito/crédito atômico.
-- **Extrato** completo e status de solicitações (depósito, saque, adesão).
-- **Rede de afiliados (3 níveis)**: bônus de adesão/mensalidade e bônus de rentabilidade sobre a rede, com teto de 3 indicados por nível recebendo comissão.
-- Rendimento diário automático (cron) para usuários com plano ativo.
-- Suporte com escalonamento para atendimento humano.
+**`WalletService`** is the only component allowed to change balances. Rather than updating values in place, every credit or debit appends a new record to `wallet_transactions`, run inside a transaction with `SELECT ... FOR UPDATE` and an `idempotencyKey` — guaranteeing consistency and ruling out duplicate movements.
 
-### 🌐 API do painel administrativo
-- Autenticação JWT com **refresh token rotativo** (reuso de token revogado derruba a família inteira — defesa contra roubo de token).
-- Rate limiting (global + login, com store no Redis) e brute-force protection.
-- CRUD e busca de usuários do bot, ajuste manual de saldo (auditado em `audit_logs`).
-- Aprovação/rejeição de saques, listagem de solicitações (depósito/saque/adesão/suporte) com filtros.
-- Dashboard com métricas do ledger real (`wallet_transactions`).
-- Rede de afiliados por usuário.
-- Documentação interativa em `GET /api/docs` (Swagger/OpenAPI).
+The **`payments/`** module fully isolates the payment gateway integration. The rest of the application depends only on the `PaymentProvider` interface, so the current implementation (`AsaasProvider`) can be swapped out without touching a single business rule.
+
+The same principle applies to **`notifications/`**, which handles outbound email: the implementation (`ResendProvider` or `SmtpProvider`) is chosen through the `EMAIL_TYPE` environment variable, with no conditionals scattered across the codebase.
+
+**Asaas webhooks** are processed asynchronously — the API validates the request signature and publishes the event to a queue (BullMQ), while the actual processing happens in dedicated workers with automatic retries and deduplication.
+
+Finally, the **Telegram bot** keeps conversation state in Redis, with one session per user and a single dispatcher routing every message — no global state, and flows that stay easy to follow.
+
+<h2 id="features">✨ Features</h2>
+
+The features below are organized around the two modules that make up Smart Option: the **Telegram bot**, built for the end-user experience, and the **admin panel API**, built for managing and operating the platform.
+
+### 🤖 Telegram Bot
+
+The bot covers the user's entire operational flow, including:
+
+- Full registration with name, email, password, phone, **CPF** (Brazil's national taxpayer ID, validated via check digit), address, and PIX key, plus email verification.
+- Authentication with per-user sessions isolated in Redis.
+- Deposits and plan subscriptions via **PIX** through Asaas, with QR code generation, copy-and-paste payment codes, and automatic webhook confirmation.
+- Withdrawal requests via PIX, with manual approval from the admin panel before anything is sent to Asaas.
+- Internal transfers between users using email as the identifier, backed by atomic debit/credit operations.
+- Transaction history lookup and status tracking for deposits, withdrawals, and subscriptions.
+- A three-tier referral system with sign-up bonuses, monthly fees, and network yield, capped at three commissioned referrals per tier.
+- Automatic processing of daily earnings for users with an active plan.
+- Built-in support channel, with the option to escalate to a human agent.
+
+### 🌐 Admin Panel API
+
+The API powers every resource the admin panel uses, including:
+
+- JWT-based authentication with rotating refresh tokens and reuse detection.
+- Global and auth-specific rate limiting, backed by Redis as distributed storage.
+- Full management of bot users — lookups, filters, and manual balance adjustments with an audit trail.
+- Approving and rejecting withdrawal requests, plus managing deposits, subscriptions, and support tickets.
+- An admin dashboard driven by real transactions recorded in the ledger (`wallet_transactions`).
+- A view into each user's referral network structure.
+- API documentation available at `GET /api/docs` (Swagger/OpenAPI).
 
 <h2 id="stack">🛠️ Stack</h2>
 
-| Camada | Tecnologia |
+| Category | Technologies |
 |---|---|
-| Runtime | Node.js 24, TypeScript 5.9 |
-| HTTP | Express 4, Helmet, CORS (allowlist), `express-rate-limit` (store Redis) |
-| Banco | MySQL 8.4, [Drizzle ORM](https://orm.drizzle.team/) + `drizzle-kit` (migrations versionadas) |
-| Cache / Filas / Sessão | Redis 7, [BullMQ](https://docs.bullmq.io/) |
-| Pagamentos | [Asaas](https://docs.asaas.com/) (PIX — cobrança, transferência, webhook) |
-| Bot | [`node-telegram-bot-api`](https://github.com/yagop/node-telegram-bot-api) |
-| Auth | JWT (`jsonwebtoken`), `bcryptjs` |
-| Validação | [Zod](https://zod.dev/) (DTOs HTTP + env) |
-| Logging | [Pino](https://getpino.io/) estruturado, `pino-http`, `x-request-id` por requisição |
-| Testes | [Vitest](https://vitest.dev/) + Supertest — testes de integração contra banco/Redis reais quando fizer sentido, não só mocks |
-| Deploy | Docker multi-stage, Docker Compose, Nginx (reverse proxy + TLS) — ver [docs/deploy.md](docs/deploy.md) |
-| Dev tunnel | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (nomeado/persistente) — ver [seção Cloudflare Tunnel](#cloudflare-tunnel) |
+| **Runtime** | Node.js 24, TypeScript 5.9 |
+| **API** | Express 4, Helmet, CORS (allowlist), `express-rate-limit` (Redis store) |
+| **Database** | MySQL 8.4, [Drizzle ORM](https://orm.drizzle.team/) + `drizzle-kit` (versioned migrations) |
+| **Cache & Queues** | Redis 7, [BullMQ](https://docs.bullmq.io/) |
+| **Payments** | [Asaas](https://docs.asaas.com/) (PIX — charges, transfers, and webhooks) |
+| **Telegram Bot** | [`node-telegram-bot-api`](https://github.com/yagop/node-telegram-bot-api) |
+| **Auth** | JWT (`jsonwebtoken`), `bcryptjs` |
+| **Validation** | [Zod](https://zod.dev/) (HTTP DTOs and environment variables) |
+| **Logging** | Structured [Pino](https://getpino.io/), `pino-http`, per-request `x-request-id` |
+| **Testing** | [Vitest](https://vitest.dev/) + Supertest (integration against real DB/Redis where it counts) |
+| **Infrastructure** | Docker multi-stage, Docker Compose, and [Caddy](https://caddyserver.com/) (reverse proxy with automatic TLS via Let's Encrypt) — see [docs/deploy.md](docs/deploy.md) |
+| **Development** | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (persistent dev tunnel) — see the [Cloudflare Tunnel section](#cloudflare-tunnel) |
 
-<h2 id="estrutura">📁 Estrutura</h2>
+<h2 id="structure">📁 Structure</h2>
 
-```
+```text
 src/
-├─ config/env.ts                    # env validado (zod), fail-fast no boot
-├─ shared/
-│  ├─ errors/                       # AppError + subclasses (400/401/403/404/409/502)
-│  ├─ http/response.ts              # envelope padrão { success, data } / { success:false, error }
-│  ├─ logger/                       # pino
-│  ├─ security/password.ts          # bcrypt + verificação/():  aceita SHA1 legado com lazy migration
-│  └─ validation/cpf.ts             # validador de CPF (dígito verificador)
-├─ infrastructure/
-│  ├─ database/                     # cliente Drizzle, schema (18 tabelas), migrations, scripts (seed/backfill)
-│  ├─ cache/redis.ts                # cliente ioredis único
-│  ├─ queue/                        # BullMQ — fila e worker de webhooks da Asaas
-│  └─ http/                         # segurança (helmet/cors/rate-limit), middlewares, OpenAPI, healthcheck
-├─ interfaces/http/
-│  ├─ dtos/                         # DTOs zod (auth, admin)
-│  └─ routes/asaas-webhook.routes.ts
-├─ payments/
-│  ├─ interfaces/payment-provider.ts  # única porta que o resto da app importa
-│  ├─ providers/asaas/                # customer, pix, transfer, webhook, notification + provider
-│  └─ payment.service.ts              # fachada única (payment_transactions/payment_events/webhook_logs)
-├─ wallet/wallet.service.ts          # único ponto de mutação de saldo (ledger + idempotência)
-├─ services/                         # regras de negócio do painel admin (Drizzle)
-│  └─ bot/                           # regras de negócio consumidas pelo bot (Drizzle)
-├─ server/
-│  ├─ index.ts                       # bootstrap do Express (trust proxy, segurança, cron)
-│  ├─ cron.ts                        # rendimento diário, expiração de plano, taxa diamante
-│  ├─ middlewares/auth.interceptor.ts
-│  └─ routes/                        # rotas do painel admin (auth, users, dashboard, network, requests)
-└─ bot/
-   ├─ index.ts                       # dispatcher único e persistente (message/callback_query)
-   ├─ session.service.ts             # sessão por usuário do Telegram, em Redis, TTL 30min
-   ├─ flows/                         # auth, login, register, menu, deposit, withdrawal, transfer, products, support
-   └─ views/                        # rede, link de afiliado, regras, extrato/solicitações (somente leitura)
+├─ config/                    # Application and environment configuration
+├─ shared/                    # Errors, logger, validation, and shared building blocks
+├─ infrastructure/            # Database, Redis, queues, middlewares, and OpenAPI
+├─ interfaces/                # DTOs and HTTP routes
+├─ payments/                  # Payment gateway abstraction and implementation
+├─ notifications/             # Email abstraction and implementation
+├─ wallet/                    # Ledger and balance management
+├─ services/                  # Business rules shared by the API and the bot
+├─ server/                    # API bootstrap, routes, middlewares, and scheduled jobs
+└─ bot/                       # Telegram dispatcher, sessions, flows, and views
 
 cloudflared/
-└─ config.yml                        # template do túnel (ver seção "Cloudflare Tunnel")
+└─ config.yml                 # Development tunnel configuration
 
 scripts/
-├─ lib.sh / lib.ps1                  # funções compartilhadas (bash / PowerShell)
-├─ start-dev.sh / start-dev.ps1      # "npm run dev:full"
-├─ start-tunnel.sh / start-tunnel.ps1 # "npm run tunnel"
-└─ run-platform.js                   # escolhe .sh (Linux/macOS) ou .ps1 (Windows) automaticamente
+├─ lib.*                      # Shared helper functions
+├─ start-dev.*                # Development environment
+├─ start-tunnel.*             # Cloudflare Tunnel
+└─ run-platform.js            # Windows/Linux/macOS compatibility
 ```
 
-<h2 id="rotas">📍 Rotas da API</h2>
+<h2 id="routes">📍 API Routes</h2>
 
-Todas as rotas (exceto `/health`, `/api/health`, `/api/auth`, `/email/verify`, `/api/webhooks/asaas`) exigem `Authorization: Bearer <accessToken>`.
+The API is organized by module and documented through **Swagger/OpenAPI** at `GET /api/docs`.
 
-### Health & Docs
-| Método | Rota | Descrição |
+Every protected route requires a **JWT access token** sent in the header:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+**Public routes:**
+
+- `/health`
+- `/api/health`
+- `/api/docs`
+- `/api/auth/*`
+- `/email/verify/:token`
+- `/api/webhooks/asaas`
+
+> **Note**
+>
+> This section covers the main API endpoints. The full reference — parameters, request examples, and responses — lives at `GET /api/docs`.
+
+### ❤️ Health & Docs
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/health` | Liveness simples (status, uptime, versão, ambiente, timestamp) — não checa dependências; usado para validar o Cloudflare Tunnel |
-| GET | `/api/health` | Readiness — status da aplicação, banco e Redis |
-| GET | `/api/docs` | Documentação OpenAPI interativa |
+| GET | `/health` | Checks whether the application is running (*liveness*). |
+| GET | `/api/health` | Checks the availability of the application, MySQL, and Redis (*readiness*). |
+| GET | `/api/docs` | Interactive API documentation (Swagger/OpenAPI). |
 
-### `/api/auth`
-| Método | Rota | Descrição |
+---
+
+### 🔐 Auth (`/api/auth`)
+
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/` | Login (rate limit dedicado: 10/15min por IP) |
-| POST | `/refresh` | Rotaciona o refresh token |
-| POST | `/logout` | Revoga o refresh token |
-| POST | `/token` | Valida um access token (compatibilidade com o painel atual) |
+| POST | `/` | Authenticates an admin panel user. |
+| POST | `/refresh` | Issues a new access token from a valid refresh token. |
+| POST | `/logout` | Revokes the current refresh token. |
+| POST | `/token` | Validates an access token (legacy panel compatibility). |
 
-### `/api/users`
-| Método | Rota | Descrição |
+---
+
+### 👤 Users (`/api/users`)
+
+#### Admin panel users
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | Lista usuários do painel |
-| PATCH | `/update-user` / `/update-pass` | Atualiza dados/senha do usuário do painel |
-| GET | `/users-bot/:search` · POST `/users-bot` | Busca usuários do bot (termo livre ou filtros) |
-| GET \| PATCH \| DELETE | `/user-bot/:id` \| `/user-bot` | Consulta, atualiza, exclui usuário do bot |
-| POST | `/user-bot` | Cadastra usuário do bot (via painel) |
-| PUT | `/user-bot/:id/:status` | Ativa/desativa usuário do bot |
-| POST | `/transf-user-admin` | Ajuste manual de saldo (auditado) |
+| GET | `/` | Lists admin panel users. |
+| PATCH | `/update-user` | Updates the authenticated user's profile. |
+| PATCH | `/update-pass` | Updates the authenticated user's password. |
 
-### `/api/dashboard`
-| Método | Rota | Descrição |
+#### Bot users
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/users` | Métricas de usuários |
-| GET | `/balance/:user_id/:product_id/:period` | Saldo/rendimento filtrado |
-| GET | `/plans` | Lista de planos/produtos |
+| GET | `/users-bot/:search` | Searches users by free-text term. |
+| POST | `/users-bot` | Searches users using advanced filters. |
+| POST | `/user-bot` | Registers a new bot user. |
+| GET | `/user-bot/:id` | Fetches a bot user. |
+| PATCH | `/user-bot` | Updates a bot user. |
+| DELETE | `/user-bot/:id` | Removes a bot user. |
+| PUT | `/user-bot/:id/:status` | Activates or deactivates a user. |
+| POST | `/transf-user-admin` | Applies a manual balance adjustment with an audit record. |
 
-### `/api/network`
-| Método | Rota | Descrição |
+---
+
+### 📊 Dashboard (`/api/dashboard`)
+
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/:id` | Rede de afiliados (indicados e patrocinadores) de um usuário |
+| GET | `/users` | Retrieves user metrics. |
+| GET | `/balance/:user_id/:product_id/:period` | Fetches balance and yield for a given period. |
+| GET | `/plans` | Lists available plans. |
 
-### `/api/requests`
-| Método | Rota | Descrição |
+---
+
+### 🌐 Referral Network (`/api/network`)
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET \| POST | `/extract/:id` | Extrato do usuário (com filtros no POST) |
-| POST | `/withdrawal/:id` \| `/deposit/:id` \| `/subscription/:id` \| `/support/:id` | Listagem filtrada de solicitações |
-| POST | `/res-withdrawal` | Aprova/rejeita uma solicitação de saque (dispara transferência PIX na Asaas quando aprovado) |
-| PATCH | `/was-read/:id/:status` | Marca solicitação de suporte como lida |
-| GET | `/pendencies` | Contagem de pendências (saques + suporte) |
+| POST | `/:id` | Fetches a user's referral network structure. |
 
-### Outras
-| Método | Rota | Descrição |
+---
+
+### 💰 Requests (`/api/requests`)
+
+| Method | Endpoint | Description |
 |---|---|---|
-| GET | `/email/verify/:token` | Página de confirmação de e-mail |
-| POST | `/api/webhooks/asaas` | Webhook único da Asaas (pagamento + transferência) |
+| GET | `/extract/:id` | Fetches a user's transaction history. |
+| POST | `/extract/:id` | Fetches the transaction history with filters. |
+| POST | `/withdrawal/:id` | Lists withdrawal requests. |
+| POST | `/deposit/:id` | Lists deposit requests. |
+| POST | `/subscription/:id` | Lists plan subscription requests. |
+| POST | `/support/:id` | Lists support tickets. |
+| POST | `/res-withdrawal` | Approves or rejects a withdrawal request. |
+| PATCH | `/was-read/:id/:status` | Marks a support ticket as read. |
+| GET | `/pendencies` | Retrieves the system's pending-item count. |
 
-<h2 id="comecando">▶️ Começando (desenvolvimento local)</h2>
+---
 
-### Pré-requisitos
-- Node.js 24+ (só necessário para rodar `npm run dev` fora do Docker; a API roda inteiramente containerizada com `npm run dev:full`)
-- Docker + Docker Compose
-- Token de bot do Telegram ([BotFather](https://t.me/BotFather)) — use um bot de teste dedicado, nunca o de produção
-- Conta Asaas (Sandbox) — chave de API em <https://sandbox.asaas.com>
-- Opcional, para receber webhooks reais localmente: [cloudflared](https://github.com/cloudflare/cloudflared) instalado e acesso à zona `example.url` no Cloudflare (ver [seção Cloudflare Tunnel](#cloudflare-tunnel))
+### 🔗 Public Services
 
-### Passo a passo (tudo em Docker — recomendado)
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/email/verify/:token` | Confirms a user's email address. |
+| POST | `/api/webhooks/asaas` | Receives payment and transfer events sent by Asaas. |
+
+<h2 id="getting-started">▶️ Getting Started</h2>
+
+This section walks through setting up the **Smart Option Backend** for local development.
+
+### Requirements
+
+- Docker and Docker Compose
+- Node.js **24+** (only needed to run the API directly on the host)
+- A Telegram bot token from [BotFather](https://t.me/BotFather)
+- An Asaas Sandbox account with an API key
+- Optional: `cloudflared` installed and authenticated, to receive webhooks locally (see the [Cloudflare Tunnel section](#cloudflare-tunnel))
+
+> **Tip**
+>
+> Use a dedicated bot for development and never reuse your production token.
+
+## Docker Development (recommended)
+
+Clone the repository and set up the environment:
 
 ```bash
-git clone <url-do-repositorio>
+git clone <repository-url>
 cd smart-option
+
 cp .env.development.example .env
+```
 
-# Configure o .env:
-# SECRET_KEY e JWT_REFRESH_SECRET
-# Windows (PowerShell): -join ((1..32 | % { '{0:x2}' -f (Get-Random -Min 0 -Max 256) }))
-# Linux/macOS: openssl rand -hex 32
-# Também configure: BOT_TOKEN, BOT_USER, ASAAS_API_KEY e e-mail (Resend/SMTP).
-# Consulte "Configuração de Ambientes" para a lista completa.
+Edit `.env` and set, at minimum:
 
+- `SECRET_KEY`
+- `JWT_REFRESH_SECRET`
+- `BOT_TOKEN`
+- `BOT_USER`
+- `ASAAS_API_KEY`
+- your email settings (Resend or SMTP)
+
+To generate the keys:
+
+**Linux/macOS**
+
+```bash
+openssl rand -hex 32
+```
+
+**Windows (PowerShell)**
+
+```powershell
+-join ((1..32 | % { '{0:x2}' -f (Get-Random -Min 0 -Max 256) }))
+```
+
+Then just run:
+
+```bash
 npm run dev:full
 ```
 
-Esse único comando sobe MySQL + Redis + a própria API em Docker (hot reload via bind mount — editar `src/**` reflete na hora, sem rebuild), aguarda tudo ficar saudável, configura o Cloudflare Tunnel automaticamente (se `cloudflared` estiver instalado e autenticado) e valida os endpoints `/health`/`/api/webhooks/asaas` publicamente. Ao final, imprime a URL pública pronta para cadastrar no painel Sandbox da Asaas.
+This single command orchestrates the entire development environment:
 
-Se preferir rodar sem o túnel (bot funciona normalmente por long polling; só depósito/assinatura/saque não confirmam sozinhos, por depender do webhook chegar): `npm run docker:up` sobe tudo, sem o Cloudflare Tunnel.
+- starts MySQL, Redis, and the API in Docker containers;
+- enables hot reload via bind mount;
+- waits for every service to become available;
+- sets up the Cloudflare Tunnel (when installed);
+- validates the public endpoints Asaas needs;
+- prints the public URL, ready to register as a webhook.
 
-### Passo a passo (API fora do Docker, hot reload nativo do tsx)
+> **Note**
+>
+> If you're not using the Cloudflare Tunnel, just run:
+>
+> ```bash
+> npm run docker:up
+> ```
+>
+> The bot keeps working normally over Long Polling, but deposits, subscriptions, and withdrawals won't confirm automatically, since those depend on Asaas webhooks.
+
+## Development Without Docker
+
+You can also run the API directly on the host, keeping only MySQL and Redis in containers.
 
 ```bash
-git clone <url-do-repositorio>
+git clone <repository-url>
 cd smart-option
+
 npm install
 
-# Sobe só MySQL + Redis em Docker
-npm run docker:up
-
 cp .env.development.example .env
-# mesmo preenchimento do passo acima
-
-npm run db:migrate     # aplica o schema
-npm run db:seed        # catálogo de produtos + usuário admin
-
-npm run dev             # API + bot com hot reload (tsx watch), direto no host
 ```
 
-A API sobe em `http://localhost:<APP_PORT>` (padrão `3000`). Para expor via túnel neste modo, rode `npm run tunnel` num segundo terminal.
+Start the infrastructure:
 
-### Scripts disponíveis
+```bash
+npm run docker:up
+```
 
-| Script | Descrição |
+Then run:
+
+```bash
+npm run db:migrate
+npm run db:seed
+
+npm run dev
+```
+
+The API will be available at:
+
+```text
+http://localhost:<APP_PORT>
+```
+
+To expose the app for webhooks, run the tunnel in a separate terminal:
+
+```bash
+npm run tunnel
+```
+
+## Available Scripts
+
+| Script | Description |
 |---|---|
-| `npm run dev` | API + bot, hot reload, direto no host (sem Docker) |
-| `npm run dev:full` | Docker (API + MySQL + Redis) + Cloudflare Tunnel + validação, tudo orquestrado — ver [Cloudflare Tunnel](#cloudflare-tunnel) |
-| `npm run docker:up` / `npm run docker:down` | Sobe/derruba API + MySQL + Redis em Docker |
-| `npm run tunnel` | Só o Cloudflare Tunnel (API já rodando em outro terminal/container) |
-| `npm run build` / `npm start` | Compila e roda a versão de produção |
-| `npm test` / `npm run test:watch` / `npm run test:coverage` | Vitest |
-| `npm run lint` / `npm run lint:fix` | ESLint |
-| `npm run format` / `npm run format:check` | Prettier |
-| `npm run db:generate` / `npm run db:migrate` / `npm run db:studio` | Drizzle Kit |
-| `npm run db:seed` / `npm run db:backfill-wallets` | Scripts de dados |
+| `npm run dev` | Runs the API and the bot directly on the host with hot reload. |
+| `npm run dev:full` | Boots the full Docker environment, sets up the Cloudflare Tunnel, and validates the infrastructure. |
+| `npm run docker:up` | Starts MySQL, Redis, and the API in Docker. |
+| `npm run docker:down` | Tears down the development containers. |
+| `npm run tunnel` | Starts only the Cloudflare Tunnel. |
+| `npm run build` | Compiles the application for production. |
+| `npm start` | Runs the compiled build. |
+| `npm test` | Runs the test suite. |
+| `npm run test:watch` | Runs tests in watch mode. |
+| `npm run test:coverage` | Generates the test coverage report. |
+| `npm run lint` | Lints the codebase with ESLint. |
+| `npm run lint:fix` | Auto-fixes ESLint findings where possible. |
+| `npm run format` | Formats the codebase with Prettier. |
+| `npm run format:check` | Checks that the codebase is properly formatted. |
+| `npm run db:generate` | Generates migrations with Drizzle Kit. |
+| `npm run db:migrate` | Applies pending migrations. |
+| `npm run db:studio` | Opens Drizzle Studio. |
+| `npm run db:seed` | Seeds the database with initial data. |
+| `npm run db:backfill-wallets` | Runs the wallet ledger backfill. |
 
-<h2 id="ambientes">⚙️ Configuração de Ambientes</h2>
+<h2 id="environment-configuration">⚙️ Environment Configuration</h2>
 
-Duas variáveis de ambiente de exemplo, uma por ambiente — **nenhuma diferença de comportamento entre desenvolvimento e produção vem de código, só de `.env`**:
+The application relies entirely on `.env` files for environment configuration. There's no dev-vs-production branching in the code itself — behavior is driven exclusively by environment variables.
 
-| Arquivo | Uso | Copiar para |
+The example files provided are:
+
+| File | Purpose | Usage |
 |---|---|---|
-| [.env.development.example](.env.development.example) | Desenvolvimento local (Docker, Cloudflare Tunnel, Asaas Sandbox) | `.env` na sua máquina |
-| [.env.production.example](.env.production.example) | Deploy (Asaas Produção, Nginx + TLS) | `.env` no ambiente de produção |
+| [.env.development.example](.env.development.example) | Local development (Docker, Cloudflare Tunnel, Asaas Sandbox) | Copy to `.env` on your machine |
+| [.env.production.example](.env.production.example) | Production environment (Asaas Production, Caddy) | Copy to `.env` on the VPS |
 
-Ambos os arquivos cobrem **100% das variáveis que a aplicação lê** (validadas por `src/config/env.ts` com zod — o processo recusa subir, com mensagem clara, se faltar alguma obrigatória) e têm cada variável comentada com finalidade, valores esperados e exemplo. Nenhum valor fica hardcoded em nenhum lugar do código-fonte.
+Every variable the application reads is defined in these files and validated at startup by `src/config/env.ts` with **Zod**.
 
-Variáveis sem valor padrão no schema são **obrigatórias**; as demais funcionam com o padrão indicado mesmo se deixadas em branco no `.env`. Resumo por categoria (detalhes e exemplos nos próprios arquivos `.env.*.example`):
+If a required variable is missing or has an invalid value, the application refuses to start (*fail-fast*), printing an error message that points to exactly what's wrong.
 
-| Categoria | Variáveis |
+Variables with a default value can be omitted; the rest are required for the app to run.
+
+### Variables by Category
+
+| Category | Key Variables |
 |---|---|
-| Aplicação | `NODE_ENV`, `APP_PORT`, `API_BASE_PATH` |
-| Banco de dados | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE` |
-| Redis | `REDIS_URL` (+ `REDIS_PORT`, só usado pelo mapeamento de porta do `docker-compose.dev.yml`) |
-| Autenticação/JWT | `SECRET_KEY`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_SECRET`, `JWT_REFRESH_EXPIRES_IN` |
-| Telegram | `BOT_TOKEN`, `BOT_USER` |
-| Logging | `LOG_LEVEL` |
-| CORS / Rate limit | `CORS_ALLOWED_ORIGINS`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` |
-| Asaas | `ASAAS_ENV`, `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN` |
-| Cloudflare Tunnel (dev) | `CF_TUNNEL_ID`, `CF_TUNNEL_TOKEN`, `CF_TUNNEL_DOMAIN`, `CF_TUNNEL_HOST` |
-| E-mail (ver [seção E-mails](#emails)) | `EMAIL_TYPE`, `RESEND_API_KEY`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` |
+| **Application** | `NODE_ENV`, `APP_PORT`, `API_BASE_PATH` |
+| **Reverse proxy (production)** | `DOMAIN`, `ACME_EMAIL` |
+| **Database** | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_DATABASE` |
+| **Redis** | `REDIS_URL`, `REDIS_PORT` |
+| **Auth** | `SECRET_KEY`, `JWT_ACCESS_EXPIRES_IN`, `JWT_REFRESH_SECRET`, `JWT_REFRESH_EXPIRES_IN` |
+| **Telegram** | `BOT_TOKEN`, `BOT_USER` |
+| **Logging** | `LOG_LEVEL` |
+| **CORS & Rate Limiting** | `CORS_ALLOWED_ORIGINS`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` |
+| **Asaas** | `ASAAS_ENV`, `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN` |
+| **Cloudflare Tunnel** | `CF_TUNNEL_ID`, `CF_TUNNEL_TOKEN`, `CF_TUNNEL_DOMAIN`, `CF_TUNNEL_HOST` |
+| **Email** | `EMAIL_TYPE`, `RESEND_API_KEY`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` |
 
-> ⚠️ Qualquer valor que comece com `$` (a `ASAAS_API_KEY` sempre começa com `$aact_...`) precisa ficar entre aspas simples no `.env` — ver [Troubleshooting](#troubleshooting).
+> **Important**
+>
+> Values starting with `$` (like `ASAAS_API_KEY`) must stay wrapped in single quotes in `.env`:
+>
+> ```env
+> ASAAS_API_KEY='$aact_...'
+> ```
+>
+> See the [Troubleshooting](#troubleshooting) section for details.
 
-<h2 id="emails">📧 E-mails</h2>
+<h2 id="emails">📧 Emails</h2>
 
-Todo envio de e-mail da aplicação passa por um único módulo desacoplado,
-`src/notifications/`, seguindo o mesmo padrão de `payments/` (interface +
-implementações + factory): nenhum controller, service ou fluxo do bot chama
-Resend ou SMTP diretamente — todos usam `notificationService`
-(`src/notifications/services/notification.service.ts`), que expõe um método
-por tipo de e-mail (`sendEmailVerification`, `sendPasswordReset`,
-`sendDepositConfirmed` etc.) e nunca conhece qual provedor está por trás.
+Email delivery is centralized in the `src/notifications` module, following the same architectural pattern as `payments/`: the application depends only on the `EmailProvider` interface, while the concrete implementation is chosen at runtime.
 
-```
+All communication with email providers flows through `notificationService`, which handles things like email verification, password recovery, and deposit notifications — keeping controllers, services, and bot flows decoupled from whichever provider is behind them.
+
+```text
 src/notifications/
-  interfaces/    → EmailProvider (porta de saída) — EmailMessage, EmailSendResult
-  providers/
-    resend/      → ResendProvider — chama a API HTTP oficial do Resend (POST /emails)
-    smtp/        → SmtpProvider — nodemailer, TLS, timeout e retry com backoff
-    shared/      → retry compartilhado pelos dois providers
-  templates/     → um arquivo por tipo de e-mail, todos reaproveitando o mesmo layout de marca
-  factory/       → email.factory.ts: getEmailProvider() escolhe a implementação por EMAIL_TYPE
-  services/      → notification.service.ts: fachada única consumida pelo resto da aplicação
+├─ interfaces/     # Email provider contracts
+├─ providers/      # Implementations (Resend and SMTP)
+├─ templates/      # Reusable email templates
+├─ factory/        # Provider selection based on EMAIL_TYPE
+└─ services/       # Facade consumed by the rest of the application
 ```
 
-### Como funciona o Resend (padrão)
+### Supported Providers
 
-Com `EMAIL_TYPE=resend` (o padrão se a variável não for definida), o
-`ResendProvider` chama a API HTTP oficial do Resend — **nunca** SMTP. O
-remetente é montado automaticamente a partir de `MAIL_FROM_NAME` +
-`MAIL_FROM_ADDRESS`:
+#### Resend (default)
 
-```
+When `EMAIL_TYPE=resend` (the default), the application uses Resend's official HTTP API.
+
+The sender is set through:
+
+```env
 MAIL_FROM_NAME=Smart Option
 MAIL_FROM_ADDRESS=smart-option@example.url
 ```
-resulta em `From: Smart Option <smart-option@example.url>`. Requer
-`RESEND_API_KEY`, `MAIL_FROM_NAME` e `MAIL_FROM_ADDRESS` — o boot falha com
-mensagem clara se alguma faltar.
 
-### Como funciona o SMTP (alternativa)
+Which produces:
 
-Com `EMAIL_TYPE=smtp`, o `SmtpProvider` assume, com TLS implícito na porta
-465, timeout de conexão/socket (10s) e retry com backoff exponencial em caso
-de falha transitória. Requer `SMTP_HOST`, `SMTP_USER` e `SMTP_PASSWORD`
-(`SMTP_PORT` tem default `465`).
-
-### Como trocar de provider
-
-Só a variável de ambiente — nenhuma linha de código:
-
+```text
+From: Smart Option <smart-option@example.url>
 ```
-EMAIL_TYPE=resend   # ou
+
+Required:
+
+- `RESEND_API_KEY`
+- `MAIL_FROM_NAME`
+- `MAIL_FROM_ADDRESS`
+
+#### SMTP
+
+When `EMAIL_TYPE=smtp`, the application sends mail via SMTP through Nodemailer, with TLS support, connection timeouts, and automatic retries for transient failures.
+
+Required:
+
+- `SMTP_HOST`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+
+`SMTP_PORT` defaults to **465**.
+
+### Switching Providers
+
+Switching providers is purely a matter of the environment variable:
+
+```env
+EMAIL_TYPE=resend
+```
+
+or
+
+```env
 EMAIL_TYPE=smtp
 ```
 
-A seleção acontece em um único lugar (`email.factory.ts`); não existe
-condicional de provider em nenhum outro arquivo.
+No code changes needed.
 
-### Como adicionar um novo provider (ex.: Amazon SES, Mailgun, Brevo, SendGrid)
+### Adding a New Provider
 
-1. Criar `src/notifications/providers/<nome>/<nome>.provider.ts` implementando
-   a interface `EmailProvider` (`src/notifications/interfaces/email.provider.ts`).
-2. Adicionar as variáveis de ambiente necessárias em `src/config/env.ts`
-   (schema + validação condicional, mesmo padrão de `RESEND_API_KEY`/`SMTP_*`).
-3. Registrar o novo valor em `EMAIL_TYPE` (`z.enum([...])`) e o `if`/`switch`
-   correspondente em `email.factory.ts`.
+To integrate a new service (Amazon SES, Mailgun, Brevo, SendGrid, etc.), you just need to:
 
-Nenhum outro arquivo da aplicação precisa mudar — todos dependem só da
-interface `EmailProvider`, via `notificationService`.
+1. implement the `EmailProvider` interface;
+2. register the new provider in `email.factory.ts`;
+3. add the required variables to the `src/config/env.ts` schema.
+
+Since the whole application depends only on the `EmailProvider` interface, no controller, service, or bot flow needs to change.
 
 <h2 id="cloudflare-tunnel">☁️ Cloudflare Tunnel</h2>
 
-Em desenvolvimento local, a Asaas precisa alcançar `POST /api/webhooks/asaas` publicamente para confirmar depósitos/assinaturas/saques automaticamente. Este projeto usa o **Cloudflare Tunnel**, nomeado e persistente (nunca o modo `--url` efêmero), sob um subdomínio fixo de `example.url` — sem URLs temporárias que mudam a cada execução.
+During development, Asaas needs to reach the API to deliver payment confirmation webhooks. To make that possible, the project uses a **Cloudflare Tunnel** with a fixed domain, allowing it to receive public requests without exposing any ports on your local machine.
 
-### 1. Instalação
+> The Cloudflare Tunnel is used **only in development**. In production, the application is served through **Caddy** with automatic HTTPS.
 
-| Sistema | Comando |
+## Installation
+
+| System | Command |
 |---|---|
 | Windows (Chocolatey) | `choco install cloudflared` |
 | Windows (Scoop) | `scoop install cloudflared` |
 | macOS (Homebrew) | `brew install cloudflared` |
-| Linux (deb/rpm/binário) | <https://pkg.cloudflare.com/index.html> |
-| Qualquer sistema | <https://github.com/cloudflare/cloudflared/releases> |
+| Linux | https://pkg.cloudflare.com/index.html |
+| Manual | https://github.com/cloudflare/cloudflared/releases |
 
-`npm run tunnel`/`npm run dev:full` detectam automaticamente se o `cloudflared` não está instalado e imprimem estas mesmas instruções.
+If `cloudflared` isn't installed, both `npm run tunnel` and `npm run dev:full` will print these instructions automatically.
 
-### 2. Autenticação
+## Authentication
+
+Before first use, authenticate the machine with your Cloudflare account:
 
 ```bash
 cloudflared tunnel login
 ```
 
-Abre o navegador — faça login na conta Cloudflare dona da zona `example.url` e autorize. Isso grava `~/.cloudflared/cert.pem` (uma vez por máquina; não é algo que os scripts deste projeto possam automatizar, por ser um fluxo interativo de navegador).
+Your browser will open to authorize access to the domain used by the project.
 
-### 3. Criação do túnel (automática)
+You only need to do this once per machine.
 
-Com `cloudflared` instalado e autenticado, rode `npm run tunnel` ou `npm run dev:full`. Na primeira execução (quando `.env` não tem `CF_TUNNEL_ID` preenchido), o script:
+## First Run
 
-1. Cria um túnel nomeado (`cloudflared tunnel create smart-option-dev`).
-2. Grava as credenciais em `cloudflared/credentials/<id>.json` (gitignored).
-3. Escreve o `CF_TUNNEL_ID` gerado de volta no seu `.env` — execuções seguintes reaproveitam o mesmo túnel.
-4. Cria o registro DNS (`cloudflared tunnel route dns smart-option-dev example.url`).
-
-Se preferir fazer manualmente:
-
-```bash
-cloudflared tunnel create smart-option-dev
-cloudflared tunnel route dns smart-option-dev example.url
-# copie o ID impresso para CF_TUNNEL_ID no .env
-```
-
-### 4. Configuração DNS
-
-O passo 3 (`tunnel route dns`) já cria o registro CNAME automaticamente na zona `example.url`, apontando `example.url` para o túnel. Para conferir manualmente: painel Cloudflare → `example.url` → DNS → deve existir um CNAME `example` → `<CF_TUNNEL_ID>.cfargotunnel.com`, proxied (ícone laranja).
-
-### 5. `cloudflared/config.yml`
-
-[cloudflared/config.yml](cloudflared/config.yml) é um **template**, não lido diretamente pelo `cloudflared`. Os scripts (`scripts/lib.sh`/`scripts/lib.ps1`) substituem `{{CF_TUNNEL_ID}}`, `{{CF_TUNNEL_DOMAIN}}`, `{{CF_TUNNEL_HOST}}` e `{{APP_PORT}}` a partir do `.env` a cada execução, gerando `cloudflared/config.runtime.yml` (gitignored — contém o ID real do túnel). Isso mantém o `.env` como única fonte de verdade em vez de duplicar porta/domínio no YAML.
-
-### 6. Uso em desenvolvimento
+Once authenticated, just run:
 
 ```bash
 npm run dev:full
 ```
 
+or
+
+```bash
+npm run tunnel
 ```
+
+On the first run, the project:
+
+- creates a persistent tunnel;
+- automatically registers the DNS record on Cloudflare;
+- saves the tunnel ID to `.env`;
+- reuses that same configuration on every subsequent run.
+
+No further manual setup required.
+
+## Configuration
+
+The file:
+
+```text
+cloudflared/config.yml
+```
+
+is used as a template.
+
+At runtime, the project automatically generates a full configuration from the variables in `.env`, avoiding duplicated info like domain, port, and tunnel ID.
+
+## Usage
+
+After starting the environment:
+
+```bash
+npm run dev:full
+```
+
+you'll see a summary along these lines:
+
+```text
 ========================================
 
 Smart Option API
 
 Running:
 
-http://localhost:3000
+http://localhost:<APP_PORT>
 
 Cloudflare Tunnel:
 
@@ -431,180 +603,358 @@ https://example.url/api/webhooks/asaas
 ========================================
 ```
 
-Cadastre a "Webhook URL" impressa no painel **Sandbox** da Asaas (Integrações → Webhooks). Ctrl+C encerra a API e o túnel; o Docker (MySQL/Redis) continua rodando — `npm run docker:down` quando terminar de fato.
+Register the **Webhook URL** shown there in Asaas's **Sandbox** panel.
 
-### 7. Uso em produção
-
-**O Cloudflare Tunnel é exclusivo de desenvolvimento.** Em produção, o tráfego público chega via Nginx + TLS (Let's Encrypt). `CF_TUNNEL_DOMAIN=api.example.url` existe no `.env.production.example` só para manter o schema de variáveis idêntico entre ambientes; nenhum `cloudflared` roda em produção. A única diferença de fato entre dev e produção é o conjunto de variáveis de ambiente (ver [Configuração de Ambientes](#ambientes)) — nenhum código muda entre os dois.
-
-### 8. Integração com Docker
-
-`npm run dev:full` sobe a API **dentro** do Docker (`docker-compose.dev.yml`, serviço `app`, hot reload via bind mount de `src/`) e roda o `cloudflared` **no host**, apontando para a porta publicada pelo container (`CF_TUNNEL_HOST=localhost`, mesma porta de `APP_PORT`). Não há necessidade de colocar o `cloudflared` dentro de um container.
-
-### 9. Integração com a Asaas
-
-Com o túnel no ar, cadastre a Webhook URL no painel **Sandbox** da Asaas (Integrações → Webhooks → Nova). No campo de token/chave de acesso, cole o mesmo valor de `ASAAS_WEBHOOK_TOKEN` do seu `.env` — é o que a rota valida em cada requisição recebida (comparação constant-time, `src/payments/providers/asaas/webhook.service.ts`). Dispare um evento de teste pelo próprio painel e acompanhe o log do terminal (prefixo `app-1` no `docker compose logs`) — a entrega deve aparecer processada pelo worker de webhooks.
-
-<h2 id="testes">🧪 Testes</h2>
+When you stop the application (`Ctrl + C`), the tunnel stops with it. The Docker containers keep running until you tear them down with:
 
 ```bash
-npm test
+npm run docker:down
 ```
 
-A suíte combina testes de lógica pura (sem I/O) com testes de **integração contra o MySQL/Redis reais** do `docker-compose.dev.yml` (obrigatório estar de pé para rodar a suíte inteira) — em especial para o `WalletService`, autenticação/rotação de refresh token e o motor de comissões da rede de afiliados, onde um mock esconderia justamente as garantias que mais importam (transação, lock de linha, idempotência). Os arquivos rodam em sequência (`fileParallelism: false`) para evitar deadlock real de banco quando múltiplos testes de integração tocam as mesmas tabelas.
+## Integrating with Asaas
+
+In the Asaas Sandbox panel:
+
+1. go to **Integrations → Webhooks**;
+2. register the URL printed by `npm run dev:full`;
+3. set it to the same value configured in `ASAAS_WEBHOOK_TOKEN`;
+4. send a test event and watch it get processed in the application logs.
+
+## How It Works
+
+`cloudflared` runs directly on the host and forwards requests to the API running in Docker, through the port configured in `APP_PORT`.
+
+This keeps the development setup simple and avoids running an extra container just for the tunnel.
+
+<h2 id="testing">🧪 Testing</h2>
+
+The project uses **Vitest** for unit and integration testing.
+
+### Running the Tests
+
+| Command | Description |
+|---|---|
+| `npm test` | Runs the full test suite. |
+| `npm run test:watch` | Runs tests in *watch* mode, re-running automatically on changes. |
+| `npm run test:coverage` | Runs the full suite and generates a code coverage report. |
+
+The tests combine:
+
+- **Unit tests**, focused on isolated business rules;
+- **Integration tests**, run against real **MySQL** and **Redis** via `docker-compose.dev.yml`.
+
+The main flows covered include:
+
+- JWT authentication and token refresh;
+- **WalletService** balance movements;
+- payment processing and webhooks;
+- referral network commission calculations.
+
+> **Important**
+>
+> To run the full integration suite, **MySQL** and **Redis** need to be up (`npm run docker:up` or `npm run dev:full`).
+
+Tests run sequentially (`fileParallelism: false`) to avoid concurrency conflicts on operations that share the same database.
 
 <h2 id="deploy">🚀 Deploy</h2>
 
-Este guia cobre o deploy de produção do Smart Option Backend (API + Bot Telegram) numa VPS Linux usando `docker-compose.prod.yml`. Pressupõe uma VPS Ubuntu/Debian limpa, acesso root/sudo, e um domínio já apontando para o IP da VPS (registro A).
+This guide covers deploying the **Smart Option Backend** (API + Telegram Bot) to a Linux VPS using Docker Compose and Caddy.
 
-### 1. Pré-requisitos na VPS
+### Requirements
+
+- Ubuntu/Debian VPS
+- root or sudo access
+- a domain pointed at the VPS's IP (A record)
+- Docker Engine + Docker Compose
+
+## 1. Install Docker
 
 ```bash
-# Docker Engine + Compose plugin
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
-# faça logout/login para o grupo docker valer para o seu usuário
 
+# Log out and back in for the docker group to take effect
 docker --version
 docker compose version
 ```
 
-Abra as portas 80 e 443 no firewall (ex.: `ufw allow 80,443/tcp`). Nenhuma outra porta precisa ficar exposta publicamente — MySQL, Redis e a própria API só são alcançáveis pela rede interna do Docker Compose (`internal`), nunca diretamente da internet.
-
-### 2. Clonar e configurar
+Open ports **80** and **443** in the firewall:
 
 ```bash
-git clone <url-do-repositorio> smart-option
+ufw allow 80,443/tcp
+```
+
+> Only Caddy is exposed to the internet. The API, MySQL, and Redis stay reachable only through Docker Compose's internal network.
+
+## 2. Clone the Project
+
+```bash
+git clone <repository-url> smart-option
 cd smart-option
 
 cp .env.production.example .env
-chmod 600 .env
 ```
 
-Edite `.env` com os valores reais de produção (a referência completa de cada variável está nos comentários do próprio `.env.production.example`). Pontos que exigem atenção:
+Edit `.env` with your real production values.
 
-- `NODE_ENV=production`
-- `SECRET_KEY` e `JWT_REFRESH_SECRET`: gere dois valores aleatórios **diferentes entre si** — `openssl rand -hex 32`.
-- `DB_PASSWORD`: senha forte, não a de desenvolvimento.
-- `BOT_TOKEN`/`BOT_USER`: token real do bot em produção (BotFather).
-- `ASAAS_API_KEY`/`ASAAS_BASE_URL`: chave e URL de **produção** da Asaas (`https://api.asaas.com/v3`), não sandbox.
-- `ASAAS_WEBHOOK_TOKEN`: mesmo valor cadastrado no painel da Asaas ao configurar o webhook.
-- `CORS_ALLOWED_ORIGINS`: domínio real do painel admin, não `localhost`.
-- `SMTP_*`: credenciais reais de envio de e-mail.
-- **Qualquer valor que comece com `$`** (a `ASAAS_API_KEY` de produção sempre começa com `$aact_prod_...`) **precisa ficar entre aspas simples** no `.env` (`ASAAS_API_KEY='$aact_prod_...'`) — sem isso o Docker Compose tenta interpolar o `$` como referência a outra variável e o valor vira string vazia silenciosamente. Ver "Troubleshooting" no README.
-- **Não defina `DB_HOST`/`REDIS_URL` manualmente** — `docker-compose.prod.yml` já sobrescreve essas duas variáveis para apontar para os serviços `mysql`/`redis` da rede interna, então o que estiver em `.env` para elas é ignorado nesse ambiente.
-- O `.env` não é copiado para dentro da imagem — `docker-compose.prod.yml` monta o arquivo diretamente no container (`./.env:/app/.env:ro`) e a aplicação o lê como sempre (via `dotenv`). Garanta que o arquivo exista na raiz do projeto na VPS antes de subir os serviços `app`/`migrate`.
+### Required Settings
 
-Edite `nginx/nginx.conf` e troque `example.com` pelo domínio real (aparece 2 vezes: no bloco HTTP de redirecionamento e no bloco HTTPS, incluindo os dois caminhos `ssl_certificate*`).
+- `SECRET_KEY`
+- `JWT_REFRESH_SECRET`
+- `DB_PASSWORD`
+- `BOT_TOKEN`
+- `BOT_USER`
+- `ASAAS_API_KEY`
+- `ASAAS_BASE_URL`
+- `ASAAS_WEBHOOK_TOKEN`
+- `CORS_ALLOWED_ORIGINS`
+- `SMTP_*`
+- `DOMAIN`
+- `ACME_EMAIL`
 
-### 3. Subir banco e cache
+To generate the JWT secrets:
+
+```bash
+openssl rand -hex 32
+```
+
+> **Important**
+>
+> Values starting with `$` (like `ASAAS_API_KEY`) must stay wrapped in single quotes:
+>
+> ```env
+> ASAAS_API_KEY='$aact_prod_...'
+> ```
+>
+> Otherwise, Docker Compose may interpret the value as a reference to another environment variable.
+
+> `DB_HOST` and `REDIS_URL` don't need to be changed in production — Docker Compose automatically points them at the internal services.
+
+The `.env` file is mounted directly into the container and needs to stay at the project root.
+
+## 3. Start the Database and Redis
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d mysql redis
+
 docker compose -f docker-compose.prod.yml ps
-# aguarde os dois aparecerem como "healthy"
 ```
 
-### 4. Rodar as migrations
+Wait until both services report **healthy**.
+
+## 4. Run the Migrations
 
 ```bash
 docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
 ```
 
-Isso constrói a imagem a partir do estágio `builder` do `Dockerfile` (que ainda tem `drizzle-kit` e as migrations) e aplica o schema completo. Rode o seed **apenas no primeiro deploy** (recria o catálogo de produtos com os IDs 1-6 esperados pelo restante do sistema):
+On the first deploy, also run:
 
 ```bash
 docker compose -f docker-compose.prod.yml --profile tools run --rm migrate npm run db:seed
 ```
 
-### 5. Emitir o certificado TLS (primeiro deploy)
+The initial seed creates the default products the system expects.
 
-O `nginx.conf` final espera um certificado que ainda não existe — subir com ele direto faz o Nginx falhar ao iniciar. Por isso o primeiro boot usa uma config HTTP-only (`nginx/nginx.bootstrap.conf`) só para responder ao desafio ACME do certbot.
-
-```bash
-# 1. Aponte o volume do serviço nginx para a config de bootstrap:
-#    edite docker-compose.prod.yml, na seção "nginx" > "volumes", troque
-#    temporariamente "./nginx/nginx.conf:..." por "./nginx/nginx.bootstrap.conf:/etc/nginx/nginx.conf:ro"
-
-docker compose -f docker-compose.prod.yml up -d app nginx
-
-# 2. Emita o certificado (troque o domínio e o e-mail):
-docker compose -f docker-compose.prod.yml --profile tools run --rm certbot \
-  certonly --webroot -w /var/www/certbot \
-  -d example.com --email voce@example.com --agree-tos --no-eff-email
-
-# 3. Reverta o volume do nginx para "./nginx/nginx.conf:..." (a config com HTTPS)
-#    e recarregue:
-docker compose -f docker-compose.prod.yml up -d --force-recreate nginx
-```
-
-### Renovação
-
-Certificados Let's Encrypt expiram em 90 dias. Adicione ao crontab do host (`crontab -e`):
-
-```
-0 3 * * 1 cd /caminho/para/smart-option && docker compose -f docker-compose.prod.yml --profile tools run --rm certbot renew --webroot -w /var/www/certbot && docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
-```
-
-## 6. Subir a aplicação
+## 5. Start the Application
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
+
 docker compose -f docker-compose.prod.yml ps
 ```
 
-Confirme:
+Caddy automatically obtains a valid TLS certificate for the domain set in `DOMAIN`.
+
+To watch the process:
 
 ```bash
-curl -s https://SEU_DOMINIO/api/health | head -c 300
+docker compose -f docker-compose.prod.yml logs -f caddy
 ```
 
-Deve responder `{"success":true,"data":{"status":"ok",...}}`. O bot deve aparecer online no Telegram em seguida (confira `docker compose -f docker-compose.prod.yml logs -f app`, procure por "Bot Telegram iniciado" e ausência de erros de polling).
+Once the certificate is issued, verify the deployment:
 
-### 7. Operação do dia a dia
+```bash
+curl https://YOUR_DOMAIN/api/health
+```
 
-- **Logs**: `docker compose -f docker-compose.prod.yml logs -f app`
-- **Atualizar para uma nova versão**: `git pull`, depois `docker compose -f docker-compose.prod.yml up -d --build app` (o Nginx e o banco não precisam reiniciar). Se a mudança incluiu uma migration nova, rode o passo 4 novamente antes de subir a `app` nova.
-- **Encerramento gracioso**: `docker compose -f docker-compose.prod.yml stop app` envia `SIGTERM` — o processo fecha o servidor HTTP, para o polling do bot, encerra o worker de webhooks e fecha as duas pools de conexão MySQL antes de sair (ver `src/index.ts`). Evite `kill -9`/`docker kill` em uso normal, pois pula esse desligamento.
-- **Backup do banco**: o volume nomeado `smart_option_mysql_data` contém todos os dados. Backup lógico recorrente recomendado: `docker compose -f docker-compose.prod.yml exec mysql mysqldump -u root -p"$DB_PASSWORD" "$DB_DATABASE" | gzip > backup-$(date +%F).sql.gz`, agendado fora do container (cron do host) e copiado para armazenamento externo à VPS.
-- **Escala vertical do worker de webhooks**: hoje roda no mesmo processo da API (`src/index.ts`, `startAsaasWebhookWorker()`) — adequado até o volume atual; separar em container próprio é uma decisão de infra a revisitar se o volume de webhooks crescer.
+It's also worth checking the application logs:
 
-### 8. O que este setup deliberadamente não cobre
+```bash
+docker compose -f docker-compose.prod.yml logs -f app
+```
 
-- **Múltiplas réplicas do container `app`**: o bot Telegram usa long polling (`getUpdates`), que só pode ter **um** consumidor ativo por token — rodar 2 réplicas da `app` faz a segunda derrubar a primeira com erro 409 (o mesmo observado durante a verificação manual da Fase 7). Escalar horizontalmente exigiria separar o bot da API em processos/serviços distintos e trocar o bot para webhook do Telegram em vez de polling — fora do escopo desta fase.
-- **CI/CD automatizado**: o passo 6 é manual de propósito; pipeline de deploy automático fica para quando houver ambiente de staging.
+### Certificate Renewal
 
-<h2 id="seguranca">🔒 Segurança</h2>
+No extra setup needed.
 
-- 100% das queries de negócio via Drizzle (parametrizado) — sem SQL cru concatenado por string em nenhum caminho alcançável por entrada externa.
-- Senhas com bcrypt (custo 12); hashes SHA1 legados são aceitos no login e migrados automaticamente na hora (lazy migration).
-- JWT de acesso de curta duração + refresh token rotativo com detecção de reuso (família inteira revogada em caso de suspeita de roubo).
-- Rate limiting global e dedicado ao login, com store no Redis (efetivo mesmo com múltiplas réplicas).
-- Assinatura de webhook validada com comparação constant-time.
-- Helmet, CORS por allowlist, `trust proxy` restrito a 1 hop em produção (só o Nginx do próprio compose).
-- Nenhuma porta de banco/cache é exposta publicamente no deploy de produção — só o Nginx (80/443).
-- Segredos apenas via variáveis de ambiente (nunca hardcoded) — ver [.env.development.example](.env.development.example) / [.env.production.example](.env.production.example).
+Caddy automatically renews Let's Encrypt certificates before they expire — no cron job, no manual steps.
+
+## 6. Operations
+
+### Logs
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f app
+docker compose -f docker-compose.prod.yml logs -f caddy
+```
+
+### Updating
+
+```bash
+git pull
+
+docker compose -f docker-compose.prod.yml up -d --build app
+```
+
+If there are new migrations, run step **4** again before bringing up the new version.
+
+### Shutting Down
+
+```bash
+docker compose -f docker-compose.prod.yml stop app
+```
+
+The application shuts down gracefully — closing the API, stopping the bot, draining the webhook worker, and closing the database connections before the process exits.
+
+### Backup
+
+```bash
+docker compose -f docker-compose.prod.yml exec mysql \
+mysqldump -u root -p"$DB_PASSWORD" "$DB_DATABASE" \
+| gzip > backup-$(date +%F).sql.gz
+```
+
+Store backups somewhere outside the VPS.
+
+## 7. Known Limitations
+
+- The `app` container doesn't support multiple replicas while the bot uses **Long Polling**. Running two instances at once triggers a Telegram **409** error.
+
+- Horizontal scaling would require splitting the API and the bot into separate services and switching the bot to Telegram **webhooks**.
+
+- The deploy doesn't include a **CI/CD** pipeline — updates are done manually.
+
+- Caddy runs the official image, with no extra rate-limiting module. Abuse protection remains the application's job, via Redis.
+
+<h2 id="security">🔒 Security</h2>
+
+The application's security model is built around protecting authentication, financial transactions, and inter-service communication.
+
+- **Database:** every business query goes through Drizzle ORM with parameterized queries — no SQL concatenated from external input.
+- **Passwords:** stored with **bcrypt** (cost factor 12). Legacy **SHA-1** hashes are automatically migrated to bcrypt on first login (*lazy migration*).
+- **Authentication:** short-lived JWT access tokens paired with **rotating refresh tokens**, including reuse detection and automatic revocation of the entire token family.
+- **Rate limiting:** global and auth-specific limits stored in Redis, staying consistent even across multiple application instances.
+- **Webhooks:** signature validation using constant-time comparison, protecting against timing attacks.
+- **HTTP security:** Helmet, an allowlist-based CORS policy, and `trust proxy` scoped exclusively to the infrastructure's reverse proxy.
+- **Infrastructure:** only Caddy exposes ports **80** and **443** in production. The API, MySQL, and Redis stay isolated on Docker Compose's internal network, with TLS issued and renewed automatically by Let's Encrypt.
+- **Secrets:** every credential comes exclusively from environment variables — nothing sensitive lives in the source code.
 
 <h2 id="troubleshooting">🛠️ Troubleshooting</h2>
 
-**"O cloudflared não foi encontrado no PATH"** — instale conforme a [seção Cloudflare Tunnel](#cloudflare-tunnel) e rode o comando de novo.
+### `cloudflared` not found in `PATH`
 
-**"cloudflared instalado, mas você ainda não autenticou esta máquina"** — rode `cloudflared tunnel login` (abre o navegador; escolha a zona `example.url`).
+The Cloudflare Tunnel isn't installed, or it's not on your `PATH`.
 
-**Um valor do `.env` "desaparece" dentro do Docker (ex.: chamadas à Asaas falham com "chave inválida" mesmo com `ASAAS_API_KEY` preenchida)** — o Docker Compose interpola `${...}` (e qualquer `$` solto) também dentro de valores carregados de arquivos `.env`, não só na própria `docker-compose.yml`. Uma chave de API da Asaas de verdade (formato `$aact_...`) vira string vazia silenciosamente se não estiver entre aspas simples. Corrija no `.env`:
+See the [Cloudflare Tunnel section](#cloudflare-tunnel) to install it.
+
+---
+
+### `cloudflared` is installed, but the machine isn't authenticated
+
+Run:
+
+```bash
+cloudflared tunnel login
 ```
+
+Your browser will open for authentication. Select the account and the domain zone used by the project.
+
+---
+
+### `ASAAS_API_KEY` looks invalid inside Docker
+
+If the application reports an **"invalid key"** error even though the variable is set correctly, check whether it's wrapped in single quotes.
+
+```env
 ASAAS_API_KEY='$aact_hmlg_...'
 ```
-(Este projeto já monta o `.env` como arquivo dentro do container em vez de injetar via `env_file:` do Compose, exatamente para evitar essa classe de bug — mas o mesmo cuidado de aspas vale para qualquer variável nova que você adicionar e que comece com `$`.)
 
-**MySQL/Redis não ficam "healthy"** — confira `docker compose -f docker-compose.dev.yml logs mysql redis`. Se for a primeira subida, pode levar alguns segundos a mais (inicialização do MySQL).
+Since Asaas keys start with `$`, Docker Compose can interpret that character as an environment variable reference while parsing `.env`.
 
-**Porta já em uso (`EADDRINUSE`)** — outra instância da API (Docker ou `npm run dev` no host) já está usando a porta de `APP_PORT`. `npm run dev:full` detecta uma API já respondendo em `/health` e reaproveita em vez de duplicar; se o erro persistir, pare o processo/container antigo primeiro (`npm run docker:down` ou feche o outro terminal).
+---
 
-**Erro 409 do Telegram ("terminated by other getUpdates request")** — o bot usa long polling, que só permite **um** consumidor por token. Confirme que não há outra instância (dev + produção, ou dois terminais) usando o mesmo `BOT_TOKEN` ao mesmo tempo.
+### MySQL or Redis stay `unhealthy`
 
-**Registro DNS do túnel não aparece** — confirme que a conta autenticada (`cloudflared tunnel login`) realmente tem a zona `example.url`. Sem isso, `cloudflared tunnel route dns` falha silenciosamente na criação do CNAME — crie manualmente pelo painel Cloudflare se necessário.
+Check the service logs:
 
-<h2 id="related-projects">🔗 Projetos relacionados</h2>
+```bash
+docker compose -f docker-compose.dev.yml logs mysql redis
+```
 
-👑 Painel Admin (frontend) — [repositório](https://github.com/issagomesdev/smart-option-admin)
+On first boot, MySQL can take a few extra seconds to finish its bootstrap process.
+
+---
+
+### `EADDRINUSE` error
+
+Another API instance is already using the port set in `APP_PORT`.
+
+Stop the previous instance:
+
+```bash
+npm run docker:down
+```
+
+or manually kill whatever process holds the port.
+
+> `npm run dev:full` automatically reuses an already-running API whenever it can.
+
+---
+
+### Telegram 409 error
+
+```
+terminated by other getUpdates request
+```
+
+The bot uses **Long Polling**, which only allows one instance per `BOT_TOKEN`.
+
+Make sure no other instance (development or production) is running at the same time with the same token.
+
+---
+
+### The tunnel's DNS record isn't created
+
+Check that the authenticated account has access to the domain zone used by the project:
+
+```bash
+cloudflared tunnel login
+```
+
+If the record isn't created automatically, you can add it manually from the Cloudflare dashboard.
+
+<h2 id="license">📄 License</h2>
+
+This project is distributed under the **Smart Option Source Available License (SSAL)**.
+
+You are welcome to:
+
+- study the source code;
+- fork the repository for educational purposes;
+- use parts of the implementation as a learning reference.
+
+You may **not**:
+
+- use this project commercially;
+- deploy it as a product or service;
+- build investment, MLM, HYIP, Ponzi, pyramid, betting, or similar financial platforms from this code.
+
+See the [LICENSE](LICENSE) file for the complete terms.
+
+
+<h2 id="related-projects">🔗 Related Projects</h2>
+
+| Project | Description | Repository |
+|----------|-----------|-------------|
+| 👑 Admin Panel (Frontend) | Admin interface for managing the Smart Option platform. | https://github.com/issagomesdev/smart-option-admin |

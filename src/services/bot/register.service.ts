@@ -90,8 +90,20 @@ export class RegisterService {
   static async verificationEmail(token: string): Promise<void> {
     if (!token) throw new ValidationError("Token ausente");
 
-    const decodedToken = jwt.verify(token, env.SECRET_KEY) as { email: string; exp?: number };
-    const today = Math.floor(Date.now() / 1000);
+    // `jwt.verify` já lança `TokenExpiredError` sozinho para um token vencido
+    // (achado real ao escrever o teste desta fase): o `if (decodedToken.exp
+    // < today)` que existia depois desta chamada nunca era alcançável — o
+    // erro sempre estourava aqui antes, sem a mensagem amigável em PT-BR,
+    // como uma exceção genérica não tratada.
+    try {
+      jwt.verify(token, env.SECRET_KEY);
+    } catch (error) {
+      if (error instanceof jwt.TokenExpiredError) {
+        await db.update(emailVerifications).set({ status: "expired" }).where(eq(emailVerifications.token, token));
+        throw new ValidationError("Token inválido ou expirado! Realize o login para solicitar um novo email de confirmação");
+      }
+      throw new ValidationError("Token inválido");
+    }
 
     const [verification] = await db.select().from(emailVerifications).where(eq(emailVerifications.token, token));
     if (!verification) throw new ValidationError("Token inválido");
@@ -101,11 +113,6 @@ export class RegisterService {
     if (user?.verifiedEmailAt) {
       await db.update(emailVerifications).set({ status: "checked" }).where(eq(emailVerifications.userId, verification.userId));
       throw new ConflictError("Email já validado");
-    }
-
-    if (decodedToken.exp && decodedToken.exp < today) {
-      await db.update(emailVerifications).set({ status: "expired" }).where(eq(emailVerifications.token, token));
-      throw new ValidationError("Token inválido ou expirado! Realize o login para solicitar um novo email de confirmação");
     }
 
     await db.update(emailVerifications).set({ status: "checked" }).where(eq(emailVerifications.userId, verification.userId));

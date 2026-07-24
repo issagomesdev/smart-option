@@ -51,8 +51,8 @@ services:
       # (devDependency, removido da imagem "runtime" por `npm prune --omit=dev`)
       # nem desativar outros comportamentos condicionados a `isProduction`.
       NODE_ENV: production
-      # Fixo para casar com o upstream "app:3000" hard-coded em nginx/*.conf
-      # — nunca deixar um APP_PORT herdado de um ".env" de outro ambiente
+      # Fixo para casar com o upstream "app:3000" hard-coded no Caddyfile —
+      # nunca deixar um APP_PORT herdado de um ".env" de outro ambiente
       # (ex.: dev local usando 3001 para não colidir com outro serviço)
       # quebrar o proxy silenciosamente.
       APP_PORT: 3000
@@ -91,34 +91,32 @@ services:
     profiles:
       - tools
 
-  nginx:
-    image: nginx:1.27-alpine
+  # Reverse proxy + TLS. Substitui Nginx + Certbot: o próprio Caddy emite e
+  # renova o certificado Let's Encrypt sozinho (desafio HTTP-01 na porta 80,
+  # via o mesmo processo, sem container/cron separado) — não há passo de
+  # "config HTTP temporária" nem edição deste arquivo no primeiro deploy.
+  # DOMAIN/ACME_EMAIL vêm do ".env" (mesmo mecanismo de interpolação
+  # `${...}` já usado acima para DB_PASSWORD/DB_DATABASE/DB_USER).
+  caddy:
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - smart_option_certbot_www:/var/www/certbot:ro
-      - smart_option_certbot_conf:/etc/letsencrypt:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificados + estado da conta ACME — precisa ser um volume nomeado
+      # persistente: perdê-lo faz o Caddy reemitir o certificado no próximo
+      # boot, e o Let's Encrypt tem limite de emissões por domínio/semana.
+      - smart_option_caddy_data:/data
+      - smart_option_caddy_config:/config
     depends_on:
       - app
     networks:
       - internal
-
-  # Emissão/renovação do certificado TLS via desafio HTTP-01 (o Nginx serve
-  # o arquivo de desafio a partir do volume `smart_option_certbot_www`, que
-  # este container também escreve). Ver o passo-a-passo em docs/deploy.md —
-  # é preciso rodar isto antes do bloco HTTPS do nginx.conf fazer sentido.
-  certbot:
-    image: certbot/certbot:latest
-    volumes:
-      - smart_option_certbot_www:/var/www/certbot
-      - smart_option_certbot_conf:/etc/letsencrypt
-    networks:
-      - internal
-    profiles:
-      - tools
 
 networks:
   internal:
@@ -126,5 +124,5 @@ networks:
 volumes:
   smart_option_mysql_data:
   smart_option_redis_data:
-  smart_option_certbot_www:
-  smart_option_certbot_conf:
+  smart_option_caddy_data:
+  smart_option_caddy_config:

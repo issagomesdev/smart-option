@@ -2,10 +2,11 @@ import { randomBytes, createHash } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../infrastructure/database/client";
-import { staffRefreshTokens, staffUsers } from "../infrastructure/database/schema";
+import { roles, staffRefreshTokens, staffUsers } from "../infrastructure/database/schema";
 import { env } from "../config/env";
 import { UnauthorizedError } from "../shared/errors";
 import { logger } from "../shared/logger";
+import type { Permission } from "../shared/permissions/permissions";
 import { hashPassword, isBcryptHash, verifyPassword } from "../shared/security/password";
 
 const SESSION_REFRESH_TTL_MS = 24 * 60 * 60 * 1000;
@@ -22,6 +23,7 @@ export interface AuthenticatedStaffUser {
   surname: string;
   email: string;
   roleId: number;
+  permissions: Permission[];
 }
 
 function parseDurationToMs(value: string, fallback: number): number {
@@ -76,11 +78,28 @@ export class AuthenticationService {
   }
 
   static async login(email: string, password: string, remember = false): Promise<{ auth: true } & AuthTokens & { user: AuthenticatedStaffUser }> {
-    const [user] = await db.select().from(staffUsers).where(eq(staffUsers.email, email));
-
-    // Mensagem sempre genérica (não revela se o e-mail existe) — evita
-    // enumeração de contas.
+    // Mensagem sempre genérica (não revela se o e-mail existe, nem se a conta
+    // existe mas está desativada) — evita enumeração de contas.
     const invalidCredentials = () => new UnauthorizedError("Email e/ou senha inválidos");
+
+    // `deletedAt IS NULL`: staff desativado (soft-delete, Fase 5) não
+    // consegue mais logar — sem este filtro, uma conta desativada ainda
+    // emitiria tokens válidos aqui e só seria barrada na próxima requisição
+    // autenticada (`authenticateToken` já filtra), UX confusa e emissão de
+    // token desnecessária para uma conta que não deveria ter acesso.
+    const [user] = await db
+      .select({
+        id: staffUsers.id,
+        name: staffUsers.name,
+        surname: staffUsers.surname,
+        email: staffUsers.email,
+        password: staffUsers.password,
+        roleId: staffUsers.roleId,
+        permissions: roles.permissions,
+      })
+      .from(staffUsers)
+      .innerJoin(roles, eq(staffUsers.roleId, roles.id))
+      .where(and(eq(staffUsers.email, email), isNull(staffUsers.deletedAt)));
 
     if (!user) throw invalidCredentials();
 
@@ -92,7 +111,14 @@ export class AuthenticationService {
     return {
       auth: true,
       ...tokens,
-      user: { id: user.id, name: user.name, surname: user.surname, email: user.email, roleId: user.roleId },
+      user: {
+        id: user.id,
+        name: user.name,
+        surname: user.surname,
+        email: user.email,
+        roleId: user.roleId,
+        permissions: user.permissions ?? [],
+      },
     };
   }
 

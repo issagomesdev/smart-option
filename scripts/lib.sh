@@ -105,7 +105,7 @@ ensure_tunnel() {
   local tunnel_id
   tunnel_id="$(env_get CF_TUNNEL_ID)"
   local domain
-  domain="$(env_get CF_TUNNEL_DOMAIN "smartoptiondev.byissa.dev")"
+  domain="$(env_get CF_TUNNEL_DOMAIN)"
   local host
   host="$(env_get CF_TUNNEL_HOST "localhost")"
   local app_port
