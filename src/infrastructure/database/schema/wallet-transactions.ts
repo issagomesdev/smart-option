@@ -40,5 +40,11 @@ export const walletTransactions = mysqlTable(
     metadata: json("metadata"),
     createdAt: createdAtColumn(),
   },
-  (table) => [index("wallet_transactions_user_id_created_at_idx").on(table.userId, table.createdAt)],
+  (table) => [
+    index("wallet_transactions_user_id_created_at_idx").on(table.userId, table.createdAt),
+    // Dashboard/Auditoria Financeira: o gráfico "Rentabilidade da rede" e o feed de movimentações
+    // filtram/ordenam por origin+created_at em todos os usuários, não só por um userId — o índice
+    // acima não serve essa consulta.
+    index("wallet_transactions_origin_created_at_idx").on(table.origin, table.createdAt),
+  ],
 );

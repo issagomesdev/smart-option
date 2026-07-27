@@ -70,10 +70,19 @@ export const transfValuesAdminDto = z.object({
   type: z.enum(["sum", "subtract"]),
 });
 
-export const dashBalanceParamsDto = z.object({
-  user_id: z.string(),
-  product_id: z.string(),
-  period: z.string(),
+/**
+ * Filtro de período do novo agregador do dashboard (`/api/dashboard/summary`) e da Auditoria
+ * Financeira (`/api/audit`) — `start`/`end` só são exigidos quando `period: "custom"` (validado em
+ * `resolvePeriod`, não aqui, já que a regra depende da combinação dos três campos, não de cada um
+ * isoladamente). `userId`/`productId` são o recorte opcional que reaproveita a busca por
+ * usuário/produto que já existia no dashboard antigo.
+ */
+export const periodQueryDto = z.object({
+  period: z.enum(["all", "today", "7d", "30d", "custom"]).optional().default("today"),
+  start: z.string().optional(),
+  end: z.string().optional(),
+  userId: z.coerce.number().int().positive().optional(),
+  productId: z.coerce.number().int().positive().optional(),
 });
 
 export const networkIdParamDto = idParam;
@@ -99,7 +108,10 @@ const listFiltersBase = {
 
 export const withdrawalFiltersDto = z.object(listFiltersBase);
 export const depositFiltersDto = z.object(listFiltersBase);
-export const subscriptionFiltersDto = z.object({ ...listFiltersBase, product_id: z.string().optional().default("all") });
+export const subscriptionFiltersDto = z.object({
+  ...listFiltersBase,
+  product_id: z.string().optional().default("all"),
+});
 export const supportFiltersDto = z.object({
   id: z.string().optional().default(""),
   name: z.string().optional().default(""),

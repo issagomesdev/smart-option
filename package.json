@@ -22,7 +22,10 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/infrastructure/database/scripts/seed.ts",
-    "db:backfill-wallets": "tsx src/infrastructure/database/scripts/backfill-wallets.ts"
+    "db:backfill-wallets": "tsx src/infrastructure/database/scripts/backfill-wallets.ts",
+    "plans:seed": "tsx src/infrastructure/database/scripts/plans-seed.ts",
+    "demo:seed": "tsx src/infrastructure/database/scripts/demo-seed.ts",
+    "demo:reset": "tsx src/infrastructure/database/scripts/demo-reset.ts"
   },
   "author": "",
   "license": "ISC",

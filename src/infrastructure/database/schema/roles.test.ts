@@ -1,6 +1,7 @@
 import { asc, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { db } from "../client";
+import { PERMISSIONS } from "../../../shared/permissions/permissions";
 import { roles, staffUsers } from "./index";
 
 /**
@@ -11,16 +12,18 @@ import { roles, staffUsers } from "./index";
  * de dev com uma versão desatualizada do arquivo.
  */
 describe("roles (seed da migration, banco real)", () => {
-  it("semeia exatamente 2 papéis de sistema: admin (id 1, todas as 6 permissões) e staff (id 2, nenhuma)", async () => {
+  it("semeia exatamente 2 papéis de sistema: admin (id 1, todas as permissões) e staff (id 2, nenhuma)", async () => {
     const rows = await db.select().from(roles).orderBy(asc(roles.id));
 
     expect(rows).toHaveLength(2);
 
+    // `plans.manage` entrou depois, pela migration 0006 — o papel `admin` acompanha o catálogo
+    // inteiro de `shared/permissions/permissions.ts` por definição ("acesso total").
     expect(rows[0]).toMatchObject({
       id: 1,
       name: "admin",
       isSystem: true,
-      permissions: ["users.write", "finance.adjust", "withdrawals.approve", "support.write", "staff.manage", "roles.manage"],
+      permissions: [...PERMISSIONS],
     });
 
     expect(rows[1]).toMatchObject({ id: 2, name: "staff", isSystem: true, permissions: [] });

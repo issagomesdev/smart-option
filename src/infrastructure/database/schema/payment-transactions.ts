@@ -28,5 +28,10 @@ export const paymentTransactions = mysqlTable(
     createdAt: createdAtColumn(),
     updatedAt: updatedAtColumn(),
   },
-  (table) => [index("payment_transactions_user_id_idx").on(table.userId)],
+  (table) => [
+    index("payment_transactions_user_id_idx").on(table.userId),
+    // Dashboard/Auditoria Financeira: filtra e ordena por status+data ao ler o lado gateway das
+    // transações (ex.: identificar `refunded` quando esse fluxo existir).
+    index("payment_transactions_status_created_at_idx").on(table.status, table.createdAt),
+  ],
 );

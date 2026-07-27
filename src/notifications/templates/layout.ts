@@ -1,4 +1,4 @@
-const LOGO_HEADER_URL = "https://media.byissa.dev/smart-option/logo.png";
+const LOGO_HEADER_URL = "https://media.byissa.dev/smart-option/concept_mark.png";
 const LOGO_BAR_URL = "https://media.byissa.dev/smart-option/logo.png";
 
 function renderLayout(bodyHtml: string): string {
@@ -15,7 +15,7 @@ function renderLayout(bodyHtml: string): string {
                           <tbody>
                               <tr>
                                   <td>
-                                      <img style="margin: 1em; width: 100px;" src="${LOGO_BAR_URL}" alt="SmartOption">
+                                      <img style="margin: 1em; width: 6rem;" src="${LOGO_BAR_URL}" alt="SmartOption">
                                   </td>
                               </tr>
                           </tbody>

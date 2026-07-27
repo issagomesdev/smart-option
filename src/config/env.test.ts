@@ -88,4 +88,65 @@ describe("schema de variáveis de ambiente", () => {
       }
     });
   });
+
+  describe("modo demonstração", () => {
+    it("desliga por padrão quando as variáveis não são informadas", () => {
+      const result = envSchema.safeParse(validEnv);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.APP_DEMO).toBe(false);
+        expect(result.data.AUTO_RESET).toBe(false);
+        expect(result.data.AUTO_RESET_INTERVAL).toBeUndefined();
+      }
+    });
+
+    // O teste mais importante do arquivo: `z.coerce.boolean()` aplicaria `Boolean("false")`, que é
+    // `true`, e ligaria o modo demonstração (com login sem credencial e reset destrutivo) num
+    // ambiente que pediu explicitamente para desligá-lo.
+    it.each(["false", "0", "no", "", "  ", "ture"])(
+      "trata APP_DEMO=%j como desligado, nunca como ligado",
+      (value) => {
+        const result = envSchema.safeParse({ ...validEnv, APP_DEMO: value });
+        expect(result.success).toBe(true);
+        if (result.success) expect(result.data.APP_DEMO).toBe(false);
+      },
+    );
+
+    it.each(["true", "1", "yes", "TRUE", " True "])("liga APP_DEMO com %j", (value) => {
+      const result = envSchema.safeParse({ ...validEnv, APP_DEMO: value });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.data.APP_DEMO).toBe(true);
+    });
+
+    it("rejeita AUTO_RESET=true sem AUTO_RESET_INTERVAL (em vez de nunca resetar em silêncio)", () => {
+      const result = envSchema.safeParse({ ...validEnv, APP_DEMO: "true", AUTO_RESET: "true" });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((issue) => issue.path.includes("AUTO_RESET_INTERVAL"))).toBe(true);
+      }
+    });
+
+    it("rejeita AUTO_RESET=true sem APP_DEMO — reset agendado contra banco de produção", () => {
+      const result = envSchema.safeParse({ ...validEnv, AUTO_RESET: "true", AUTO_RESET_INTERVAL: "60" });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.some((issue) => issue.path.includes("AUTO_RESET"))).toBe(true);
+      }
+    });
+
+    it("aceita a combinação completa de demonstração com reset automático", () => {
+      const result = envSchema.safeParse({
+        ...validEnv,
+        APP_DEMO: "true",
+        AUTO_RESET: "true",
+        AUTO_RESET_INTERVAL: "60",
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.APP_DEMO).toBe(true);
+        expect(result.data.AUTO_RESET).toBe(true);
+        expect(result.data.AUTO_RESET_INTERVAL).toBe(60);
+      }
+    });
+  });
 });

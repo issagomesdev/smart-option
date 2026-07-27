@@ -3,6 +3,23 @@ import { z } from "zod";
 
 dotenv.config();
 
+/**
+ * `z.coerce.boolean()` NÃO serve para flag de ambiente: ele aplica `Boolean(value)`, e toda string
+ * não-vazia é verdadeira — `APP_DEMO=false` ligaria o modo demonstração. Aqui só as formas explícitas
+ * ligam a flag; qualquer outra coisa (typo, valor desconhecido, vazio) cai no default. Para as flags
+ * deste arquivo o default é sempre `false`, então um erro de digitação falha para o lado seguro.
+ */
+function envBoolean(defaultValue: boolean) {
+  return z
+    .string()
+    .optional()
+    .transform((value) => {
+      const normalized = value?.trim().toLowerCase();
+      if (!normalized) return defaultValue;
+      return normalized === "true" || normalized === "1" || normalized === "yes";
+    });
+}
+
 export const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   APP_PORT: z.coerce.number().int().positive().default(3000),
@@ -79,6 +96,18 @@ export const envSchema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(465),
   SMTP_USER: z.email("SMTP_USER deve ser um e-mail válido").optional(),
   SMTP_PASSWORD: z.string().optional(),
+
+  // --- Modo demonstração (portfólio) -----------------------------------------
+  // APP_DEMO liga o ambiente de demonstração: login de visitante, bloqueio das
+  // operações irreversíveis/com efeito externo e liberação do reset. Desligado
+  // (o padrão), NADA disso existe — nem a rota de login demo, nem o agendador de
+  // reset, nem os guards. É a única chave que separa demo de produção.
+  APP_DEMO: envBoolean(false),
+  // Reset periódico do ambiente demo. Só tem efeito com APP_DEMO=true.
+  AUTO_RESET: envBoolean(false),
+  // Intervalo do reset automático, em minutos (ex.: 60 = de hora em hora,
+  // 1440 = diário). Vazio com AUTO_RESET=true é erro de boot, não silêncio.
+  AUTO_RESET_INTERVAL: z.coerce.number().int().positive().optional(),
 }).superRefine((data, ctx) => {
   if (data.EMAIL_TYPE === "resend") {
     if (!data.RESEND_API_KEY) {
@@ -100,6 +129,26 @@ export const envSchema = z.object({
     if (!data.SMTP_PASSWORD) {
       ctx.addIssue({ code: "custom", path: ["SMTP_PASSWORD"], message: "SMTP_PASSWORD é obrigatório quando EMAIL_TYPE=smtp" });
     }
+  }
+
+  // Falhar no boot em vez de simplesmente nunca resetar: um ambiente demo configurado pela metade
+  // (AUTO_RESET ligado, intervalo faltando) parece funcionar e silenciosamente nunca restaura nada.
+  if (data.AUTO_RESET && data.AUTO_RESET_INTERVAL === undefined) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["AUTO_RESET_INTERVAL"],
+      message: "AUTO_RESET_INTERVAL (em minutos) é obrigatório quando AUTO_RESET=true",
+    });
+  }
+
+  // AUTO_RESET só faz sentido dentro do modo demonstração. Ligado sem APP_DEMO seria uma rotina
+  // destrutiva agendada contra um banco de produção — recusamos subir em vez de ignorar em silêncio.
+  if (data.AUTO_RESET && !data.APP_DEMO) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["AUTO_RESET"],
+      message: "AUTO_RESET=true exige APP_DEMO=true — o reset é destrutivo e só existe no modo demonstração",
+    });
   }
 });
 

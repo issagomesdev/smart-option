@@ -12,7 +12,7 @@ import {
   withdrawalFiltersDto,
 } from "../../interfaces/http/dtos/admin.dto";
 import { ok } from "../../shared/http/response";
-import { requirePermission } from "../middlewares/auth.interceptor";
+import { denyInDemo, requirePermission } from "../middlewares/auth.interceptor";
 
 export default express
   .Router()
@@ -82,9 +82,13 @@ export default express
   // passando só o booleano em vez do corpo inteiro — o service espera
   // `body.id`/`body.observation` também, então a aprovação/rejeição de saque
   // nunca funcionou corretamente através desta rota.
+  // `denyInDemo` aqui é o guard mais importante do modo demonstração: aprovar um saque chama
+  // `paymentService.createWithdrawalTransfer` e executa uma transferência PIX REAL na Asaas —
+  // irreversível e com dinheiro de verdade, exatamente o que um visitante não pode disparar.
   .post(
     "/res-withdrawal",
     requirePermission("withdrawals.approve"),
+    denyInDemo(),
     validate({ body: resWithdrawalDto }),
     async (req: Request, res: Response, next: NextFunction) => {
       try {

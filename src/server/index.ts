@@ -7,6 +7,7 @@ import { compressionMiddleware, corsOptions, globalRateLimiter, helmetMiddleware
 import { isProduction } from "../config/env";
 import { logger } from "../shared/logger";
 import { dailyCron, everyMinuteCron, lastDayinMonthCron } from "./cron";
+import { startDemoResetScheduler, stopDemoResetScheduler } from "./demo-reset.scheduler";
 
 const app = express();
 
@@ -41,6 +42,8 @@ export default class ExpressServer {
 		dailyCron.start();
 		everyMinuteCron.start();
 		lastDayinMonthCron.start();
+		// Só agenda de fato com APP_DEMO=true e AUTO_RESET=true (ver `demo-reset.scheduler.ts`).
+		startDemoResetScheduler();
 		return this;
 	}
 
@@ -48,6 +51,7 @@ export default class ExpressServer {
 		dailyCron.stop();
 		everyMinuteCron.stop();
 		lastDayinMonthCron.stop();
+		stopDemoResetScheduler();
 
 		return new Promise((resolve, reject) => {
 			this.server.close((err) => (err ? reject(err) : resolve()));

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertCanGrant, assertStaffManageSurvives, isPermission, PERMISSIONS } from "./permissions";
 
 describe("PERMISSIONS / isPermission", () => {
-  it("tem exatamente as 6 chaves esperadas", () => {
+  it("tem exatamente as 7 chaves esperadas", () => {
     expect(PERMISSIONS).toEqual([
       "users.write",
       "finance.adjust",
@@ -10,6 +10,7 @@ describe("PERMISSIONS / isPermission", () => {
       "support.write",
       "staff.manage",
       "roles.manage",
+      "plans.manage",
     ]);
   });
 

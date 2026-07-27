@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../../infrastructure/database/client";
 import { roles, staffUsers } from "../../infrastructure/database/schema";
 import { env } from "../../config/env";
+import { DEMO_BLOCKED_MESSAGE, isDemo } from "../../config/demo";
 import { ForbiddenError, UnauthorizedError } from "../../shared/errors";
 import type { Permission } from "../../shared/permissions/permissions";
 
@@ -139,6 +140,28 @@ export function requirePermission(permission: Permission) {
  * `staff.manage` OU `roles.manage`; escrita (`POST`/`PATCH`/`DELETE`)
  * continua exigindo `roles.manage` estritamente.
  */
+/**
+ * Bloqueio de ações no modo demonstração (`APP_DEMO=true`). Aplicado rota a rota, depois de
+ * `authorize()`, apenas nas operações **irreversíveis ou com efeito fora do ambiente** — aprovar
+ * saque (dispara PIX real na Asaas), mexer em staff/papéis (trancaria o painel para os próximos
+ * visitantes) e trocar credenciais administrativas.
+ *
+ * Tudo o mais continua funcionando de propósito: o visitante recebe as permissões completas para
+ * que a demonstração mostre o produto inteiro, e o que ele altera (usuários do bot, saldos, planos)
+ * é dado descartável que o próximo `demo:reset` restaura.
+ *
+ * Fora do modo demonstração é um no-op — não há caminho em que este middleware bloqueie produção.
+ */
+export function denyInDemo() {
+  return (_req: Request, _res: Response, next: NextFunction): void => {
+    if (isDemo) {
+      next(new ForbiddenError(DEMO_BLOCKED_MESSAGE));
+      return;
+    }
+    next();
+  };
+}
+
 export function requireAnyPermission(...permissions: Permission[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {

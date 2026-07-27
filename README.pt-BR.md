@@ -19,6 +19,7 @@
   <a href="#ambientes">Configuração de Ambientes</a> •
   <a href="#emails">E-mails</a> •
   <a href="#cloudflare-tunnel">Cloudflare Tunnel</a> •
+  <a href="#modo-demo">Modo Demonstração</a> •
   <a href="#testes">Testes</a> •
   <a href="#deploy">Deploy</a> •
   <a href="#seguranca">Segurança</a> •
@@ -27,44 +28,50 @@
   <a href="#related-projects">Projetos Relacionados</a>
 </p>
 
-> ⚠️ **Aviso**: ambiente de demonstração/desenvolvimento. Não use credenciais reais de produção (Asaas, Resend/SMTP, bot Telegram) fora de um deploy controlado.
+> ⚠️ **Aviso:** O **Smart Option** é um projeto de demonstração lançado exclusivamente para **estudo**, **aprendizado** e **portfólio**. Originalmente desenvolvido para atender a uma demanda real de um projeto freelancer que não chegou a ser colocado em produção, foi posteriormente evoluído como um estudo de caso para demonstrar arquitetura de software, integrações financeiras, automação e boas práticas de engenharia. **Não deve, em nenhuma hipótese, ser utilizado, adaptado ou interpretado como uma ferramenta para obtenção de ganhos financeiros reais ou para operações de investimento.**
 
 <h2 id="sobre">📌 Sobre</h2>
 
-**Smart Option** é uma plataforma de investimentos automatizados composta por dois projetos principais: um **bot do Telegram**, responsável pela experiência dos usuários, e um **painel administrativo**, mantido em repositório à parte, usado para gerenciamento, monitoramento e operação da plataforma. Pelo bot do Telegram, os usuários se cadastram, depositam via **PIX** com o **Asaas**, adquirem planos de rendimento mensal, constroem uma rede de afiliados com até **três níveis de comissão**, acompanham suas movimentações financeiras e solicitam saques — tudo sem sair da conversa.
+**Smart Option** é uma **plataforma de investimentos automatizados** que combina a praticidade de um **bot do Telegram** com um **painel administrativo** dedicado ao gerenciamento da operação. Integrada ao **PIX** por meio do **Asaas**, a plataforma permite que os usuários realizem **depósitos**, adquiram **planos de rendimento**, acompanhem seus **rendimentos** e **movimentações financeiras**, gerenciem uma **rede de afiliados** com até **três níveis de comissão** e solicitem **saques**, tudo de forma simples, rápida e sem sair do **Telegram**.
 
-Este repositório contém o **backend** da plataforma, escrito em **Node.js** e **TypeScript**, responsável tanto pela **API REST** consumida pelo painel administrativo quanto por toda a lógica de negócio do bot. A aplicação usa **MySQL** com **Drizzle ORM** para persistência, **Redis** para cache, sessões do bot e processamento assíncrono com **BullMQ** — uma arquitetura moderna, escalável e pronta para produção.
+Este repositório reúne o **backend** do **Smart Option**, responsável por toda a **lógica de negócio** da plataforma. Além de fornecer a **API REST** consumida pelo painel administrativo, a aplicação gerencia o funcionamento do **bot do Telegram**, autenticação, integrações financeiras, processamento de transações, regras de rentabilidade, sistema de afiliados, notificações e demais processos internos. Desenvolvido com **Node.js** e **TypeScript**, utiliza **MySQL** com **Drizzle ORM** para persistência de dados, **Redis** para cache e gerenciamento de sessões, além do **BullMQ** para processamento assíncrono de tarefas, formando uma arquitetura moderna, escalável e preparada para ambientes de produção.
 
 <h2 id="arquitetura">🏗️ Arquitetura</h2>
 
-A aplicação segue os princípios da **Clean Architecture**, organizada em camadas com responsabilidades bem definidas:
+O **Smart Option** foi projetado seguindo os princípios da **Clean Architecture**, separando responsabilidades em módulos independentes para facilitar evolução, testes e manutenção. A aplicação organiza a lógica de negócio, infraestrutura e interfaces de forma desacoplada, permitindo substituir integrações externas sem impactar as regras do domínio.
 
 ```text
-config/          → env validado com zod, fail-fast no boot
-shared/          → erros, resposta HTTP padrão, logger (pino), segurança, validação
-infrastructure/  → banco (Drizzle), cache (Redis), filas (BullMQ), HTTP (middlewares/segurança/OpenAPI)
-interfaces/      → DTOs (zod) e rotas HTTP que não pertencem ao painel legado
-payments/        → módulo financeiro: PaymentProvider (interface) + AsaasProvider (implementação única)
-notifications/   → módulo de e-mail: EmailProvider (interface) + ResendProvider/SmtpProvider, selecionado por EMAIL_TYPE
-wallet/          → WalletService — único ponto de mutação de saldo (ledger append-only, idempotente)
-services/        → regras de negócio do painel admin e do bot (Drizzle)
-server/          → bootstrap do Express, rotas do painel admin, middlewares, cron
-bot/             → dispatcher do Telegram, fluxos (sessão por usuário via Redis), views somente leitura
+config/          → Configurações, variáveis de ambiente e modo demonstração
+shared/          → Componentes compartilhados (erros, logger, validações, cache, segurança)
+infrastructure/  → Banco de dados, Redis, BullMQ, OpenAPI e infraestrutura HTTP
+interfaces/      → DTOs, validações e rotas HTTP
+payments/        → Integração com gateways de pagamento
+notifications/   → Sistema de envio de e-mails
+wallet/          → Controle centralizado das movimentações financeiras
+services/        → Regras de negócio da plataforma
+server/          → Bootstrap da aplicação, middlewares, cron jobs e agendadores
+bot/             → Fluxos, sessões e interação com o Telegram
 ```
 
-### Decisões de arquitetura
+### Principais decisões de arquitetura
 
-Além da organização em camadas, a aplicação segue algumas decisões arquiteturais que mantêm o acoplamento baixo, o comportamento previsível e a manutenção simples.
+Algumas decisões foram adotadas para tornar a aplicação mais segura, desacoplada e preparada para evolução.
 
-O **`WalletService`** é o único componente autorizado a alterar saldos. Em vez de atualizar valores diretamente, cada crédito ou débito gera um novo registro em `wallet_transactions`, executado dentro de uma transação com `SELECT ... FOR UPDATE` e `idempotencyKey`, garantindo consistência e evitando movimentações duplicadas.
+- **WalletService** centraliza todas as movimentações financeiras da plataforma. Nenhum outro módulo altera saldos diretamente, garantindo consistência, rastreabilidade e idempotência.
 
-O módulo **`payments/`** isola completamente a integração com gateways de pagamento. Toda a aplicação depende apenas da interface `PaymentProvider`, o que permite trocar a implementação atual (`AsaasProvider`) sem tocar em regra de negócio nenhuma.
+- O módulo **payments** depende apenas da interface `PaymentProvider`, permitindo substituir o gateway atual (**Asaas**) por qualquer outro sem alterar as regras de negócio.
 
-O mesmo princípio vale para o módulo **`notifications/`**, responsável pelo envio de e-mails: a implementação (`ResendProvider` ou `SmtpProvider`) é escolhida pela variável de ambiente `EMAIL_TYPE`, sem condicionais espalhadas pelo código.
+- O módulo **notifications** segue o mesmo princípio utilizando a interface `EmailProvider`, permitindo alternar entre **Resend**, **SMTP** ou um provedor específico para o modo demonstração por meio de configuração.
 
-Os **webhooks da Asaas** são processados de forma assíncrona — a API valida a assinatura da requisição e publica o evento na fila (BullMQ), enquanto o processamento roda em workers dedicados, com retry automático e deduplicação.
+- Os **webhooks da Asaas** são processados de forma assíncrona utilizando **BullMQ**, garantindo maior desempenho, retentativas automáticas e deduplicação de eventos.
 
-Por fim, o **bot do Telegram** mantém o estado das conversas no Redis, com uma sessão por usuário e um único dispatcher roteando as mensagens — sem estado global, com fluxos fáceis de acompanhar.
+- O **modo demonstração** possui uma única fonte de configuração (`config/demo.ts`), responsável por habilitar recursos exclusivos da demonstração e bloquear operações irreversíveis sem impactar o restante da aplicação.
+
+- O **catálogo de planos** é totalmente administrável pelo painel, enquanto os planos padrão do sistema permanecem protegidos para preservar regras críticas de negócio.
+
+- O **bot do Telegram** mantém sessões individuais no **Redis** e utiliza um único dispatcher para controlar todos os fluxos de conversa, tornando a navegação previsível e a manutenção mais simples.
+
+- Os **seeders** permanecem desacoplados dos comandos que os executam. O mesmo catálogo de planos é reutilizado durante a criação inicial do sistema, na atualização manual dos planos e na restauração do ambiente de demonstração, evitando duplicação de dados e garantindo uma única fonte de verdade.
 
 <h2 id="funcionalidades">✨ Funcionalidades</h2>
 
@@ -72,46 +79,71 @@ As funcionalidades abaixo estão organizadas pelos dois módulos que compõem o 
 
 ### 🤖 Bot do Telegram
 
-O bot concentra todo o fluxo operacional do usuário, incluindo:
+O bot reúne toda a jornada do usuário em uma única interface, permitindo:
 
-- Cadastro completo com nome, e-mail, senha, telefone, **CPF** (com validação por dígito verificador), endereço e chave PIX, além de verificação de e-mail.
-- Autenticação com sessões isoladas por usuário, armazenadas no Redis.
-- Depósitos e adesão de planos via **PIX** com a Asaas, com geração de QR Code, código copia-e-cola e confirmação automática por webhook.
-- Solicitação de saques via PIX, com aprovação manual pelo painel administrativo antes do envio para a Asaas.
-- Transferências internas entre usuários usando o e-mail como identificador, com operações atômicas de débito e crédito.
-- Consulta de extrato financeiro e acompanhamento do status de depósitos, saques e adesões.
-- Sistema de afiliados em três níveis, com bônus por adesão, mensalidade e rentabilidade da rede, respeitando o limite de três indicados comissionados por nível.
-- Processamento automático do rendimento diário para usuários com plano ativo.
-- Canal de suporte integrado, com possibilidade de encaminhamento para atendimento humano.
+- Cadastro completo com validação de **CPF**, endereço, chave **PIX** e verificação de e-mail.
+- Autenticação segura com sessões isoladas por usuário.
+- Depósitos via **PIX** utilizando o **Asaas**, com QR Code, código copia-e-cola e confirmação automática por webhook.
+- Contratação de **planos automáticos** diretamente pelo bot.
+- Solicitação de **planos manuais**, encaminhadas para análise da equipe administrativa.
+- Solicitação de saques via **PIX**, sujeitos à aprovação administrativa.
+- Transferências internas entre usuários utilizando o e-mail como identificador.
+- Consulta de saldo, extrato, rendimentos e histórico completo de movimentações.
+- Gerenciamento de uma **rede de afiliados** com até **três níveis de comissão**.
+- Processamento automático da rentabilidade conforme o plano contratado.
+- Canal de suporte integrado para atendimento ao usuário.
 
 ### 🌐 API do Painel Administrativo
 
-A API fornece todos os recursos usados pelo painel administrativo, incluindo:
+A API fornece todos os recursos necessários para operação da plataforma por meio do painel administrativo, incluindo:
 
-- Autenticação baseada em JWT com refresh tokens rotativos e detecção de reutilização de tokens.
-- Rate limiting global e específico para autenticação, usando Redis como armazenamento distribuído.
-- Gerenciamento completo dos usuários do bot, com consultas, filtros e ajustes manuais de saldo auditados.
-- Aprovação e rejeição de solicitações de saque, além do gerenciamento de depósitos, adesões e atendimentos de suporte.
-- Dashboard administrativo baseado nas movimentações reais registradas no ledger (`wallet_transactions`).
-- Visualização da estrutura de afiliados de cada usuário.
-- Documentação da API disponível em `GET /api/docs` (Swagger/OpenAPI).
+- Autenticação baseada em **JWT**, com refresh tokens rotativos e proteção contra reutilização.
+- Proteção contra abuso utilizando **Rate Limiting** distribuído com Redis.
+- Dashboard administrativo com **KPIs**, gráficos, comparativos por período e indicadores consolidados da plataforma.
+- Gerenciamento completo de usuários, incluindo consultas, filtros, auditoria e ajustes administrativos.
+- Aprovação e gerenciamento de depósitos, saques, adesões e solicitações financeiras.
+- Auditoria financeira completa, com rastreabilidade de todas as movimentações da plataforma.
+- Gerenciamento da estrutura de afiliados e acompanhamento da rede de cada usuário.
+- Administração completa do catálogo de planos (**AUTO** e **MANUAL**), com proteção para recursos críticos do sistema.
+- **Modo Demonstração** opcional, com login de visitante, bloqueio de operações irreversíveis e restauração automática do ambiente.
+- Documentação interativa da API utilizando **Swagger/OpenAPI**.
+
+### ⚙️ Destaques da Plataforma
+
+Além das funcionalidades principais, o projeto também inclui:
+
+- Arquitetura baseada em **Clean Architecture** e princípios **SOLID**.
+- Processamento assíncrono utilizando **BullMQ**.
+- Cache distribuído e gerenciamento de sessões com **Redis**.
+- Integração financeira via **Asaas**.
+- Sistema de permissões baseado em **RBAC**.
+- Auditoria completa das operações financeiras.
+- Ambiente de demonstração independente da produção.
+- Documentação técnica e API versionada.
 
 <h2 id="stack">🛠️ Stack</h2>
 
 | Categoria | Tecnologias |
 |---|---|
-| **Runtime** | Node.js 24, TypeScript 5.9 |
-| **API** | Express 4, Helmet, CORS (allowlist), `express-rate-limit` (store Redis) |
-| **Banco de dados** | MySQL 8.4, [Drizzle ORM](https://orm.drizzle.team/) + `drizzle-kit` (migrations versionadas) |
-| **Cache e filas** | Redis 7, [BullMQ](https://docs.bullmq.io/) |
-| **Pagamentos** | [Asaas](https://docs.asaas.com/) (PIX — cobrança, transferência e webhooks) |
-| **Bot Telegram** | [`node-telegram-bot-api`](https://github.com/yagop/node-telegram-bot-api) |
+| **Linguagem & Runtime** | Node.js 24, TypeScript 5.9 |
+| **API & HTTP** | Express 4, Helmet, CORS (Allowlist), `express-rate-limit` (Redis Store) |
+| **Banco de Dados** | MySQL 8.4, **Drizzle ORM**, `drizzle-kit` |
+| **Cache & Filas** | Redis 7, BullMQ |
+| **Bot** | `node-telegram-bot-api` |
+| **Pagamentos** | Asaas (PIX, transferências e webhooks) |
 | **Autenticação** | JWT (`jsonwebtoken`), `bcryptjs` |
-| **Validação** | [Zod](https://zod.dev/) (DTOs HTTP e variáveis de ambiente) |
-| **Logging** | [Pino](https://getpino.io/) estruturado, `pino-http` e `x-request-id` por requisição |
-| **Testes** | [Vitest](https://vitest.dev/) + Supertest (integração com banco e Redis quando aplicável) |
-| **Infraestrutura** | Docker multi-stage, Docker Compose e [Caddy](https://caddyserver.com/) (proxy reverso com TLS automático via Let's Encrypt) — ver [docs/deploy.md](docs/deploy.md) |
-| **Desenvolvimento** | [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (túnel persistente para desenvolvimento) — ver [seção Cloudflare Tunnel](#cloudflare-tunnel) |
+| **Validação** | Zod |
+| **Logs & Observabilidade** | Pino, `pino-http`, `x-request-id` |
+| **Testes** | Vitest, Supertest |
+| **Infraestrutura** | Docker (Multi-stage), Docker Compose, Caddy (TLS automático via Let's Encrypt) |
+
+Durante o desenvolvimento, o projeto utiliza algumas ferramentas para simplificar a configuração do ambiente e permitir integrações externas sem a necessidade de exposição direta da máquina local.
+
+| Ferramenta | Finalidade |
+|---|---|
+| **Cloudflare Tunnel** | Exposição segura do ambiente local para testes de webhooks e integrações externas. |
+| **Docker Compose** | Orquestração dos serviços de desenvolvimento. |
+| **Swagger / OpenAPI** | Documentação e testes da API REST. |
 
 <h2 id="estrutura">📁 Estrutura</h2>
 
@@ -140,7 +172,7 @@ scripts/
 
 <h2 id="rotas">📍 Rotas da API</h2>
 
-A API é organizada por módulos e documentada via **Swagger/OpenAPI** em `GET /api/docs`.
+A API é organizada por módulos e documentada via **Swagger/OpenAPI** em `/api/docs`.
 
 Todas as rotas protegidas exigem um **Access Token JWT** enviado no cabeçalho:
 
@@ -173,35 +205,40 @@ Authorization: Bearer <accessToken>
 
 ### 🔐 Autenticação (`/api/auth`)
 
+Responsável pela autenticação do painel administrativo, gerenciamento de sessões, renovação de tokens e acesso ao modo demonstração.
+
 | Método | Endpoint | Descrição |
 |---|---|---|
-| POST | `/` | Autentica um usuário do painel administrativo. |
-| POST | `/refresh` | Gera um novo Access Token a partir de um Refresh Token válido. |
-| POST | `/logout` | Revoga o Refresh Token atual. |
-| POST | `/token` | Valida um Access Token (compatibilidade com o painel legado). |
+| POST | `/` | Autentica um administrador. |
+| POST | `/demo-login` | Cria uma sessão temporária de demonstração, sem necessidade de credenciais. Disponível apenas com `APP_DEMO=true`. |
+| POST | `/refresh` | Gera um novo Access Token utilizando um Refresh Token válido. |
+| POST | `/logout` | Revoga o Refresh Token da sessão atual. |
+| POST | `/token` | Valida um Access Token e informa se a sessão está em modo demonstração. |
 
 ---
 
 ### 👤 Usuários (`/api/users`)
 
-#### Usuários do painel administrativo
+Gerenciamento dos administradores do painel e dos usuários cadastrados pelo bot do Telegram.
+
+#### Administradores
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `/` | Lista os usuários do painel administrativo. |
-| PATCH | `/update-user` | Atualiza os dados do usuário autenticado. |
-| PATCH | `/update-pass` | Atualiza a senha do usuário autenticado. |
+| GET | `/` | Lista os administradores cadastrados. |
+| PATCH | `/update-user` | Atualiza os dados do administrador autenticado. |
+| PATCH | `/update-pass` | Altera a senha do administrador autenticado. |
 
-#### Usuários do bot
+#### Usuários do Bot
 
 | Método | Endpoint | Descrição |
 |---|---|---|
 | GET | `/users-bot/:search` | Pesquisa usuários por termo livre. |
-| POST | `/users-bot` | Pesquisa usuários com filtros avançados. |
-| POST | `/user-bot` | Cadastra um novo usuário do bot. |
-| GET | `/user-bot/:id` | Consulta um usuário do bot. |
-| PATCH | `/user-bot` | Atualiza um usuário do bot. |
-| DELETE | `/user-bot/:id` | Remove um usuário do bot. |
+| POST | `/users-bot` | Pesquisa usuários utilizando filtros avançados. |
+| POST | `/user-bot` | Cadastra um novo usuário. |
+| GET | `/user-bot/:id` | Consulta os detalhes de um usuário. |
+| PATCH | `/user-bot` | Atualiza os dados de um usuário. |
+| DELETE | `/user-bot/:id` | Remove um usuário. |
 | PUT | `/user-bot/:id/:status` | Ativa ou desativa um usuário. |
 | POST | `/transf-user-admin` | Realiza um ajuste manual de saldo com registro em auditoria. |
 
@@ -209,48 +246,79 @@ Authorization: Bearer <accessToken>
 
 ### 📊 Dashboard (`/api/dashboard`)
 
+Endpoints responsáveis pelos indicadores estratégicos e métricas exibidos no painel administrativo.
+
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `/users` | Obtém métricas de usuários. |
-| GET | `/balance/:user_id/:product_id/:period` | Consulta saldo e rendimento por período. |
-| GET | `/plans` | Lista os planos disponíveis. |
+| GET | `/summary` | Retorna os principais indicadores do dashboard, incluindo KPIs, gráficos, aprovações do dia e movimentações recentes, com filtros por período e cache em Redis. |
+| GET | `/plans` | Lista os planos disponíveis para exibição no dashboard. |
+
+---
+
+### 📦 Planos (`/api/plans`)
+
+Gerenciamento completo do catálogo de planos da plataforma.
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| GET | `/` | Lista os planos com paginação, filtros e ordenação. |
+| GET | `/:id` | Consulta os detalhes de um plano. |
+| POST | `/` | Cria um novo plano. |
+| PATCH | `/:id` | Atualiza as informações de um plano existente. |
+| DELETE | `/:id` | Remove um plano. Planos do sistema ou com assinantes ativos não podem ser excluídos. |
+
+---
+
+### 🔍 Auditoria Financeira (`/api/audit`)
+
+Consulta completa e auditável de todas as movimentações financeiras da plataforma.
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/` | Retorna o histórico consolidado de movimentações financeiras, com filtros, paginação, ordenação e pesquisa avançada. |
 
 ---
 
 ### 🌐 Rede de Afiliados (`/api/network`)
 
+Consulta da estrutura hierárquica de afiliados vinculada aos usuários.
+
 | Método | Endpoint | Descrição |
 |---|---|---|
-| POST | `/:id` | Consulta a estrutura de afiliados de um usuário. |
+| POST | `/:id` | Retorna a estrutura completa da rede de afiliados de um usuário. |
 
 ---
 
 ### 💰 Solicitações (`/api/requests`)
 
+Gerenciamento de depósitos, saques, adesões, suporte e demais solicitações operacionais da plataforma.
+
 | Método | Endpoint | Descrição |
 |---|---|---|
 | GET | `/extract/:id` | Consulta o extrato financeiro de um usuário. |
-| POST | `/extract/:id` | Consulta o extrato com filtros. |
-| POST | `/withdrawal/:id` | Lista solicitações de saque. |
-| POST | `/deposit/:id` | Lista solicitações de depósito. |
-| POST | `/subscription/:id` | Lista solicitações de adesão a planos. |
-| POST | `/support/:id` | Lista atendimentos de suporte. |
+| POST | `/extract/:id` | Consulta o extrato utilizando filtros avançados. |
+| POST | `/withdrawal/:id` | Lista as solicitações de saque. |
+| POST | `/deposit/:id` | Lista os depósitos realizados. |
+| POST | `/subscription/:id` | Lista as solicitações de adesão aos planos. |
+| POST | `/support/:id` | Lista os atendimentos de suporte. |
 | POST | `/res-withdrawal` | Aprova ou rejeita uma solicitação de saque. |
-| PATCH | `/was-read/:id/:status` | Marca uma solicitação de suporte como lida. |
-| GET | `/pendencies` | Obtém a quantidade de pendências do sistema. |
+| PATCH | `/was-read/:id/:status` | Atualiza o status de leitura de um atendimento. |
+| GET | `/pendencies` | Retorna o total de pendências operacionais da plataforma. |
 
 ---
 
-### 🔗 Serviços públicos
+### 🔗 Integrações & Endpoints Públicos
+
+Endpoints utilizados por integrações externas e recursos acessíveis sem autenticação.
 
 | Método | Endpoint | Descrição |
 |---|---|---|
 | GET | `/email/verify/:token` | Confirma o endereço de e-mail de um usuário. |
-| POST | `/api/webhooks/asaas` | Recebe eventos de pagamentos e transferências enviados pela Asaas. |
+| POST | `/api/webhooks/asaas` | Recebe eventos enviados pela Asaas relacionados a pagamentos, cobranças e transferências via PIX. |
 
 <h2 id="comecando">▶️ Começando</h2>
 
-Esta seção descreve como configurar o ambiente de desenvolvimento local do **Smart Option Backend**.
+Esta seção descreve como configurar o ambiente de desenvolvimento local do **Smart Option**.
 
 ### Pré-requisitos
 
@@ -260,11 +328,7 @@ Esta seção descreve como configurar o ambiente de desenvolvimento local do **S
 - Conta Asaas Sandbox com chave de API
 - Opcional: `cloudflared` instalado e autenticado para receber webhooks localmente (veja a [seção Cloudflare Tunnel](#cloudflare-tunnel))
 
-> **Recomendação**
->
-> Use um bot exclusivo para desenvolvimento e nunca reaproveite o token do ambiente de produção.
-
-## Desenvolvimento com Docker (recomendado)
+### Desenvolvimento com Docker (recomendado)
 
 Clone o repositório e configure o ambiente:
 
@@ -323,7 +387,7 @@ Esse comando orquestra automaticamente todo o ambiente de desenvolvimento:
 >
 > O bot continua funcionando normalmente via Long Polling, mas depósitos, adesões e saques não são confirmados automaticamente, já que dependem dos webhooks da Asaas.
 
-## Desenvolvimento sem Docker
+### Desenvolvimento sem Docker
 
 Também é possível executar a API diretamente no host, mantendo apenas MySQL e Redis em containers.
 
@@ -363,7 +427,7 @@ Se quiser expor a aplicação para receber webhooks, execute o túnel em outro t
 npm run tunnel
 ```
 
-## Scripts disponíveis
+### Scripts disponíveis
 
 | Script | Descrição |
 |---|---|
@@ -384,8 +448,11 @@ npm run tunnel
 | `npm run db:generate` | Gera migrations com o Drizzle Kit. |
 | `npm run db:migrate` | Aplica as migrations pendentes. |
 | `npm run db:studio` | Abre o Drizzle Studio. |
-| `npm run db:seed` | Popula o banco com os dados iniciais. |
+| `npm run db:seed` | Popula o banco com os dados iniciais (catálogo de planos + conta admin). |
 | `npm run db:backfill-wallets` | Executa o backfill do ledger de carteiras. |
+| `npm run plans:seed` | Garante o catálogo de planos padrão (idempotente, independe do modo demonstração). |
+| `npm run demo:seed` | Limpa e regenera os dados de demonstração (**destrutivo** — equivalente a `demo:reset`). Exige `APP_DEMO=true`. |
+| `npm run demo:reset` | Restaura o ambiente de demonstração ao estado inicial (**destrutivo**). Exige `APP_DEMO=true`. |
 
 <h2 id="ambientes">⚙️ Configuração de Ambientes</h2>
 
@@ -419,6 +486,7 @@ Variáveis com valor padrão podem ser omitidas; as que não têm são obrigató
 | **Asaas** | `ASAAS_ENV`, `ASAAS_API_KEY`, `ASAAS_BASE_URL`, `ASAAS_WEBHOOK_TOKEN` |
 | **Cloudflare Tunnel** | `CF_TUNNEL_ID`, `CF_TUNNEL_TOKEN`, `CF_TUNNEL_DOMAIN`, `CF_TUNNEL_HOST` |
 | **E-mail** | `EMAIL_TYPE`, `RESEND_API_KEY`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` |
+| **Modo demonstração** | `APP_DEMO`, `AUTO_RESET`, `AUTO_RESET_INTERVAL` |
 
 > **Importante**
 >
@@ -514,7 +582,7 @@ Durante o desenvolvimento, a Asaas precisa acessar a API para entregar os webhoo
 
 > O Cloudflare Tunnel é usado **apenas em desenvolvimento**. Em produção, a aplicação é publicada normalmente através do **Caddy** com HTTPS automático.
 
-## Instalação
+### Instalação
 
 | Sistema | Comando |
 |---|---|
@@ -526,7 +594,7 @@ Durante o desenvolvimento, a Asaas precisa acessar a API para entregar os webhoo
 
 Se o `cloudflared` não estiver instalado, os comandos `npm run tunnel` e `npm run dev:full` mostram automaticamente essas instruções.
 
-## Autenticação
+### Autenticação
 
 Antes do primeiro uso, autentique a máquina na sua conta Cloudflare:
 
@@ -538,7 +606,7 @@ O navegador abrirá para autorizar o acesso ao domínio usado pelo projeto.
 
 Esse procedimento é feito apenas uma vez por máquina.
 
-## Primeira execução
+### Primeira execução
 
 Depois de autenticar, basta executar:
 
@@ -561,7 +629,7 @@ Na primeira execução o projeto:
 
 Nenhuma configuração manual adicional é necessária.
 
-## Configuração
+### Configuração
 
 O arquivo:
 
@@ -573,7 +641,7 @@ cloudflared/config.yml
 
 Durante a execução, o projeto gera automaticamente uma configuração com base nas variáveis do `.env`, evitando duplicação de informações como domínio, porta e identificador do túnel.
 
-## Utilização
+### Utilização
 
 Depois de iniciar o ambiente:
 
@@ -611,7 +679,7 @@ Ao encerrar a aplicação (`Ctrl + C`), o túnel também é encerrado. Os contai
 npm run docker:down
 ```
 
-## Integração com a Asaas
+### Integração com a Asaas
 
 No painel Sandbox da Asaas:
 
@@ -620,11 +688,139 @@ No painel Sandbox da Asaas:
 3. configure o mesmo valor definido em `ASAAS_WEBHOOK_TOKEN`;
 4. envie um evento de teste e acompanhe o processamento pelos logs da aplicação.
 
-## Como funciona
+### Como funciona
 
 O `cloudflared` roda diretamente no host e encaminha as requisições para a API em execução no Docker, através da porta configurada em `APP_PORT`.
 
 Essa abordagem simplifica o ambiente de desenvolvimento e evita rodar um container adicional só para o túnel.
+
+<h2 id="modo-demo">🎭 Modo Demonstração</h2>
+
+O **Modo Demonstração** transforma o Smart Option em um ambiente público de demonstração, permitindo que qualquer visitante explore praticamente todas as funcionalidades do sistema sem comprometer a segurança da aplicação ou realizar operações reais.
+
+Todo o ambiente foi projetado para oferecer uma experiência próxima à produção, utilizando dados realistas, mas impedindo qualquer ação que possa afetar sistemas externos, informações críticas ou movimentações financeiras.
+
+> ⚠️ **Todo o comportamento descrito nesta seção é controlado pela variável `APP_DEMO`.** Com `APP_DEMO=false` (valor padrão), nenhuma funcionalidade de demonstração é habilitada: a rota de login de visitante não existe, os bloqueios permanecem inativos e qualquer tentativa de executar comandos de reset é imediatamente interrompida.
+
+### Variáveis de ambiente
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `APP_DEMO` | `false` | Habilita o modo demonstração, incluindo login de visitante, bloqueio de operações críticas e comandos de restauração do ambiente. |
+| `AUTO_RESET` | `false` | Habilita a restauração automática do ambiente. **Requer `APP_DEMO=true`**. O servidor interrompe a inicialização caso essa combinação seja inválida. |
+| `AUTO_RESET_INTERVAL` | *60* | Intervalo do reset automático em **minutos** (`60`, `1440`, etc.). Obrigatório quando `AUTO_RESET=true`. |
+
+Somente valores explícitos (`true`, `1` ou `yes`) habilitam uma funcionalidade. Qualquer outro valor mantém a opção desativada.
+
+### Login de visitante
+
+Quando o backend está em modo demonstração, a tela de autenticação exibe o botão **Entrar como visitante**.
+
+```http
+POST /api/auth/demo-login
+```
+
+Nenhuma credencial pública é exposta.
+
+Ao utilizar essa rota, o backend cria uma sessão temporária utilizando uma conta interna de demonstração (`visitante@demo.local`), cuja autenticação só pode ocorrer por esse endpoint.
+
+A conta possui todas as permissões necessárias para explorar o sistema completo. A segurança da demonstração não depende da redução de permissões, mas sim do bloqueio específico das operações que poderiam causar efeitos permanentes ou externos.
+
+### Operações bloqueadas
+
+Durante a demonstração, determinadas ações retornam **HTTP 403** com a mensagem:
+
+> Esta ação está desabilitada na demonstração.
+
+O painel administrativo reflete esse comportamento, desabilitando visualmente essas ações e informando o motivo ao usuário.
+
+| Ação | Motivo |
+|---|---|
+| `POST /api/requests/res-withdrawal` | Evita transferências PIX reais pela Asaas. |
+| `POST` / `PATCH` / `DELETE` em `/api/staff` e `/api/roles` | Impede alterações em usuários administrativos e permissões do sistema. |
+| `PATCH /api/users/update-user` e `/update-pass` | Protege as credenciais da conta administrativa compartilhada. |
+
+Além disso, nenhuma integração externa é executada.
+
+Quando `APP_DEMO=true`, o envio de e-mails utiliza um **provedor nulo**, registrando as mensagens apenas nos logs da aplicação.
+
+Continuam disponíveis normalmente:
+
+- gerenciamento de usuários do bot;
+- ajustes manuais de saldo;
+- gerenciamento de planos;
+- movimentações financeiras fictícias;
+- consultas e auditorias;
+- atendimentos de suporte;
+- dashboards, gráficos e relatórios.
+
+### Restauração do ambiente
+
+```bash
+npm run demo:reset
+```
+
+O comando restaura completamente o ambiente de demonstração.
+
+Entre as operações executadas estão:
+
+- limpeza das tabelas transacionais;
+- recriação dos dados fictícios;
+- sincronização do catálogo de planos;
+- limpeza do cache do dashboard;
+- reconstrução da rede de afiliados;
+- geração das movimentações financeiras simuladas.
+
+Os dados administrativos permanecem preservados.
+
+As tabelas `staff_users` e `roles` nunca são removidas, garantindo que os administradores continuem com acesso ao ambiente. Da mesma forma, `products` é sincronizada por **upsert**, preservando os identificadores utilizados internamente pela aplicação.
+
+Caso `APP_DEMO=false`, o comando é imediatamente interrompido antes de qualquer alteração no banco.
+
+Para habilitar a restauração automática:
+
+```env
+APP_DEMO=true
+AUTO_RESET=true
+AUTO_RESET_INTERVAL=60
+```
+
+O agendador utiliza o mesmo processo da aplicação e impede execuções concorrentes caso um reset ainda esteja em andamento.
+
+### Dados de demonstração
+
+O gerador cria automaticamente um ambiente consistente para apresentação da plataforma.
+
+O conjunto inclui aproximadamente:
+
+- 300 usuários;
+- rede de afiliados em três níveis;
+- planos ativos;
+- depósitos;
+- rendimentos;
+- comissões;
+- solicitações de saque;
+- atendimentos de suporte;
+- histórico financeiro;
+- trilha completa de auditoria.
+
+```bash
+npm run demo:seed
+```
+
+O comando sempre recria o ambiente do zero antes de gerar novos dados, evitando o acúmulo de registros fictícios e garantindo um cenário previsível.
+
+Atualmente, `demo:seed` reutiliza exatamente a mesma rotina utilizada por `demo:reset`, mantendo um único fluxo de geração de dados.
+
+As mesmas validações continuam válidas: ambos os comandos só podem ser executados quando `APP_DEMO=true`.
+
+### Características do ambiente
+
+O ambiente de demonstração segue dois princípios fundamentais:
+
+- **Cenário determinístico:** a estrutura da demonstração permanece consistente a cada restauração, variando apenas identificadores internos e datas relativas ao momento da execução.
+
+- **Consistência financeira:** todos os saldos permanecem sincronizados com o ledger de transações, garantindo que dashboards, relatórios e auditorias apresentem exatamente os mesmos valores.
 
 <h2 id="testes">🧪 Testes</h2>
 
@@ -667,7 +863,7 @@ Este guia descreve o processo de deploy do **Smart Option Backend** (API + Bot T
 - domínio apontado para o IP da VPS (registro A)
 - Docker Engine + Docker Compose
 
-## 1. Instalar o Docker
+### 1. Instalar o Docker
 
 ```bash
 curl -fsSL https://get.docker.com | sh
@@ -686,7 +882,7 @@ ufw allow 80,443/tcp
 
 > Só o Caddy fica exposto à internet. A API, o MySQL e o Redis permanecem acessíveis apenas pela rede interna do Docker Compose.
 
-## 2. Clonar o projeto
+### 2. Clonar o projeto
 
 ```bash
 git clone <url-do-repositorio> smart-option
@@ -732,7 +928,7 @@ openssl rand -hex 32
 
 O arquivo `.env` é montado diretamente no container e precisa permanecer na raiz do projeto.
 
-## 3. Iniciar banco de dados e Redis
+### 3. Iniciar banco de dados e Redis
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d mysql redis
@@ -742,7 +938,7 @@ docker compose -f docker-compose.prod.yml ps
 
 Aguarde os dois serviços ficarem com status **healthy**.
 
-## 4. Executar as migrations
+### 4. Executar as migrations
 
 ```bash
 docker compose -f docker-compose.prod.yml --profile tools run --rm migrate
@@ -756,7 +952,7 @@ docker compose -f docker-compose.prod.yml --profile tools run --rm migrate npm r
 
 O seed inicial cria os produtos padrão usados pelo sistema.
 
-## 5. Iniciar a aplicação
+### 5. Iniciar a aplicação
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
@@ -790,7 +986,7 @@ Nenhuma configuração adicional é necessária.
 
 O Caddy renova automaticamente os certificados do Let's Encrypt antes do vencimento, sem cron nem intervenção manual.
 
-## 6. Operação
+### 6. Operação
 
 ### Logs
 
@@ -827,7 +1023,7 @@ mysqldump -u root -p"$DB_PASSWORD" "$DB_DATABASE" \
 
 Vale armazenar os backups fora da VPS.
 
-## 7. Limitações conhecidas
+### 7. Limitações conhecidas
 
 - O container `app` não suporta múltiplas réplicas enquanto o bot usar **Long Polling**. Rodar duas instâncias ao mesmo tempo gera erro **409** do Telegram.
 
@@ -954,6 +1150,9 @@ Consulte o arquivo [LICENSE](LICENSE) para os termos completos da licença.
 
 <h2 id="related-projects">🔗 Projetos Relacionados</h2>
 
+O **Smart Option** foi desenvolvido como um ecossistema composto por aplicações independentes, cada uma dedicada a uma responsabilidade específica. A divisão em múltiplos repositórios proporciona maior organização, facilita o desenvolvimento paralelo e torna a arquitetura mais modular e escalável.
+
 | Projeto | Descrição | Repositório |
 |----------|-----------|-------------|
+| 🌐 Landing Page | Landing page oficial do Smart Option, desenvolvida para apresentar a plataforma, seus diferenciais e a experiência proposta aos usuários. | https://github.com/issagomesdev/smart-option-page |
 | 👑 Painel Admin (Frontend) | Interface administrativa para gerenciamento da plataforma Smart Option. | https://github.com/issagomesdev/smart-option-admin |

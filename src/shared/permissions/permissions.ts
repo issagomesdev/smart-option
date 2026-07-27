@@ -17,6 +17,11 @@ export const PERMISSIONS = [
   "support.write",
   "staff.manage",
   "roles.manage",
+  // Catálogo de planos: criar/editar/excluir produtos. Justifica uma chave própria porque
+  // `products.price`/`earnings_monthly` alimentam lógica financeira viva — `applyEarningsDaily`
+  // (`src/server/cron.ts:94-127`) calcula o rendimento diário de todos os assinantes a partir de
+  // `earnings_monthly`, então editar um plano move dinheiro real. Leitura segue aberta.
+  "plans.manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];

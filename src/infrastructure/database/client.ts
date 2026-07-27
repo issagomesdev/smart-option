@@ -20,6 +20,14 @@ export const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  // Sem isso, o driver serializa objetos `Date` do JS usando os campos de horário LOCAL do processo
+  // Node (ex.: meia-noite em -03:00 vira o literal "00:00:00", sem o offset) — como a sessão do
+  // MySQL roda em UTC (`@@session.time_zone = 'SYSTEM'`, servidor em UTC), esse literal é
+  // reinterpretado como UTC, introduzindo um desvio de 3h em toda comparação `gte`/`lte`/`eq` contra
+  // uma coluna `timestamp` (confirmado empiricamente: `TIMESTAMPDIFF(SECOND, jsDate, NOW())` batia
+  // 10799s de diferença sem esta opção, 0s com ela). `timezone: "Z"` faz o driver converter o `Date`
+  // para o instante UTC real antes de serializar, o que bate com o fuso real da sessão.
+  timezone: "Z",
 });
 
 export const db = drizzle(pool, { schema, mode: "default" });

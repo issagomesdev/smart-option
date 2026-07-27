@@ -14,11 +14,14 @@ import {
 } from "../../interfaces/http/dtos/admin.dto";
 import { ok } from "../../shared/http/response";
 import { UnauthorizedError } from "../../shared/errors";
-import { requirePermission } from "../middlewares/auth.interceptor";
+import { denyInDemo, requirePermission } from "../middlewares/auth.interceptor";
 
 export default express
   .Router()
-  .patch("/update-user", validate({ body: updateStaffUserDto }), async (req: Request, res: Response, next: NextFunction) => {
+  // Credenciais administrativas ficam bloqueadas na demonstração: um visitante que trocasse o
+  // e-mail ou a senha da conta demo trancaria o acesso de todos os visitantes seguintes até o
+  // próximo reset (e `staff_users` é preservado justamente para não depender disso).
+  .patch("/update-user", denyInDemo(), validate({ body: updateStaffUserDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new UnauthorizedError();
       ok(res, await UsersService.updateUser(req.user.id, req.body));
@@ -26,7 +29,7 @@ export default express
       next(error);
     }
   })
-  .patch("/update-pass", validate({ body: updatePassDto }), async (req: Request, res: Response, next: NextFunction) => {
+  .patch("/update-pass", denyInDemo(), validate({ body: updatePassDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new UnauthorizedError();
       ok(res, await UsersService.updatePass(req.user.id, req.body));

@@ -4,7 +4,7 @@ import { validate } from "../../infrastructure/http/middlewares/validate";
 import { createRoleDto, roleIdParamDto, updateRoleDto } from "../../interfaces/http/dtos/roles.dto";
 import { ok } from "../../shared/http/response";
 import { UnauthorizedError } from "../../shared/errors";
-import { requireAnyPermission, requirePermission } from "../middlewares/auth.interceptor";
+import { denyInDemo, requireAnyPermission, requirePermission } from "../middlewares/auth.interceptor";
 
 // Escrita (`POST`/`PATCH`/`DELETE`) exige `roles.manage` estritamente — mesmo
 // recurso "tudo ou nada" da parte 4. `GET` é a exceção (Fase 5 parte 7):
@@ -36,7 +36,9 @@ export default express
       }
     },
   )
-  .post("/", requirePermission("roles.manage"), validate({ body: createRoleDto }), async (req: Request, res: Response, next: NextFunction) => {
+  // Escritas bloqueadas na demonstração (leitura continua liberada): editar papéis permitiria a um
+  // visitante remover permissões do papel `admin` e inutilizar o painel até o próximo reset.
+  .post("/", requirePermission("roles.manage"), denyInDemo(), validate({ body: createRoleDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new UnauthorizedError();
       ok(res, await RolesService.create(req.body, req.user.permissions), 201);
@@ -47,6 +49,7 @@ export default express
   .patch(
     "/:id",
     requirePermission("roles.manage"),
+    denyInDemo(),
     validate({ params: roleIdParamDto, body: updateRoleDto }),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
@@ -57,7 +60,7 @@ export default express
       }
     },
   )
-  .delete("/:id", requirePermission("roles.manage"), validate({ params: roleIdParamDto }), async (req: Request, res: Response, next: NextFunction) => {
+  .delete("/:id", requirePermission("roles.manage"), denyInDemo(), validate({ params: roleIdParamDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
       ok(res, await RolesService.delete(Number(req.params.id)));
     } catch (error) {

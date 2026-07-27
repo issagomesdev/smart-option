@@ -4,6 +4,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../infrastructure/database/client";
 import { roles, staffRefreshTokens, staffUsers } from "../infrastructure/database/schema";
 import { env } from "../config/env";
+import { assertDemoEnabled } from "../config/demo";
 import { UnauthorizedError } from "../shared/errors";
 import { logger } from "../shared/logger";
 import type { Permission } from "../shared/permissions/permissions";
@@ -11,6 +12,11 @@ import { hashPassword, isBcryptHash, verifyPassword } from "../shared/security/p
 
 const SESSION_REFRESH_TTL_MS = 24 * 60 * 60 * 1000;
 const REMEMBER_REFRESH_TTL_MS = parseDurationToMs(env.JWT_REFRESH_EXPIRES_IN, 30 * 24 * 60 * 60 * 1000);
+
+/** Conta compartilhada por todos os visitantes da demonstração. `.local` nunca resolve como domínio real. */
+const DEMO_STAFF_EMAIL = "visitante@demo.local";
+/** Papel `admin` semeado — a demonstração mostra o painel inteiro; a contenção é `denyInDemo()`. */
+const DEMO_STAFF_ROLE_ID = 1;
 
 export interface AuthTokens {
   accessToken: string;
@@ -75,6 +81,84 @@ export class AuthenticationService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * Sessão de visitante do modo demonstração (`POST /api/auth/demo-login`) — sem e-mail, sem senha,
+   * sem credencial pública para divulgar.
+   *
+   * Por que existe uma linha real em `staff_users` em vez de um token sintético: o access token
+   * carrega apenas `{ userId }` e `authenticateToken` (`server/middlewares/auth.interceptor.ts`)
+   * refaz um INNER JOIN `staff_users` + `roles` a cada requisição. Um usuário inventado não
+   * sobreviveria a esse join — toda chamada autenticada daria 401. O upsert abaixo é idempotente,
+   * então todos os visitantes compartilham a mesma conta demo, e ela é preservada pelo
+   * `demo:reset` (que não trunca `staff_users`).
+   *
+   * O visitante recebe o papel `admin` de propósito: a demonstração precisa mostrar o produto
+   * inteiro. A contenção não vem de permissões reduzidas, e sim de `denyInDemo()` nas rotas
+   * irreversíveis — decisão registrada em `config/demo.ts`.
+   */
+  static async demoLogin(): Promise<{ auth: true } & AuthTokens & { user: AuthenticatedStaffUser }> {
+    assertDemoEnabled("auth/demo-login");
+
+    const [existing] = await db
+      .select({ id: staffUsers.id })
+      .from(staffUsers)
+      .where(eq(staffUsers.email, DEMO_STAFF_EMAIL));
+
+    let userId = existing?.id;
+
+    if (!userId) {
+      // Senha aleatória e descartada: esta conta nunca deve autenticar pelo login normal, só por
+      // esta rota. Gravar um hash de valor desconhecido é o que garante isso.
+      const unusablePassword = await hashPassword(randomBytes(32).toString("hex"));
+      const [created] = await db
+        .insert(staffUsers)
+        .values({
+          name: "Visitante",
+          surname: "Demonstração",
+          email: DEMO_STAFF_EMAIL,
+          password: unusablePassword,
+          roleId: DEMO_STAFF_ROLE_ID,
+        })
+        .$returningId();
+      userId = created.id;
+      logger.info({ userId }, "Conta de visitante da demonstração criada");
+    } else {
+      // Reativa (soft-delete) e reafirma o papel, caso alguém tenha mexido durante a demonstração.
+      await db
+        .update(staffUsers)
+        .set({ deletedAt: null, roleId: DEMO_STAFF_ROLE_ID })
+        .where(eq(staffUsers.id, userId));
+    }
+
+    const [user] = await db
+      .select({
+        id: staffUsers.id,
+        name: staffUsers.name,
+        surname: staffUsers.surname,
+        email: staffUsers.email,
+        roleId: staffUsers.roleId,
+        permissions: roles.permissions,
+      })
+      .from(staffUsers)
+      .innerJoin(roles, eq(staffUsers.roleId, roles.id))
+      .where(eq(staffUsers.id, userId));
+
+    const tokens = await AuthenticationService.issueTokens(user.id, false);
+
+    return {
+      auth: true,
+      ...tokens,
+      user: {
+        id: user.id,
+        name: user.name,
+        surname: user.surname,
+        email: user.email,
+        roleId: user.roleId,
+        permissions: user.permissions ?? [],
+      },
+    };
   }
 
   static async login(email: string, password: string, remember = false): Promise<{ auth: true } & AuthTokens & { user: AuthenticatedStaffUser }> {

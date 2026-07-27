@@ -7,6 +7,7 @@ import { db } from "../../infrastructure/database/client";
 import { roles, staffUsers } from "../../infrastructure/database/schema";
 import { env } from "../../config/env";
 import { errorHandler } from "../../infrastructure/http/middlewares/error-handler";
+import { PERMISSIONS } from "../../shared/permissions/permissions";
 import { authorize, requireAnyPermission, requirePermission } from "./auth.interceptor";
 
 function buildApp() {
@@ -100,14 +101,8 @@ describe("authorize() middleware (integração, banco real)", () => {
       const response = await request(buildApp()).get("/protected").set("Authorization", `Bearer ${token}`);
 
       expect(response.status).toBe(200);
-      expect(response.body.user.permissions).toEqual([
-        "users.write",
-        "finance.adjust",
-        "withdrawals.approve",
-        "support.write",
-        "staff.manage",
-        "roles.manage",
-      ]);
+      // O papel `admin` é "acesso total" por definição — segue o catálogo, não uma lista fixa aqui.
+      expect(response.body.user.permissions).toEqual([...PERMISSIONS]);
     } finally {
       await db.delete(staffUsers).where(eq(staffUsers.id, adminStaff.id));
     }

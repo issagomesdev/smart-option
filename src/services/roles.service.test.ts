@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { db } from "../infrastructure/database/client";
 import { roles, staffUsers } from "../infrastructure/database/schema";
-import type { Permission } from "../shared/permissions/permissions";
+import { PERMISSIONS, type Permission } from "../shared/permissions/permissions";
 import { RolesService } from "./roles.service";
 
 /**
@@ -79,7 +79,9 @@ describe("RolesService (integração, banco real)", () => {
     it("devolve o papel semeado pela migration", async () => {
       const admin = await RolesService.getById(1);
       expect(admin).toMatchObject({ name: "admin", isSystem: true });
-      expect(admin.permissions).toHaveLength(6);
+      // "Acesso total" acompanha o catálogo por definição — comparar com `PERMISSIONS` em vez de um
+      // número fixo evita que este teste precise ser reeditado a cada chave nova.
+      expect(admin.permissions).toEqual([...PERMISSIONS]);
     });
 
     it("lança NotFoundError para papel inexistente", async () => {
