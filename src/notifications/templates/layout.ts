@@ -1,13 +1,14 @@
-const LOGO_HEADER_URL = "https://media.byissa.dev/smart-option/concept_mark.png";
+const LOGO_HEADER_URL = "https://media.byissa.dev/smart-option/brain_mark.png";
 const LOGO_BAR_URL = "https://media.byissa.dev/smart-option/logo.png";
 
 function renderLayout(bodyHtml: string): string {
   return `<div>
-      <p>
-      <img style="width: 25em;" src="${LOGO_HEADER_URL}" alt="SmartOption">
-      </p>
+      
+     <div style="width: fit-content; display: flex; margin-bottom: 2px; align-items: center; border-radius: 6px;">
+        <img style="width: auto; height: 8rem; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.50)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.10));" src="${LOGO_HEADER_URL}" alt="SmartOption1">
+     </div>
 
-      <table cellspacing="0" style="width:100%;margin:0 auto" bgcolor="#F2F3F4">
+      <table cellspacing="0" style="width:100%;margin:0" bgcolor="#F2F3F4">
           <tbody>
               <tr>
                   <td style="background: #000000; height: 5em;">

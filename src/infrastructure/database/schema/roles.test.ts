@@ -13,7 +13,10 @@ import { roles, staffUsers } from "./index";
  */
 describe("roles (seed da migration, banco real)", () => {
   it("semeia exatamente 2 papéis de sistema: admin (id 1, todas as permissões) e staff (id 2, nenhuma)", async () => {
-    const rows = await db.select().from(roles).orderBy(asc(roles.id));
+    // Filtra por `isSystem`: papéis criados pelo painel (ou deixados para trás por uma execução de
+    // teste interrompida antes do cleanup) são legítimos e não podem quebrar a asserção do seed —
+    // o que esta suíte prova é o estado deixado pela migration, não o tamanho da tabela.
+    const rows = await db.select().from(roles).where(eq(roles.isSystem, true)).orderBy(asc(roles.id));
 
     expect(rows).toHaveLength(2);
 

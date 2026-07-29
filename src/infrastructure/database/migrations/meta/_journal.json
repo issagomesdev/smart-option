@@ -50,6 +50,13 @@
       "when": 1785097090940,
       "tag": "0006_plans_manage_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1785277877846,
+      "tag": "0007_pretty_jean_grey",
+      "breakpoints": true
     }
   ]
 }

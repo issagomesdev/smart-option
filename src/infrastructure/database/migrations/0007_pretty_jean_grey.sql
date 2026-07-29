@@ -1,0 +1,1 @@
+ALTER TABLE `bot_users` ADD CONSTRAINT `bot_users_cpf_unique` UNIQUE(`cpf`);

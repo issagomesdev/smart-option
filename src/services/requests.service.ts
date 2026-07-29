@@ -2,12 +2,14 @@ import { and, eq, like, sql } from "drizzle-orm";
 import moment from "moment";
 import { paymentService } from "../payments/payment.service";
 import { ExternalServiceError, NotFoundError } from "../shared/errors";
+import { recordAudit, type AuditActor } from "../shared/audit/audit-log";
+import { logger } from "../shared/logger";
+import { inferPixKeyType } from "../payments/providers/asaas/pix-key";
 import { walletService } from "../wallet/wallet.service";
 import { db } from "../infrastructure/database/client";
 import { offsetFor, paginate, type PaginationParams } from "../shared/http/pagination";
 import { resolveSort } from "../shared/http/sorting";
 import {
-  auditLogs,
   botUsers,
   checkouts,
   products,
@@ -61,6 +63,19 @@ interface ListFilters extends PaginationParams {
 
 function createdAtFilter(column: any, createdAt?: string) {
   return createdAt ? like(sql`CAST(${column} AS CHAR)`, `%${createdAt.replace("T", " ")}%`) : undefined;
+}
+
+/**
+ * Tipo da chave PIX só para o log de diagnóstico. `inferPixKeyType` lança quando não reconhece o
+ * formato, e isto roda dentro de um `catch` — deixar a exceção subir aqui trocaria o erro real da
+ * Asaas por um erro de inferência, escondendo justamente a causa que se quer registrar.
+ */
+function safeInferPixKeyType(pixKey: string): string {
+  try {
+    return inferPixKeyType(pixKey);
+  } catch {
+    return "indeterminado";
+  }
 }
 
 export class RequestService {
@@ -346,17 +361,35 @@ export class RequestService {
         // saque — a ação mais sensível do sistema, dispara PIX real — nunca
         // gravava em `audit_logs`, ao contrário do ajuste manual de saldo
         // (`UsersService.transfValuesAdmin`), que já gravava desde a Fase 4.
-        await db.insert(auditLogs).values({
-          actorType: "staff_user",
-          actorId: actor?.id ?? null,
+        await recordAudit({
           action: "withdrawal.approved",
           entityType: "withdrawals",
-          entityId: String(body.id),
-          after: { transactionId: transfer.externalId, observation: body.observation ?? null, actorEmail: actor?.email ?? null },
+          entityId: body.id,
+          actor,
+          after: { transactionId: transfer.externalId, observation: body.observation ?? null },
         });
 
         return { status: true, message: "Solicitação respondida com sucesso!" };
       } catch (error) {
+        // A resposta da Asaas vem em `details` (status HTTP + corpo, montados por `toAsaasError`) e
+        // era descartada aqui: a operação mais sensível do sistema falhava sem deixar rastro nenhum
+        // no log, e quem estava operando o painel só via a frase curta na tela, sem como investigar.
+        const details = error instanceof ExternalServiceError ? error.details : undefined;
+        logger.error(
+          {
+            err: error,
+            withdrawalId: body.id,
+            userId: user.id,
+            amount: withdrawal.value,
+            pixKey: user.pixCode,
+            pixKeyType: safeInferPixKeyType(user.pixCode),
+            asaasStatus: details?.status,
+            asaasResponse: details?.data,
+            actorId: actor?.id ?? null,
+          },
+          "Falha ao criar a transferência PIX na Asaas",
+        );
+
         return {
           status: false,
           message: error instanceof ExternalServiceError ? error.message : "Falha ao processar a transferência PIX.",
@@ -366,13 +399,12 @@ export class RequestService {
 
     await db.update(withdrawals).set({ status: "refused", replyObservation: body.observation }).where(eq(withdrawals.id, body.id));
 
-    await db.insert(auditLogs).values({
-      actorType: "staff_user",
-      actorId: actor?.id ?? null,
+    await recordAudit({
       action: "withdrawal.refused",
       entityType: "withdrawals",
-      entityId: String(body.id),
-      after: { observation: body.observation ?? null, actorEmail: actor?.email ?? null },
+      entityId: body.id,
+      actor,
+      after: { observation: body.observation ?? null },
     });
 
     return { status: true, message: "Solicitação respondida com sucesso!" };
@@ -424,8 +456,17 @@ export class RequestService {
     }
   }
 
-  static async wasRead(id: string, status: string) {
+  static async wasRead(id: string, status: string, actor: AuditActor | null = null) {
     await db.update(supportRequestsTable).set({ isRead: Number(status) }).where(eq(supportRequestsTable.id, Number(id)));
+
+    await recordAudit({
+      action: "support.marked_read",
+      entityType: "requests",
+      entityId: id,
+      actor,
+      after: { isRead: Number(status) },
+    });
+
     return { status: true, message: "Solicitação atualizado com sucesso" };
   }
 

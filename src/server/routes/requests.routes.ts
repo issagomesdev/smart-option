@@ -104,7 +104,7 @@ export default express
     validate({ params: wasReadParamsDto }),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        ok(res, await RequestService.wasRead(req.params.id, req.params.status));
+        ok(res, await RequestService.wasRead(req.params.id, req.params.status, req.user ? { id: req.user.id, email: req.user.email } : null));
       } catch (error) {
         next(error);
       }

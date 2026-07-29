@@ -101,8 +101,10 @@ The API exposes everything needed to run the platform from the admin panel:
 - Abuse protection through distributed **rate limiting** backed by Redis.
 - Admin dashboard with **KPIs**, charts, period-over-period comparisons, and consolidated platform metrics.
 - Complete user management, including search, filters, audit trails, and administrative adjustments.
+- Admin team management: creating members, editing name, email, and password, reassigning roles, and deactivating accounts — all recorded in the audit trail.
 - Approval and management of deposits, withdrawals, subscriptions, and financial requests.
 - Full financial audit, with traceability for every transaction on the platform.
+- Audit log: records every action taken in the panel, including author, date, time, and the history of the changes.
 - Affiliate structure management and per-user network tracking.
 - Complete administration of the plan catalog (**AUTO** and **MANUAL**), with safeguards for critical system resources.
 - Optional **demo mode**, with guest sign-in, blocking of irreversible operations, and automatic environment restore.
@@ -269,13 +271,14 @@ Complete management of the platform's plan catalog.
 
 ---
 
-### 🔍 Financial Audit (`/api/audit`)
+### 🔍 Audit (`/api/audit`)
 
-Complete, auditable view of every financial transaction on the platform.
+Two complementary trails: the platform's **financial transactions** and the **administrative actions** — who changed what. Every change to the team, roles, bot users, blocks, balance adjustments, withdrawal responses, and support resolutions is recorded with author, timestamp, and the state before and after. Password resets are flagged as such, without ever storing the password or its hash.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/` | Returns the consolidated transaction history, with filters, pagination, sorting, and advanced search. |
+| POST | `/` | Returns the consolidated financial transaction history, with filters, pagination, sorting, and advanced search. |
+| POST | `/actions` | Returns the administrative action history — who changed what in the panel, with the state before and after each change. |
 
 ---
 

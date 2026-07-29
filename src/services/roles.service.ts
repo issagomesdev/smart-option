@@ -3,6 +3,7 @@ import { db } from "../infrastructure/database/client";
 import { roles, staffUsers } from "../infrastructure/database/schema";
 import { ConflictError, NotFoundError } from "../shared/errors";
 import { assertCanGrant, assertStaffManageSurvives, type Permission } from "../shared/permissions/permissions";
+import { recordAudit, type AuditActor } from "../shared/audit/audit-log";
 
 interface RoleInput {
   name: string;
@@ -53,7 +54,7 @@ export class RolesService {
     return Number(count);
   }
 
-  static async create(data: RoleInput, actorPermissions: readonly Permission[]) {
+  static async create(data: RoleInput, actorPermissions: readonly Permission[], actor: AuditActor | null = null) {
     assertCanGrant(actorPermissions, data.permissions);
 
     try {
@@ -63,6 +64,15 @@ export class RolesService {
         .$returningId();
 
       const [role] = await db.select().from(roles).where(eq(roles.id, created.id));
+
+      await recordAudit({
+        action: "role.created",
+        entityType: "roles",
+        entityId: created.id,
+        actor,
+        after: { name: data.name, description: data.description ?? null, permissions: data.permissions },
+      });
+
       return role;
     } catch (error) {
       if (isDuplicateNameError(error)) throw new ConflictError("Já existe um papel com esse nome.");
@@ -70,7 +80,7 @@ export class RolesService {
     }
   }
 
-  static async update(id: number, data: RoleInput, actorPermissions: readonly Permission[]) {
+  static async update(id: number, data: RoleInput, actorPermissions: readonly Permission[], actor: AuditActor | null = null) {
     assertCanGrant(actorPermissions, data.permissions);
 
     const [existing] = await db.select().from(roles).where(eq(roles.id, id));
@@ -93,10 +103,20 @@ export class RolesService {
     }
 
     const [updated] = await db.select().from(roles).where(eq(roles.id, id));
+
+    await recordAudit({
+      action: "role.updated",
+      entityType: "roles",
+      entityId: id,
+      actor,
+      before: { name: existing.name, description: existing.description ?? null, permissions: existing.permissions },
+      after: { name: data.name, description: data.description ?? null, permissions: data.permissions },
+    });
+
     return updated;
   }
 
-  static async delete(id: number) {
+  static async delete(id: number, actor: AuditActor | null = null) {
     const [existing] = await db.select().from(roles).where(eq(roles.id, id));
     if (!existing) throw new NotFoundError("Papel inexistente");
 
@@ -110,6 +130,15 @@ export class RolesService {
     }
 
     await db.delete(roles).where(eq(roles.id, id));
+
+    await recordAudit({
+      action: "role.deleted",
+      entityType: "roles",
+      entityId: id,
+      actor,
+      before: { name: existing.name, permissions: existing.permissions },
+    });
+
     return { status: true, message: "Papel excluído com sucesso" };
   }
 }

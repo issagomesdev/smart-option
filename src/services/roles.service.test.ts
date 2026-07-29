@@ -64,13 +64,15 @@ describe("RolesService (integração, banco real)", () => {
   }
 
   describe("list", () => {
-    it("inclui os dois papéis semeados pela migration (admin com as 6 permissões, staff sem nenhuma)", async () => {
+    it("inclui os dois papéis semeados pela migration (admin com todas as permissões, staff sem nenhuma)", async () => {
       const result = await RolesService.list();
       const admin = result.find((role) => role.id === 1);
       const staff = result.find((role) => role.id === 2);
 
       expect(admin).toMatchObject({ name: "admin", isSystem: true });
-      expect(admin!.permissions).toHaveLength(6);
+      // Comparado contra o catálogo, não contra um número fixo: uma permissão nova (como
+      // `plans.manage`) deve entrar no papel `admin` sem exigir que se lembre de ajustar este teste.
+      expect([...admin!.permissions].sort()).toEqual([...PERMISSIONS].sort());
       expect(staff).toMatchObject({ name: "staff", isSystem: true, permissions: [] });
     });
   });

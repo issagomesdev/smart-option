@@ -101,8 +101,10 @@ La API expone todo lo necesario para operar la plataforma desde el panel adminis
 - Protección contra abuso mediante **rate limiting** distribuido con Redis.
 - Dashboard administrativo con **KPIs**, gráficos, comparativas por período e indicadores consolidados de la plataforma.
 - Gestión completa de usuarios, incluyendo consultas, filtros, auditoría y ajustes administrativos.
+- Gestión del equipo administrativo: alta de colaboradores, edición de nombre, correo y contraseña, reasignación de roles y desactivación de cuentas — todo registrado en el rastro de auditoría.
 - Aprobación y gestión de depósitos, retiros, suscripciones y solicitudes financieras.
 - Auditoría financiera completa, con trazabilidad de todos los movimientos de la plataforma.
+- Registro de auditoría: guarda todas las acciones realizadas en el panel, incluyendo autor, fecha, hora e historial de los cambios.
 - Gestión de la estructura de afiliados y seguimiento de la red de cada usuario.
 - Administración completa del catálogo de planes (**AUTO** y **MANUAL**), con protección para los recursos críticos del sistema.
 - **Modo demostración** opcional, con inicio de sesión como visitante, bloqueo de operaciones irreversibles y restauración automática del entorno.
@@ -269,13 +271,14 @@ Gestión completa del catálogo de planes de la plataforma.
 
 ---
 
-### 🔍 Auditoría Financiera (`/api/audit`)
+### 🔍 Auditoría (`/api/audit`)
 
-Consulta completa y auditable de todos los movimientos financieros de la plataforma.
+Dos rastros complementarios: los **movimientos financieros** de la plataforma y las **acciones administrativas** — quién modificó qué. Cada cambio en el equipo, los roles, los usuarios del bot, los bloqueos, los ajustes de saldo, las respuestas a retiros y los cierres de soporte queda registrado con autor, fecha y hora, y el estado antes y después. Los restablecimientos de contraseña se marcan como tales, sin guardar nunca la contraseña ni su hash.
 
 | Método | Endpoint | Descripción |
 |---|---|---|
 | POST | `/` | Devuelve el historial consolidado de movimientos financieros, con filtros, paginación, ordenamiento y búsqueda avanzada. |
+| POST | `/actions` | Devuelve el historial de acciones administrativas — quién modificó qué en el panel, con el estado antes y después de cada cambio. |
 
 ---
 

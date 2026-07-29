@@ -213,6 +213,70 @@ export const openApiDocument = {
         },
       },
     },
+    "/audit/actions": {
+      post: {
+        summary: "Trilha de ações administrativas — quem alterou o quê",
+        tags: ["Auditoria"],
+        security: [{ bearerAuth: [] }],
+        description:
+          "Complementa `POST /audit`, que cobre o dinheiro movimentado. Aqui ficam as intervenções de administradores: equipe, papéis, usuários do bot, bloqueios, ajustes de saldo, respostas a saques e suporte. Cada linha guarda o estado antes e depois, o autor (com o e-mail preservado mesmo se a conta for removida) e o horário. Redefinições de senha aparecem como `passwordChanged: true` — a senha e o hash nunca são registrados. Leitura aberta a qualquer staff autenticado; nunca cacheado.",
+        requestBody: {
+          required: false,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  page: { type: "integer", default: 1 },
+                  limit: { type: "integer", default: 20, maximum: 100 },
+                  period: {
+                    type: "string",
+                    enum: ["today", "7d", "30d", "custom"],
+                    description: "Omitido = histórico completo, sem filtro de data.",
+                  },
+                  start: { type: "string", format: "date", description: "Obrigatório com period=custom." },
+                  end: { type: "string", format: "date", description: "Obrigatório com period=custom." },
+                  action: {
+                    type: "string",
+                    enum: [
+                      "staff.created",
+                      "staff.updated",
+                      "staff.role_changed",
+                      "staff.deactivated",
+                      "staff.deleted",
+                      "role.created",
+                      "role.updated",
+                      "role.deleted",
+                      "bot_user.created",
+                      "bot_user.updated",
+                      "bot_user.deleted",
+                      "bot_user.blocked",
+                      "bot_user.unblocked",
+                      "wallet.admin_credit",
+                      "wallet.admin_debit",
+                      "withdrawal.approved",
+                      "withdrawal.refused",
+                      "support.marked_read",
+                    ],
+                  },
+                  entityType: {
+                    type: "string",
+                    description: "Área afetada: `staff_users`, `roles`, `bot_users`, `withdrawals` ou `requests`.",
+                  },
+                  actorId: { type: "integer", description: "Filtra pelas ações de um administrador específico." },
+                  search: { type: "string", description: "Busca por autor (nome/e-mail) ou pelo identificador do registro." },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Lista paginada, da ação mais recente para a mais antiga" },
+          "400": { description: "Filtros inválidos", content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } },
+          "401": { description: "Token ausente, inválido ou expirado" },
+        },
+      },
+    },
     "/plans": {
       get: {
         summary: "Lista o catálogo de planos (paginado, filtrável)",
@@ -289,6 +353,134 @@ export const openApiDocument = {
             description: "Plano de sistema ou com assinantes — não pode ser excluído",
             content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } },
           },
+        },
+      },
+    },
+    "/staff": {
+      get: {
+        summary: "Lista a equipe administrativa (paginado)",
+        tags: ["Equipe"],
+        security: [{ bearerAuth: [] }],
+        description: "Todo o recurso exige a permissão `staff.manage`, aplicada uma vez no mount do router.",
+        parameters: [
+          { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+          { name: "limit", in: "query", schema: { type: "integer", default: 20, maximum: 100 } },
+          { name: "sortBy", in: "query", schema: { type: "string" } },
+          { name: "sortDirection", in: "query", schema: { type: "string", enum: ["asc", "desc"] } },
+        ],
+        responses: {
+          "200": { description: "Lista paginada de staff, sem o hash de senha" },
+          "403": { description: "Sem a permissão `staff.manage`" },
+        },
+      },
+      post: {
+        summary: "Cria um staff",
+        tags: ["Equipe"],
+        security: [{ bearerAuth: [] }],
+        description:
+          "Recusa com 403 se o papel escolhido tiver permissões que o autor da requisição não possui (proteção contra auto-escalação).",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "surname", "email", "password", "roleId"],
+                properties: {
+                  name: { type: "string", maxLength: 255 },
+                  surname: { type: "string", maxLength: 255 },
+                  email: { type: "string", format: "email" },
+                  password: { type: "string", minLength: 8 },
+                  roleId: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Staff criado" },
+          "403": { description: "Sem `staff.manage`, ou tentativa de conceder permissões que o autor não possui" },
+          "409": { description: "Já existe um staff com esse e-mail" },
+        },
+      },
+    },
+    "/staff/{id}": {
+      get: {
+        summary: "Detalhe de um staff",
+        tags: ["Equipe"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        responses: {
+          "200": { description: "Staff encontrado" },
+          "404": { description: "Staff inexistente" },
+        },
+      },
+      patch: {
+        summary: "Edita nome, sobrenome, e-mail e (opcionalmente) a senha de um staff",
+        tags: ["Equipe"],
+        security: [{ bearerAuth: [] }],
+        description:
+          "Os mesmos campos que o próprio staff altera em Configurações da conta, disponíveis para quem tem `staff.manage`. `password` é opcional — omitido, a senha atual é mantida; diferente do autoatendimento, a senha atual não é exigida. Só é possível editar um staff cujas permissões sejam um subconjunto das do autor da requisição: sem essa regra, redefinir a senha de um administrador mais privilegiado seria um caminho de escalação.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["name", "surname", "email"],
+                properties: {
+                  name: { type: "string", maxLength: 255 },
+                  surname: { type: "string", maxLength: 255 },
+                  email: { type: "string", format: "email" },
+                  password: { type: "string", minLength: 8, description: "Opcional. Ausente = manter a senha atual." },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Staff atualizado" },
+          "403": { description: "Sem `staff.manage`, ou o staff editado possui permissões que o autor não tem" },
+          "404": { description: "Staff inexistente" },
+          "409": { description: "Já existe um staff com esse e-mail" },
+        },
+      },
+      delete: {
+        summary: "Exclui um staff definitivamente",
+        tags: ["Equipe"],
+        security: [{ bearerAuth: [] }],
+        description:
+          "Remove o registro e as sessões (refresh tokens) do staff. O administrador principal (id 1) e a própria conta do autor são bloqueados incondicionalmente, e a operação é recusada se deixaria o sistema sem nenhum staff ativo com `staff.manage`. A trilha de auditoria sobrevive à exclusão: `audit_logs` guarda o e-mail do autor desnormalizado.",
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        responses: {
+          "200": { description: "Staff excluído" },
+          "403": {
+            description: "Sem `staff.manage`, tentativa de excluir o administrador principal (id 1) ou a própria conta",
+          },
+          "404": { description: "Staff inexistente" },
+          "409": { description: "A mudança deixaria o sistema sem nenhum staff com `staff.manage`" },
+        },
+      },
+    },
+    "/staff/{id}/role": {
+      patch: {
+        summary: "Reatribui o papel de um staff",
+        tags: ["Equipe"],
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { type: "object", required: ["roleId"], properties: { roleId: { type: "integer" } } },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Papel reatribuído" },
+          "403": { description: "Tentativa de conceder permissões que o autor não possui" },
+          "409": { description: "A mudança deixaria o sistema sem nenhum staff com `staff.manage`" },
         },
       },
     },

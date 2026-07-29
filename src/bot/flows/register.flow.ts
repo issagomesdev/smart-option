@@ -1,8 +1,9 @@
 import TelegramBot from "node-telegram-bot-api";
-import { RegisterService, RegisterUserInput } from "../../services/bot/register.service";
+import { CPF_TAKEN_MESSAGE, EMAIL_TAKEN_MESSAGE, RegisterService, RegisterUserInput } from "../../services/bot/register.service";
 import { sessionService, BotSession } from "../session.service";
 import { backToAuthMenuKeyboard, inlineKeyboard } from "../keyboards";
 import { sendError, sendTyping } from "../ux";
+import { toUserMessage } from "../errors";
 import { isValidCpf } from "../../shared/validation/cpf";
 
 interface Question {
@@ -20,8 +21,10 @@ const QUESTIONS: Question[] = [
   { field: "adress", text: "Endereço" },
   { field: "pix_code", text: "Código Pix" },
 ];
+const EMAIL_INDEX = 1;
 const PASSWORD_INDEX = 2;
 const CONFIRM_PASSWORD_INDEX = 3;
+const CPF_INDEX = 5;
 
 interface RegisterData {
   answers: Record<string, string>;
@@ -34,12 +37,20 @@ function readData(session: BotSession): RegisterData {
   return session.data as unknown as RegisterData;
 }
 
-async function writeData(userId: number, step: "collecting" | "confirm", data: RegisterData): Promise<void> {
+async function writeData(userId: number, step: "collecting" | "confirm" | "submitting", data: RegisterData): Promise<void> {
   await sessionService.set(userId, { flow: "register", step, data: data as unknown as Record<string, unknown> });
 }
 
 function freshData(affiliateId: number | null = null): RegisterData {
   return { answers: {}, currentField: 0, fieldCorrection: null, affiliateId };
+}
+
+/** Índice do campo a recorrigir quando o cadastro falhou por dado já usado; `null` se o erro for de outra natureza. */
+function duplicateFieldIndex(error: unknown): number | null {
+  const message = toUserMessage(error);
+  if (message === EMAIL_TAKEN_MESSAGE) return EMAIL_INDEX;
+  if (message === CPF_TAKEN_MESSAGE) return CPF_INDEX;
+  return null;
 }
 
 /** `null` = válido. CPF é a única validação de formato aplicada durante a coleta — as demais seguem como texto livre, igual ao fluxo original. */
@@ -74,7 +85,9 @@ export async function handleMessage(bot: TelegramBot, msg: TelegramBot.Message, 
   const text = msg.text ?? "";
   const data = readData(session);
 
-  if (session.step === "confirm") return; // aguardando callback de confirmação, ignora texto solto
+  // "confirm": aguardando o callback de confirmação. "submitting": cadastro já em andamento —
+  // nos dois casos, texto solto não é resposta de campo nenhum e seria gravado por engano.
+  if (session.step === "confirm" || session.step === "submitting") return;
 
   if (data.fieldCorrection !== null) {
     const field = QUESTIONS[data.fieldCorrection].field;
@@ -154,6 +167,13 @@ export async function handleCallback(bot: TelegramBot, query: TelegramBot.Callba
 
   if (params.get("for") === "confirm-user-infos") {
     if (params.get("choice") === "yes") {
+      // Guarda contra duplo clique no ✅ SIM. Sem ela, dois toques em sequência viram dois
+      // callbacks concorrentes: ambos passam pela checagem prévia de e-mail antes de qualquer
+      // INSERT commitar, um cadastra e responde "sucesso" e o outro estoura na chave única
+      // (bug real relatado — o usuário recebeu o erro do banco e a mensagem de sucesso juntos).
+      if (session.step === "submitting") return;
+      await writeData(userId, "submitting", data);
+
       await sendTyping(bot, chatId);
       try {
         await RegisterService.registerUser(data.answers as unknown as RegisterUserInput, data.affiliateId);
@@ -163,12 +183,22 @@ export async function handleCallback(bot: TelegramBot, query: TelegramBot.Callba
           "Antes de tudo é necessário validar o email de cadastro, um link de validação foi enviado agora mesmo, acesse o link para liberar o acesso",
         );
         await sessionService.clear(userId);
-      } catch (error: any) {
-        await sendError(bot, chatId, error.message);
-        if (error.message === "Email já em uso") {
-          await bot.sendMessage(chatId, `Para realizar seu cadastro em nosso sistema, digite novamente o valor do campo ${QUESTIONS[1].text}:`);
-          await writeData(userId, "collecting", { ...data, fieldCorrection: 1 });
+      } catch (error) {
+        await sendError(bot, chatId, toUserMessage(error));
+
+        // Dado duplicado é recuperável: leva direto à correção do campo em questão, em vez de
+        // devolver o usuário ao início do cadastro.
+        const retryIndex = duplicateFieldIndex(error);
+        if (retryIndex !== null) {
+          await bot.sendMessage(chatId, `Para realizar seu cadastro em nosso sistema, digite novamente o valor do campo ${QUESTIONS[retryIndex].text}:`);
+          await writeData(userId, "collecting", { ...data, fieldCorrection: retryIndex });
+          return;
         }
+
+        // Falha não recuperável (backend fora do ar, erro inesperado): mantém tudo o que já foi
+        // digitado e devolve à tela de confirmação, para o usuário poder tentar de novo.
+        await writeData(userId, "confirm", data);
+        await confirmFields(bot, chatId, data.answers);
       }
       return;
     }

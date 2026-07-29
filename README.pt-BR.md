@@ -101,8 +101,10 @@ A API fornece todos os recursos necessários para operação da plataforma por m
 - Proteção contra abuso utilizando **Rate Limiting** distribuído com Redis.
 - Dashboard administrativo com **KPIs**, gráficos, comparativos por período e indicadores consolidados da plataforma.
 - Gerenciamento completo de usuários, incluindo consultas, filtros, auditoria e ajustes administrativos.
+- Gestão da equipe administrativa: cadastro, edição de nome, e-mail e senha, reatribuição de papel e desativação — tudo registrado na trilha de auditoria.
 - Aprovação e gerenciamento de depósitos, saques, adesões e solicitações financeiras.
 - Auditoria financeira completa, com rastreabilidade de todas as movimentações da plataforma.
+- Log de auditoria: registra todas as ações realizadas no painel, incluindo autor, data, horário e histórico das alterações.
 - Gerenciamento da estrutura de afiliados e acompanhamento da rede de cada usuário.
 - Administração completa do catálogo de planos (**AUTO** e **MANUAL**), com proteção para recursos críticos do sistema.
 - **Modo Demonstração** opcional, com login de visitante, bloqueio de operações irreversíveis e restauração automática do ambiente.
@@ -269,13 +271,14 @@ Gerenciamento completo do catálogo de planos da plataforma.
 
 ---
 
-### 🔍 Auditoria Financeira (`/api/audit`)
+### 🔍 Auditoria (`/api/audit`)
 
-Consulta completa e auditável de todas as movimentações financeiras da plataforma.
+Duas trilhas complementares: as **movimentações financeiras** da plataforma e as **ações administrativas** — quem interveio em quê. Toda alteração de equipe, papéis, usuários do bot, bloqueio, ajuste de saldo, resposta a saque e conclusão de suporte gera um registro com autor, horário e o estado antes e depois. Redefinições de senha são marcadas como tal, sem que a senha ou o hash sejam gravados.
 
 | Método | Endpoint | Descrição |
 |---|---|---|
 | POST | `/` | Retorna o histórico consolidado de movimentações financeiras, com filtros, paginação, ordenação e pesquisa avançada. |
+| POST | `/actions` | Retorna o histórico de ações administrativas — quem alterou o quê no painel, com o estado antes e depois de cada mudança. |
 
 ---
 

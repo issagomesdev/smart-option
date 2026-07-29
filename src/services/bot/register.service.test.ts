@@ -10,7 +10,7 @@ vi.mock("../../notifications/services/notification.service", () => ({
 import { db } from "../../infrastructure/database/client";
 import { botUsers, emailVerifications, userPlans, walletTransactions, wallets } from "../../infrastructure/database/schema";
 import { env } from "../../config/env";
-import { RegisterService } from "./register.service";
+import { CPF_TAKEN_MESSAGE, EMAIL_TAKEN_MESSAGE, RegisterService } from "./register.service";
 
 // Mesmo CPF válido (dígito verificador correto) já usado em `e2e/users.spec.ts`.
 const VALID_CPF = "52998224725";
@@ -82,7 +82,62 @@ describe("RegisterService (bot, integração, banco real)", () => {
           adress: "Rua Teste, 1",
           pix_code: "x",
         }),
-      ).rejects.toThrow("Email já em uso");
+      ).rejects.toThrow(EMAIL_TAKEN_MESSAGE);
+    });
+
+    it("recusa CPF já cadastrado, mesmo com e-mail novo", async () => {
+      const first = await db
+        .insert(botUsers)
+        .values({ name: "X", email: uniqueEmail(), password: "x", phoneNumber: "1", adress: "1", pixCode: "1", cpf: VALID_CPF })
+        .$returningId();
+      createdUserIds.push(first[0].id);
+
+      await expect(
+        RegisterService.registerUser({
+          name: "Y",
+          email: uniqueEmail(),
+          password: "senha-forte-123",
+          phone_number: "11900000000",
+          cpf: VALID_CPF,
+          adress: "Rua Teste, 1",
+          pix_code: "x",
+        }),
+      ).rejects.toThrow(CPF_TAKEN_MESSAGE);
+    });
+
+    it("traduz a violação de chave única do banco, sem vazar o erro do driver", async () => {
+      // Simula a corrida real: a linha aparece DEPOIS da checagem prévia e antes do INSERT, então
+      // só a chave única segura. O erro do MySQL não pode chegar ao usuário como veio.
+      const email = uniqueEmail();
+      const cpf = VALID_CPF;
+
+      const [first] = await db
+        .insert(botUsers)
+        .values({ name: "X", email, password: "x", phoneNumber: "1", adress: "1", pixCode: "1" })
+        .$returningId();
+      createdUserIds.push(first.id);
+
+      const selectSpy = vi.spyOn(db, "select");
+      // Só a primeira consulta (a de e-mail) mente, devolvendo "não existe".
+      selectSpy.mockImplementationOnce(
+        () => ({ from: () => ({ where: async () => [] }) }) as unknown as ReturnType<typeof db.select>,
+      );
+
+      try {
+        await expect(
+          RegisterService.registerUser({
+            name: "Y",
+            email,
+            password: "senha-forte-123",
+            phone_number: "11900000000",
+            cpf,
+            adress: "Rua Teste, 1",
+            pix_code: "x",
+          }),
+        ).rejects.toThrow(EMAIL_TAKEN_MESSAGE);
+      } finally {
+        selectSpy.mockRestore();
+      }
     });
 
     it("recusa CPF inválido (dígito verificador incorreto)", async () => {

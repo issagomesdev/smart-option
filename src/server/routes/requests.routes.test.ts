@@ -189,7 +189,7 @@ describe("/api/requests (wiring HTTP — banco real para autenticação, Request
       // `validate({ params: wasReadParamsDto })` já coage para número antes
       // de chegar no handler (`z.coerce.number()`) — `req.params` deixa de
       // ser string depois do middleware, mesmo vindo de uma URL.
-      expect(RequestService.wasRead).toHaveBeenCalledWith(7, 1);
+      expect(RequestService.wasRead).toHaveBeenCalledWith(7, 1, { id: expect.any(Number), email: expect.any(String) });
     });
   });
 });

@@ -197,7 +197,7 @@ describe("/api/roles (wiring HTTP — banco real para autenticação, RolesServi
         .send({ name: "novo-papel", permissions: ["roles.manage"] });
 
       expect(response.status).toBe(201);
-      expect(RolesService.create).toHaveBeenCalledWith({ name: "novo-papel", permissions: ["roles.manage"] }, ["roles.manage"]);
+      expect(RolesService.create).toHaveBeenCalledWith({ name: "novo-papel", permissions: ["roles.manage"] }, ["roles.manage"], { id: expect.any(Number), email: expect.any(String) });
     });
   });
 
@@ -214,6 +214,7 @@ describe("/api/roles (wiring HTTP — banco real para autenticação, RolesServi
         staffManageOnlyId,
         { name: "renomeado", permissions: ["roles.manage"] },
         ["roles.manage"],
+        { id: expect.any(Number), email: expect.any(String) },
       );
     });
   });
@@ -226,7 +227,7 @@ describe("/api/roles (wiring HTTP — banco real para autenticação, RolesServi
         .set("Authorization", `Bearer ${rolesManageOnlyToken}`);
 
       expect(response.status).toBe(200);
-      expect(RolesService.delete).toHaveBeenCalledWith(staffManageOnlyId);
+      expect(RolesService.delete).toHaveBeenCalledWith(staffManageOnlyId, { id: expect.any(Number), email: expect.any(String) });
     });
   });
 });

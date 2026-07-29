@@ -2,11 +2,21 @@ import TelegramBot from "node-telegram-bot-api";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const registerUser = vi.fn();
+// `vi.hoisted`: a fábrica do `vi.mock` é içada acima das declarações do módulo e é executada na
+// importação de `register.flow.ts`, antes de qualquer `const` de topo ser inicializado. As mensagens
+// precisam existir nesse momento porque o mock as devolve como valor, não dentro de uma função.
+const { EMAIL_TAKEN_MESSAGE, CPF_TAKEN_MESSAGE } = vi.hoisted(() => ({
+  EMAIL_TAKEN_MESSAGE: "Este e-mail já está cadastrado. Faça login na sua conta ou informe outro e-mail para continuar o cadastro.",
+  CPF_TAKEN_MESSAGE: "Este CPF já está cadastrado. Faça login na sua conta ou informe outro CPF para continuar o cadastro.",
+}));
 vi.mock("../../services/bot/register.service", () => ({
   RegisterService: { registerUser: (...args: unknown[]) => registerUser(...args) },
+  EMAIL_TAKEN_MESSAGE,
+  CPF_TAKEN_MESSAGE,
 }));
 
 import { sessionService, BotSession } from "../session.service";
+import { ConflictError } from "../../shared/errors";
 import * as registerFlow from "./register.flow";
 
 const VALID_CPF = "52998224725";
@@ -205,8 +215,8 @@ describe("register.flow", () => {
       expect(await sessionService.get(userId)).toEqual({ flow: null, step: null, data: {} });
     });
 
-    it("sim + email já em uso: pede o email de novo em modo correção", async () => {
-      registerUser.mockRejectedValue(new Error("Email já em uso"));
+    it("sim + email já cadastrado: explica e leva à correção do campo email", async () => {
+      registerUser.mockRejectedValue(new ConflictError(EMAIL_TAKEN_MESSAGE));
       const bot = fakeBot();
 
       await registerFlow.handleCallback(bot, query("choice=yes&for=confirm-user-infos"), confirmSession);
@@ -214,18 +224,54 @@ describe("register.flow", () => {
       const next = await sessionService.get(userId);
       expect(next.step).toBe("collecting");
       expect((next.data as any).fieldCorrection).toBe(1);
+      expect(bot.sendMessage).toHaveBeenCalledWith(chatId, expect.stringContaining("Faça login"), expect.anything());
       expect(bot.sendMessage).toHaveBeenCalledWith(chatId, expect.stringContaining("Email"));
     });
 
-    it("sim + erro genérico: só mostra o erro, sem reiniciar nenhum campo", async () => {
-      registerUser.mockRejectedValue(new Error("Erro inesperado"));
+    it("sim + CPF já cadastrado: explica e leva à correção do campo CPF", async () => {
+      registerUser.mockRejectedValue(new ConflictError(CPF_TAKEN_MESSAGE));
       const bot = fakeBot();
-      await sessionService.set(userId, confirmSession);
 
       await registerFlow.handleCallback(bot, query("choice=yes&for=confirm-user-infos"), confirmSession);
 
-      expect(bot.sendMessage).toHaveBeenCalledWith(chatId, expect.stringContaining("Erro inesperado"), expect.anything());
-      expect(await sessionService.get(userId)).toEqual(confirmSession);
+      const next = await sessionService.get(userId);
+      expect(next.step).toBe("collecting");
+      expect((next.data as any).fieldCorrection).toBe(5);
+      expect(bot.sendMessage).toHaveBeenCalledWith(chatId, expect.stringContaining("CPF"));
+    });
+
+    it("sim + erro do backend: mostra mensagem em português, nunca o erro cru, e devolve à confirmação", async () => {
+      // Erro cru do driver, exatamente como o Drizzle propaga uma violação de chave única.
+      registerUser.mockRejectedValue(new Error("Failed query: insert into `bot_users` ... params: fulano,f@x.com,$2b$12$hash"));
+      const bot = fakeBot();
+
+      await registerFlow.handleCallback(bot, query("choice=yes&for=confirm-user-infos"), confirmSession);
+
+      const sent = (bot.sendMessage as any).mock.calls.map((call: unknown[]) => String(call[1])).join(" | ");
+      expect(sent).toContain("suporte");
+      expect(sent).not.toContain("Failed query");
+      expect(sent).not.toContain("bot_users");
+      expect(sent).not.toContain("$2b$12$");
+
+      // Os dados digitados sobrevivem: o usuário pode tentar de novo sem redigitar tudo.
+      const next = await sessionService.get(userId);
+      expect(next.step).toBe("confirm");
+      expect((next.data as any).answers).toEqual(answers);
+    });
+
+    it("sim clicado duas vezes: cadastra uma única vez (guarda contra duplo clique)", async () => {
+      registerUser.mockResolvedValue({ status: true, message: "ok" });
+      const bot = fakeBot();
+
+      // O segundo callback chega com a sessão já marcada como "submitting" pelo primeiro — é
+      // exatamente o que o dispatcher lê do Redis antes de repassar ao fluxo.
+      await registerFlow.handleCallback(bot, query("choice=yes&for=confirm-user-infos"), confirmSession);
+      await registerFlow.handleCallback(bot, query("choice=yes&for=confirm-user-infos"), {
+        ...confirmSession,
+        step: "submitting",
+      });
+
+      expect(registerUser).toHaveBeenCalledTimes(1);
     });
 
     it("não: mostra as opções de correção por campo", async () => {

@@ -60,7 +60,7 @@ export default express
   })
   .post("/user-bot", requirePermission("users.write"), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      ok(res, await RegisterService.registerUser(req.body));
+      ok(res, await RegisterService.registerUser(req.body, null, req.user ? { id: req.user.id, email: req.user.email } : null));
     } catch (error) {
       next(error);
     }
@@ -71,7 +71,7 @@ export default express
     validate({ body: updateBotUserDto }),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        ok(res, await UsersService.updateBotUser(req.body));
+        ok(res, await UsersService.updateBotUser(req.body, req.user ? { id: req.user.id, email: req.user.email } : null));
       } catch (error) {
         next(error);
       }
@@ -83,7 +83,7 @@ export default express
     validate({ params: botUserIdParamDto }),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        ok(res, await UsersService.deleteBotUser(Number(req.params.id)));
+        ok(res, await UsersService.deleteBotUser(Number(req.params.id), req.user ? { id: req.user.id, email: req.user.email } : null));
       } catch (error) {
         next(error);
       }
@@ -95,7 +95,7 @@ export default express
     validate({ params: botUserStatusParamsDto }),
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        ok(res, await UsersService.isActiveBotUser(Number(req.params.id), Number(req.params.status)));
+        ok(res, await UsersService.isActiveBotUser(Number(req.params.id), Number(req.params.status), req.user ? { id: req.user.id, email: req.user.email } : null));
       } catch (error) {
         next(error);
       }

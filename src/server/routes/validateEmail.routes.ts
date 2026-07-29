@@ -8,7 +8,7 @@ import * as path from 'path';
 export default express
   .Router()
   .get('/:token', async(req, res) => { // pagina de validação de email
-        const logo = 'https://media.byissa.dev/smart-option/concept_mark.png'; 
+        const logo = 'https://media.byissa.dev/smart-option/brain_mark.png'; 
         const logo2 = 'https://media.byissa.dev/smart-option/logo.png'; 
         const image1 = await axios.get(logo, { responseType: 'arraybuffer' });
         const imageData1 = Buffer.from(image1.data, 'binary').toString('base64');
@@ -18,7 +18,7 @@ export default express
         const imageSrc2= `data:${image2.headers['content-type']};base64,${imageData2}`;
         const htmlPath = path.join(__dirname, '../../../confirm.html');
         let result = fs.readFileSync(htmlPath, 'utf-8');
-        result = result.replace('{{imagem1}}', `<img src="${imageSrc1}" style="width: 25em;" alt="SmartOption">`);
+        result = result.replace('{{imagem1}}', `<img src="${imageSrc1}" style="width: auto; height: 8rem; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.50)) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.10));" alt="SmartOption2">`);
         result = result.replace('{{imagem2}}', `<img src="${imageSrc2}" style="margin: 1em; width: 100px;" alt="SmartOption">`);
         await RegisterService.verificationEmail(req.params.token)
         .then(() => {

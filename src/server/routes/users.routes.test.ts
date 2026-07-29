@@ -183,7 +183,7 @@ describe("/api/users (wiring HTTP — banco real para autenticação, services m
       const response = await request(buildApp()).post("/api/users/user-bot").set("Authorization", `Bearer ${usersWriteOnlyToken}`).send(body);
 
       expect(response.status).toBe(200);
-      expect(RegisterService.registerUser).toHaveBeenCalledWith(body);
+      expect(RegisterService.registerUser).toHaveBeenCalledWith(body, null, { id: expect.any(Number), email: expect.any(String) });
     });
 
     it("PATCH /user-bot: 403 sem users.write", async () => {
@@ -202,7 +202,7 @@ describe("/api/users (wiring HTTP — banco real para autenticação, services m
       vi.mocked(UsersService.deleteBotUser).mockResolvedValue({ status: true, message: "ok" });
       const allowed = await request(buildApp()).delete("/api/users/user-bot/42").set("Authorization", `Bearer ${usersWriteOnlyToken}`);
       expect(allowed.status).toBe(200);
-      expect(UsersService.deleteBotUser).toHaveBeenCalledWith(42);
+      expect(UsersService.deleteBotUser).toHaveBeenCalledWith(42, { id: expect.any(Number), email: expect.any(String) });
     });
 
     it("PUT /user-bot/:id/:status: 403 sem users.write; com ela, chama UsersService.isActiveBotUser", async () => {
@@ -212,7 +212,7 @@ describe("/api/users (wiring HTTP — banco real para autenticação, services m
       vi.mocked(UsersService.isActiveBotUser).mockResolvedValue({ status: true, message: "ok" });
       const allowed = await request(buildApp()).put("/api/users/user-bot/42/1").set("Authorization", `Bearer ${usersWriteOnlyToken}`);
       expect(allowed.status).toBe(200);
-      expect(UsersService.isActiveBotUser).toHaveBeenCalledWith(42, 1);
+      expect(UsersService.isActiveBotUser).toHaveBeenCalledWith(42, 1, { id: expect.any(Number), email: expect.any(String) });
     });
   });
 

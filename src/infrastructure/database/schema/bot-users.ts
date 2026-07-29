@@ -31,7 +31,12 @@ export const botUsers = mysqlTable("bot_users", {
   // CPF (Fase 3) — a Asaas recomenda para criação de customer; a coleta no
   // fluxo de cadastro do bot (com validação) é retrofit da Fase 4/7, por
   // isso fica nullable: usuários existentes ainda não têm esse dado.
-  cpf: varchar("cpf", { length: 11 }),
+  //
+  // `unique` porque dois cadastros não podem compartilhar o mesmo CPF, e porque a checagem prévia
+  // em `RegisterService` sozinha não segura duas requisições simultâneas (foi exatamente esse tipo
+  // de corrida que deixou passar um cadastro duplicado por e-mail). No MySQL uma chave única aceita
+  // múltiplos `NULL`, então os cadastros antigos sem CPF continuam válidos.
+  cpf: varchar("cpf", { length: 11 }).unique(),
   // Customer da Asaas (Fase 3) — criado no cadastro, usado para gerar cobranças.
   asaasCustomerId: varchar("asaas_customer_id", { length: 255 }).unique(),
   createdAt: createdAtColumn(),

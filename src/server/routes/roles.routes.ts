@@ -41,7 +41,7 @@ export default express
   .post("/", requirePermission("roles.manage"), denyInDemo(), validate({ body: createRoleDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new UnauthorizedError();
-      ok(res, await RolesService.create(req.body, req.user.permissions), 201);
+      ok(res, await RolesService.create(req.body, req.user.permissions, { id: req.user.id, email: req.user.email }), 201);
     } catch (error) {
       next(error);
     }
@@ -54,7 +54,7 @@ export default express
     async (req: Request, res: Response, next: NextFunction) => {
       try {
         if (!req.user) throw new UnauthorizedError();
-        ok(res, await RolesService.update(Number(req.params.id), req.body, req.user.permissions));
+        ok(res, await RolesService.update(Number(req.params.id), req.body, req.user.permissions, { id: req.user.id, email: req.user.email }));
       } catch (error) {
         next(error);
       }
@@ -62,7 +62,7 @@ export default express
   )
   .delete("/:id", requirePermission("roles.manage"), denyInDemo(), validate({ params: roleIdParamDto }), async (req: Request, res: Response, next: NextFunction) => {
     try {
-      ok(res, await RolesService.delete(Number(req.params.id)));
+      ok(res, await RolesService.delete(Number(req.params.id), req.user ? { id: req.user.id, email: req.user.email } : null));
     } catch (error) {
       next(error);
     }

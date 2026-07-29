@@ -1,9 +1,9 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { afterEach, describe, expect, it } from "vitest";
 import { db } from "../infrastructure/database/client";
-import { roles, staffUsers } from "../infrastructure/database/schema";
+import { auditLogs, roles, staffRefreshTokens, staffUsers } from "../infrastructure/database/schema";
 import type { Permission } from "../shared/permissions/permissions";
-import { StaffService } from "./staff.service";
+import { PROTECTED_STAFF_ID, StaffService } from "./staff.service";
 
 /**
  * Integração contra o banco real (mesmo padrão de `roles.service.test.ts`).
@@ -16,13 +16,23 @@ import { StaffService } from "./staff.service";
 describe("StaffService (integração, banco real)", () => {
   const createdStaffIds: number[] = [];
   const createdRoleIds: number[] = [];
+  const createdAuditIds: number[] = [];
   const stamp = Date.now();
   let counter = 0;
 
   afterEach(async () => {
     if (createdStaffIds.length) {
+      // Antes de apagar os staff: toda linha de auditoria gerada por eles, mesmo a que o teste não
+      // leu de volta. Sem isso a trilha do ambiente de dev acumula ruído de teste a cada execução.
+      await db
+        .delete(auditLogs)
+        .where(and(eq(auditLogs.entityType, "staff_users"), inArray(auditLogs.entityId, createdStaffIds.map(String))));
       await db.delete(staffUsers).where(inArray(staffUsers.id, createdStaffIds));
       createdStaffIds.length = 0;
+    }
+    if (createdAuditIds.length) {
+      await db.delete(auditLogs).where(inArray(auditLogs.id, createdAuditIds));
+      createdAuditIds.length = 0;
     }
     if (createdRoleIds.length) {
       await db.delete(roles).where(inArray(roles.id, createdRoleIds));
@@ -145,6 +155,122 @@ describe("StaffService (integração, banco real)", () => {
     });
   });
 
+  describe("update", () => {
+    it("atualiza nome, sobrenome e e-mail sem exigir senha", async () => {
+      const roleId = await insertTestRole(["support.write"]);
+      const staffId = await insertTestStaff(roleId);
+      const email = `staff-update-${stamp}@test.local`;
+
+      const updated = await StaffService.update(
+        staffId,
+        { name: "Nome Novo", surname: "Sobrenome Novo", email },
+        { id: 1, email: "editor@test.local" },
+      );
+
+      expect(updated).toMatchObject({ id: staffId, name: "Nome Novo", surname: "Sobrenome Novo", email });
+    });
+
+    it("sem senha no payload, mantém o hash atual intacto", async () => {
+      const roleId = await insertTestRole([]);
+      const staffId = await insertTestStaff(roleId);
+      const [{ password: before }] = await db
+        .select({ password: staffUsers.password })
+        .from(staffUsers)
+        .where(eq(staffUsers.id, staffId));
+
+      await StaffService.update(staffId, { name: "A", surname: "B", email: `staff-sem-senha-${stamp}@test.local` }, null);
+
+      const [{ password: after }] = await db
+        .select({ password: staffUsers.password })
+        .from(staffUsers)
+        .where(eq(staffUsers.id, staffId));
+      expect(after).toBe(before);
+    });
+
+    it("com senha no payload, grava um hash bcrypt novo (nunca o texto puro)", async () => {
+      const roleId = await insertTestRole([]);
+      const staffId = await insertTestStaff(roleId);
+
+      await StaffService.update(
+        staffId,
+        { name: "A", surname: "B", email: `staff-com-senha-${stamp}@test.local`, password: "senha-forte-123" },
+        null,
+      );
+
+      const [{ password }] = await db
+        .select({ password: staffUsers.password })
+        .from(staffUsers)
+        .where(eq(staffUsers.id, staffId));
+      expect(password).not.toBe("senha-forte-123");
+      expect(password.startsWith("$2")).toBe(true);
+    });
+
+    // Qualquer portador de `staff.manage` pode editar qualquer membro da equipe — incluindo quem
+    // tem mais permissões. A contenção dessa decisão é a trilha de auditoria abaixo.
+    it("permite editar um staff que possui permissões que o ator não tem", async () => {
+      const targetRoleId = await insertTestRole(["withdrawals.approve", "finance.adjust"]);
+      const staffId = await insertTestStaff(targetRoleId);
+
+      const updated = await StaffService.update(
+        staffId,
+        { name: "Editado", surname: "Por Outro", email: `staff-sem-filtro-${stamp}@test.local`, password: "senha-forte-123" },
+        { id: 1, email: "quem-editou@test.local" },
+      );
+
+      expect(updated.name).toBe("Editado");
+    });
+
+    it("registra a edição em audit_logs com antes/depois, sem guardar a senha", async () => {
+      const roleId = await insertTestRole([]);
+      const staffId = await insertTestStaff(roleId);
+      const [{ name: nomeAntes }] = await db
+        .select({ name: staffUsers.name })
+        .from(staffUsers)
+        .where(eq(staffUsers.id, staffId));
+
+      await StaffService.update(
+        staffId,
+        { name: "Depois", surname: "Auditado", email: `staff-auditado-${stamp}@test.local`, password: "senha-secreta-123" },
+        { id: 1, email: "auditor@test.local" },
+      );
+
+      const [entry] = await db
+        .select()
+        .from(auditLogs)
+        .where(and(eq(auditLogs.entityType, "staff_users"), eq(auditLogs.entityId, String(staffId))));
+      createdAuditIds.push(entry.id);
+
+      expect(entry.action).toBe("staff.updated");
+      expect(entry.actorId).toBe(1);
+      expect(entry.before).toMatchObject({ name: nomeAntes });
+      expect(entry.after).toMatchObject({ name: "Depois", passwordChanged: true, actorEmail: "auditor@test.local" });
+      // A senha nunca pode aparecer na trilha — nem em texto puro, nem como hash.
+      expect(JSON.stringify(entry)).not.toContain("senha-secreta-123");
+      expect(JSON.stringify(entry)).not.toContain("$2");
+    });
+
+    it("recusa e-mail já usado por outro staff", async () => {
+      const roleId = await insertTestRole([]);
+      const firstId = await insertTestStaff(roleId, "Primeiro");
+      const secondId = await insertTestStaff(roleId, "Segundo");
+
+      const [{ email: emailDoPrimeiro }] = await db
+        .select({ email: staffUsers.email })
+        .from(staffUsers)
+        .where(eq(staffUsers.id, firstId));
+
+      await expect(
+        StaffService.update(secondId, { name: "A", surname: "B", email: emailDoPrimeiro }, null),
+      ).rejects.toThrow(/Já existe um staff com esse e-mail/i);
+    });
+
+    it("staff inexistente devolve NotFound", async () => {
+      await expect(
+        StaffService.update(999999999, { name: "A", surname: "B", email: `staff-inexistente-${stamp}@test.local` }, null),
+      ).rejects.toThrow("Staff inexistente");
+    });
+  });
+
   describe("reassignRole", () => {
     it("reatribui o papel de um staff quando o ator possui as permissões do papel novo", async () => {
       const oldRoleId = await insertTestRole([]);
@@ -184,46 +310,83 @@ describe("StaffService (integração, banco real)", () => {
     });
   });
 
-  describe("deactivate", () => {
-    it("desativa um staff (soft-delete via deletedAt)", async () => {
+  describe("remove", () => {
+    it("exclui o staff de verdade — a linha some do banco", async () => {
       const roleId = await insertTestRole([]);
       const staffId = await insertTestStaff(roleId);
 
-      const result = await StaffService.deactivate(staffId, 999999999);
+      const result = await StaffService.remove(staffId, 999999999);
       expect(result.status).toBe(true);
 
-      const [staff] = await db.select().from(staffUsers).where(eq(staffUsers.id, staffId));
-      expect(staff.deletedAt).not.toBeNull();
+      const rows = await db.select().from(staffUsers).where(eq(staffUsers.id, staffId));
+      expect(rows).toHaveLength(0);
     });
 
-    it("recusa auto-desativação incondicionalmente", async () => {
+    it("apaga junto as sessões do staff — a FK de staff_refresh_tokens não tem ON DELETE CASCADE", async () => {
       const roleId = await insertTestRole([]);
       const staffId = await insertTestStaff(roleId);
 
-      await expect(StaffService.deactivate(staffId, staffId)).rejects.toThrow("Você não pode desativar a própria conta");
+      await db.insert(staffRefreshTokens).values({
+        staffUserId: staffId,
+        tokenHash: `staff-remove-test-${stamp}-${(counter += 1)}`,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+
+      await StaffService.remove(staffId, 999999999);
+
+      const tokens = await db.select().from(staffRefreshTokens).where(eq(staffRefreshTokens.staffUserId, staffId));
+      expect(tokens).toHaveLength(0);
     });
 
-    it("recusa desativar um staff já desativado", async () => {
+    it("registra a exclusão na trilha, com o estado anterior preservado", async () => {
+      const roleId = await insertTestRole([]);
+      const staffId = await insertTestStaff(roleId, "Excluido");
+
+      await StaffService.remove(staffId, 999999999, { id: 1, email: "auditor@test.local" });
+
+      const [entry] = await db
+        .select()
+        .from(auditLogs)
+        .where(and(eq(auditLogs.entityType, "staff_users"), eq(auditLogs.entityId, String(staffId))));
+      createdAuditIds.push(entry.id);
+
+      expect(entry.action).toBe("staff.deleted");
+      expect(entry.before).toMatchObject({ name: "Excluido" });
+      // A linha do staff já não existe: a trilha só sobrevive porque `actor_id` não tem FK e o
+      // e-mail do autor é desnormalizado dentro de `after`.
+      expect(entry.after).toMatchObject({ actorEmail: "auditor@test.local" });
+    });
+
+    it("recusa excluir o administrador principal (id 1) incondicionalmente", async () => {
+      await expect(StaffService.remove(PROTECTED_STAFF_ID, 999999999)).rejects.toThrow(
+        "O administrador principal não pode ser excluído",
+      );
+
+      // O guard vem antes de qualquer escrita: a conta continua lá.
+      const rows = await db.select().from(staffUsers).where(eq(staffUsers.id, PROTECTED_STAFF_ID));
+      expect(rows).toHaveLength(1);
+    });
+
+    it("recusa auto-exclusão incondicionalmente", async () => {
       const roleId = await insertTestRole([]);
       const staffId = await insertTestStaff(roleId);
 
-      await StaffService.deactivate(staffId, 999999999);
-      await expect(StaffService.deactivate(staffId, 999999999)).rejects.toThrow("Este staff já está desativado");
+      await expect(StaffService.remove(staffId, staffId)).rejects.toThrow("Você não pode excluir a própria conta");
     });
 
-    it("permite desativar um staff com staff.manage quando outro staff ativo ainda o possui por outro papel", async () => {
+    it("permite excluir um staff com staff.manage quando outro staff ativo ainda o possui por outro papel", async () => {
       const holderRoleId = await insertTestRole(["staff.manage"]);
       await insertTestStaff(holderRoleId);
 
       const staffManageRoleId = await insertTestRole(["staff.manage"]);
       const targetStaffId = await insertTestStaff(staffManageRoleId);
 
-      const result = await StaffService.deactivate(targetStaffId, 999999999);
+      const result = await StaffService.remove(targetStaffId, 999999999);
       expect(result.status).toBe(true);
     });
 
     it("lança NotFoundError para staff inexistente", async () => {
-      await expect(StaffService.deactivate(999999999, 888888888)).rejects.toThrow("Staff inexistente");
+      await expect(StaffService.remove(999999999, 888888888)).rejects.toThrow("Staff inexistente");
     });
   });
 });

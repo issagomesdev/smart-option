@@ -15,7 +15,7 @@ vi.mock("../../services/staff.service", () => ({
     getById: vi.fn(),
     create: vi.fn(),
     reassignRole: vi.fn(),
-    deactivate: vi.fn(),
+    remove: vi.fn(),
   },
 }));
 
@@ -99,7 +99,7 @@ describe("/api/staff (wiring HTTP — banco real para autenticação, StaffServi
     vi.mocked(StaffService.getById).mockReset();
     vi.mocked(StaffService.create).mockReset();
     vi.mocked(StaffService.reassignRole).mockReset();
-    vi.mocked(StaffService.deactivate).mockReset();
+    vi.mocked(StaffService.remove).mockReset();
   });
 
   it("recusa qualquer rota sem autenticação (401)", async () => {
@@ -157,7 +157,7 @@ describe("/api/staff (wiring HTTP — banco real para autenticação, StaffServi
     const response = await request(buildApp()).post("/api/staff").set("Authorization", `Bearer ${withPermissionToken}`).send(body);
 
     expect(response.status).toBe(201);
-    expect(StaffService.create).toHaveBeenCalledWith(body, ["staff.manage"]);
+    expect(StaffService.create).toHaveBeenCalledWith(body, ["staff.manage"], { id: expect.any(Number), email: expect.any(String) });
   });
 
   it("PATCH /api/staff/:id/role: chama StaffService.reassignRole com id do param, roleId do body e as permissões do ator", async () => {
@@ -169,17 +169,17 @@ describe("/api/staff (wiring HTTP — banco real para autenticação, StaffServi
       .send({ roleId: 2 });
 
     expect(response.status).toBe(200);
-    expect(StaffService.reassignRole).toHaveBeenCalledWith(withoutPermissionId, 2, ["staff.manage"]);
+    expect(StaffService.reassignRole).toHaveBeenCalledWith(withoutPermissionId, 2, ["staff.manage"], { id: expect.any(Number), email: expect.any(String) });
   });
 
-  it("DELETE /api/staff/:id: chama StaffService.deactivate com o id do param e o id do ator autenticado", async () => {
-    vi.mocked(StaffService.deactivate).mockResolvedValue({ status: true, message: "ok" });
+  it("DELETE /api/staff/:id: chama StaffService.remove com o id do param e o id do ator autenticado", async () => {
+    vi.mocked(StaffService.remove).mockResolvedValue({ status: true, message: "ok" });
 
     const response = await request(buildApp())
       .delete(`/api/staff/${withoutPermissionId}`)
       .set("Authorization", `Bearer ${withPermissionToken}`);
 
     expect(response.status).toBe(200);
-    expect(StaffService.deactivate).toHaveBeenCalledWith(withoutPermissionId, withPermissionId);
+    expect(StaffService.remove).toHaveBeenCalledWith(withoutPermissionId, withPermissionId, { id: expect.any(Number), email: expect.any(String) });
   });
 });

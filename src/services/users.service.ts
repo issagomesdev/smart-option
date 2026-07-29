@@ -10,7 +10,6 @@ import { offsetFor, paginate, type PaginatedResult, type PaginationParams } from
 import { resolveSort } from "../shared/http/sorting";
 import {
   affiliateNetwork,
-  auditLogs,
   botUsers,
   checkouts,
   emailVerifications,
@@ -25,6 +24,7 @@ import {
   withdrawals,
 } from "../infrastructure/database/schema";
 import { ValidationError, NotFoundError } from "../shared/errors";
+import { recordAudit, type AuditActor } from "../shared/audit/audit-log";
 import { hashPassword, verifyPassword } from "../shared/security/password";
 import { logger } from "../shared/logger";
 
@@ -313,7 +313,7 @@ export class UsersService {
     adress: string;
     pix_code: string;
     product_id?: number;
-  }) {
+  }, actor: AuditActor | null = null) {
     const [user] = await db.select().from(botUsers).where(eq(botUsers.id, body.id));
     if (!user) throw new NotFoundError("Usuário Inexistente");
 
@@ -348,6 +348,23 @@ export class UsersService {
       await db.delete(userPlans).where(eq(userPlans.userId, body.id));
     }
 
+    await recordAudit({
+      action: "bot_user.updated",
+      entityType: "bot_users",
+      entityId: body.id,
+      actor,
+      before: { name: user.name, email: user.email, phoneNumber: user.phoneNumber, adress: user.adress, pixCode: user.pixCode },
+      after: {
+        name: body.name,
+        email: body.email,
+        phoneNumber: body.phone_number,
+        adress: body.adress,
+        pixCode: body.pix_code,
+        productId: body.product_id ?? null,
+        passwordChanged: Boolean(body.password),
+      },
+    });
+
     return { status: true, message: "Usuário atualizado com sucesso" };
   }
 
@@ -360,7 +377,9 @@ export class UsersService {
    * `wallet.id`, então sai antes de `wallet`. Tudo numa única transação para
    * não deixar dados órfãos se alguma etapa falhar no meio.
    */
-  static async deleteBotUser(id: number) {
+  static async deleteBotUser(id: number, actor: AuditActor | null = null) {
+    const [existing] = await db.select().from(botUsers).where(eq(botUsers.id, id));
+
     await db.transaction(async (tx) => {
       await tx.delete(checkouts).where(eq(checkouts.userId, id));
       await tx.delete(supportRequests).where(eq(supportRequests.userId, id));
@@ -377,14 +396,33 @@ export class UsersService {
       await tx.delete(botUsers).where(eq(botUsers.id, id));
     });
 
+    // O `before` é a última fotografia do usuário: depois deste delete em cascata não sobra nada
+    // no banco para reconstruir quem foi removido.
+    await recordAudit({
+      action: "bot_user.deleted",
+      entityType: "bot_users",
+      entityId: id,
+      actor,
+      before: existing ? { name: existing.name, email: existing.email, telegramUserId: existing.telegramUserId } : null,
+    });
+
     return { status: true, message: "Usuário excluído com sucesso" };
   }
 
-  static async isActiveBotUser(userId: number, status: number) {
-    const [user] = await db.select({ id: botUsers.id }).from(botUsers).where(eq(botUsers.id, userId));
+  static async isActiveBotUser(userId: number, status: number, actor: AuditActor | null = null) {
+    const [user] = await db.select({ id: botUsers.id, name: botUsers.name, email: botUsers.email }).from(botUsers).where(eq(botUsers.id, userId));
     if (!user) throw new NotFoundError("Usuário Inexistente");
 
     await db.update(botUsers).set({ isActive: Boolean(status), telegramUserId: null }).where(eq(botUsers.id, userId));
+
+    await recordAudit({
+      action: status ? "bot_user.unblocked" : "bot_user.blocked",
+      entityType: "bot_users",
+      entityId: userId,
+      actor,
+      before: { isActive: !status },
+      after: { isActive: Boolean(status), name: user.name, email: user.email },
+    });
 
     return { status: true, message: "Usuário atualizado com sucesso" };
   }
@@ -402,13 +440,12 @@ export class UsersService {
         ? await walletService.credit({ userId: data.user_id, amount, origin: "admin_adjustment", idempotencyKey })
         : await walletService.debit({ userId: data.user_id, amount, origin: "admin_adjustment", idempotencyKey });
 
-    await db.insert(auditLogs).values({
-      actorType: "staff_user",
-      actorId: actor?.id ?? null,
+    await recordAudit({
       action: data.type === "sum" ? "wallet.admin_credit" : "wallet.admin_debit",
       entityType: "bot_users",
-      entityId: String(data.user_id),
-      after: { amount, balanceAfter: result.balanceAfter, actorEmail: actor?.email ?? null },
+      entityId: data.user_id,
+      actor,
+      after: { amount, balanceAfter: result.balanceAfter },
     });
 
     return { status: true, message: "Usuário atualizado com sucesso" };
