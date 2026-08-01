@@ -58,6 +58,16 @@ services:
       APP_PORT: 3000
       DB_HOST: mysql
       REDIS_URL: redis://redis:6379
+    # Publicada SEMPRE em 127.0.0.1, nunca em 0.0.0.0. O Docker escreve as próprias regras de
+    # iptables e passa por cima do UFW: um mapeamento "3008:3000" deixaria a API acessível em
+    # http://IP-DA-VPS:3008 — sem TLS e contornando o proxy — com o `ufw status` continuando a
+    # mostrar a porta como bloqueada.
+    #
+    # Só é necessária quando um proxy do host (Nginx/Traefik já existente na VPS) faz o
+    # roteamento, cenário em que o serviço "caddy" abaixo não sobe. Com o Caddy deste compose,
+    # ela é inofensiva: o tráfego entra pela rede interna, não por aqui.
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-3000}:3000"
     volumes:
       - ./.env:/app/.env:ro
     depends_on:
@@ -97,9 +107,20 @@ services:
   # "config HTTP temporária" nem edição deste arquivo no primeiro deploy.
   # DOMAIN/ACME_EMAIL vêm do ".env" (mesmo mecanismo de interpolação
   # `${...}` já usado acima para DB_PASSWORD/DB_DATABASE/DB_USER).
+  #
+  # Opcional, atrás do profile "caddy": numa VPS que já hospeda outros projetos, 80/443
+  # normalmente pertencem a um proxy do host (Nginx, Traefik) e subir este serviço junto falharia
+  # ao fazer bind. Sem o profile, o compose sobe só app/mysql/redis e o proxy existente encaminha
+  # para `127.0.0.1:${APP_HOST_PORT}` — nesse caso DOMAIN/ACME_EMAIL não são usadas, porque quem
+  # emite o certificado é o proxy de fora.
+  #
+  #   VPS dedicada:  docker compose -f docker-compose.prod.yml --profile caddy up -d
+  #   proxy do host: docker compose -f docker-compose.prod.yml up -d
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    profiles:
+      - caddy
     ports:
       - "80:80"
       - "443:443"
