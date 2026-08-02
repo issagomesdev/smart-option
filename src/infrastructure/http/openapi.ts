@@ -4,14 +4,113 @@
  * um grupo de rotas soma sua documentação aqui, em vez de tentar documentar
  * de uma vez rotas que ainda vão mudar de forma nas próximas fases.
  */
+/**
+ * Descrição exibida no topo do Swagger UI. Markdown é renderizado, então serve como a porta de
+ * entrada da API: o que ela é, como autenticar, o formato das respostas, o modelo de permissões e
+ * o que muda no modo demonstração — informação que, espalhada por rota, ninguém encontra.
+ */
+const DESCRIPTION = `
+A **Smart Option API** é o backend de uma plataforma de investimentos automatizados que une um
+**bot do Telegram**, voltado ao usuário final, e um **painel administrativo**, voltado à operação.
+Construída em **Node.js + TypeScript** sobre **Express**, com **MySQL** (Drizzle ORM) para
+persistência, **Redis** para cache e sessões do bot, e **BullMQ** para processamento assíncrono de
+webhooks. Os pagamentos PIX são intermediados pela **Asaas**.
+
+> ⚠️ Projeto de demonstração, publicado para fins de estudo e portfólio. Não deve ser usado,
+> adaptado ou interpretado como ferramenta para rendimentos financeiros reais.
+
+## Autenticação
+
+A API usa **JWT** com *access token* de vida curta e **refresh token rotativo**. Para acessar as
+rotas protegidas:
+
+1. Autentique-se em \`POST /auth\` com e-mail e senha de um colaborador.
+2. Copie o campo \`data.accessToken\` da resposta.
+3. Clique em **Authorize** (cadeado) no topo desta página.
+4. Informe o token no formato \`Bearer <seu_token>\`.
+5. Clique em **Authorize** e feche o modal — as próximas requisições passam a enviar o token.
+
+O access token expira em **15 minutos** (padrão). Use \`POST /auth/refresh\` para obter um novo:
+cada uso **rotaciona** o refresh token e revoga o anterior. A reapresentação de um token já
+revogado é tratada como possível roubo e derruba toda a família de tokens daquela sessão.
+\`POST /auth/logout\` revoga explicitamente.
+
+## Formato das respostas
+
+Toda resposta usa um envelope único, de sucesso ou de erro — nunca um corpo solto:
+
+\`\`\`json
+{ "success": true, "data": { } }
+\`\`\`
+
+\`\`\`json
+{
+  "success": false,
+  "error": { "code": "VALIDATION_ERROR", "message": "…", "details": { } },
+  "requestId": "b3f1…"
+}
+\`\`\`
+
+O \`requestId\` acompanha a requisição nos logs estruturados (Pino), o que permite rastrear um erro
+relatado por um usuário até a linha exata do servidor.
+
+## Permissões (RBAC)
+
+Cada colaborador tem um **papel**, e cada papel carrega um conjunto de chaves. **A leitura é aberta
+a qualquer colaborador autenticado** — as chaves protegem apenas escrita sensível:
+
+| Chave | Autoriza |
+|---|---|
+| \`users.write\` | Criar, editar, excluir e bloquear usuários do bot |
+| \`finance.adjust\` | Ajuste manual de saldo |
+| \`withdrawals.approve\` | Aprovar ou recusar saques (dispara PIX real) |
+| \`support.write\` | Concluir solicitações de suporte |
+| \`staff.manage\` | Gerenciar a equipe do painel |
+| \`roles.manage\` | Definir papéis e seus conjuntos de permissão |
+| \`plans.manage\` | Manter o catálogo de planos |
+
+Duas travas existem por cima disso: ninguém concede uma permissão que não possui, e nenhuma
+operação pode deixar o sistema sem um colaborador ativo com \`staff.manage\`.
+
+Sem a permissão exigida a resposta é **403**; sem token válido, **401**.
+
+## Modo demonstração
+
+Quando \`APP_DEMO=true\`, a instância é um ambiente de portfólio e muda de comportamento:
+
+- \`POST /auth/demo-login\` passa a existir e cria uma sessão de visitante sem credenciais. Fora do
+  modo demonstração a mesma rota responde **404**.
+- Operações irreversíveis ou com efeito externo — aprovar saque, gerenciar equipe e papéis, alterar
+  credenciais — respondem **403** com *"Esta ação está desabilitada na demonstração."*
+- Nenhum e-mail é enviado de verdade: o provedor é substituído por um que apenas registra em log.
+- O banco é restaurado periodicamente, preservando colaboradores e papéis.
+
+## Limites e proteções
+
+Rate limiting distribuído em Redis, por IP, com janela e teto configuráveis; o login tem um limite
+próprio, mais restrito, contra força bruta. Requisições excedentes recebem **429**. Os webhooks da
+Asaas são validados por assinatura em comparação *constant-time*, deduplicados por evento e
+processados de forma assíncrona, com reentrega automática em caso de falha.
+`.trim();
+
 export const openApiDocument = {
   openapi: "3.0.3",
   info: {
     title: "Smart Option — API",
     version: "1.0.0",
-    description: "API do backend Smart Option (painel admin + integração de pagamentos Asaas).",
+    description: DESCRIPTION,
+    license: { name: "Projeto de portfólio — uso educacional", url: "https://github.com/issagomesdev" },
   },
-  servers: [{ url: "/api" }],
+  servers: [{ url: "/api", description: "Caminho base da API (relativo ao host atual)" }],
+  tags: [
+    { name: "Auth", description: "Login do painel, rotação de refresh token e login de visitante da demonstração." },
+    { name: "Dashboard", description: "Indicadores agregados: KPIs comparados ao período anterior, rentabilidade, aprovações do dia e movimentações recentes." },
+    { name: "Auditoria", description: "Duas trilhas: movimentações financeiras da plataforma e ações administrativas (quem alterou o quê no painel)." },
+    { name: "Equipe", description: "Colaboradores do painel — cadastro, edição, reatribuição de papel e exclusão. Exige `staff.manage`." },
+    { name: "Planos", description: "Catálogo de produtos oferecidos no bot. Escrita exige `plans.manage`; leitura é aberta." },
+    { name: "Webhooks", description: "Recepção de eventos da Asaas, com validação de assinatura, idempotência e processamento assíncrono." },
+    { name: "Infra", description: "Sondas de liveness e readiness usadas por health checks e orquestração." },
+  ],
   components: {
     securitySchemes: {
       bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
