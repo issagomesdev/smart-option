@@ -19,6 +19,18 @@ describe("getEmailProvider", () => {
     expect(getEmailProvider()).toBe(getEmailProvider());
   });
 
+  it("embrulha o provedor real no filtro da demonstração quando APP_DEMO=true", async () => {
+    vi.stubEnv("APP_DEMO", "true");
+    vi.resetModules();
+
+    const { getEmailProvider } = await import("./email.factory");
+    const { DemoEmailProvider } = await import("../providers/demo/demo.provider");
+
+    // Embrulha, não substitui: o e-mail de um visitante real continua saindo pela Resend/SMTP —
+    // só os endereços fictícios do seeder são descartados (ver `demo.provider.test.ts`).
+    expect(getEmailProvider()).toBeInstanceOf(DemoEmailProvider);
+  });
+
   it("retorna uma instância de SmtpProvider quando EMAIL_TYPE=smtp", async () => {
     vi.stubEnv("EMAIL_TYPE", "smtp");
     vi.stubEnv("SMTP_HOST", "smtp.test.local");

@@ -11,6 +11,23 @@ export const isDemo = env.APP_DEMO;
 export const DEMO_BLOCKED_MESSAGE = "Esta ação está desabilitada na demonstração.";
 
 /**
+ * Domínio dos endereços gerados pelo seeder da demonstração (`demo.seed.ts`).
+ *
+ * Vive aqui, e não no seeder, porque tem dois consumidores em camadas diferentes: quem *gera* os
+ * endereços e quem precisa *reconhecê-los* para não tentar entregar e-mail a eles
+ * (`DemoEmailProvider`). Importar o seeder de dentro de `notifications/` inverteria a dependência.
+ */
+export const DEMO_SEED_EMAIL_DOMAIN = "exemplo.com.br";
+
+/**
+ * Um endereço é fictício quando pertence ao domínio do seeder — nunca existiu, nunca vai receber
+ * nada. Tudo o mais foi digitado por uma pessoa de verdade no fluxo de cadastro.
+ */
+export function isSeededEmailAddress(email: string): boolean {
+  return email.trim().toLowerCase().endsWith(`@${DEMO_SEED_EMAIL_DOMAIN}`);
+}
+
+/**
  * Trava das rotinas destrutivas (reset do ambiente). Chamada no início de todo caminho de reset —
  * CLI e agendador. Com `APP_DEMO=false` o reset é impossível, que é a garantia de que uma instalação
  * de produção nunca perde dado por causa deste módulo.

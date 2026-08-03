@@ -13,14 +13,16 @@ let provider: EmailProvider | null = null;
  * e-mail não deveria exigir tocar em nenhum consumidor além desta função.
  * Seleção exclusiva por `EMAIL_TYPE`, nunca por condicional espalhada.
  *
- * `APP_DEMO=true` tem precedência sobre `EMAIL_TYPE`: no ambiente de demonstração nada é enviado
- * de verdade (ver `DemoEmailProvider`). É a mesma filosofia dos guards de rota — a demonstração
- * não pode produzir efeito fora do próprio ambiente.
+ * `APP_DEMO=true` não troca o provedor: **embrulha** o real num `DemoEmailProvider`, que descarta
+ * apenas o que é endereçado aos usuários fictícios do seeder e entrega o resto normalmente. Antes
+ * a demonstração suprimia todo e-mail, e isso travava o cadastro pelo bot — o login exige e-mail
+ * validado, e o link nunca chegava. A composição mantém a garantia que importa (nada sai para
+ * endereço inventado) sem quebrar o fluxo de quem está experimentando de verdade.
  */
 export function getEmailProvider(): EmailProvider {
   if (!provider) {
-    if (isDemo) provider = new DemoEmailProvider();
-    else provider = env.EMAIL_TYPE === "smtp" ? new SmtpProvider() : new ResendProvider();
+    const real = env.EMAIL_TYPE === "smtp" ? new SmtpProvider() : new ResendProvider();
+    provider = isDemo ? new DemoEmailProvider(real) : real;
   }
   return provider;
 }

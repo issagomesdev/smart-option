@@ -1,25 +1,37 @@
 import { randomUUID } from "node:crypto";
 import { env } from "../../../config/env";
+import { isSeededEmailAddress } from "../../../config/demo";
 import { logger } from "../../../shared/logger";
 import type { EmailMessage, EmailProvider, EmailSendResult } from "../../interfaces/email.provider";
 
 /**
- * Provedor de e-mail do modo demonstração: registra a mensagem no log e devolve sucesso, sem
- * enviar nada.
+ * Filtro de e-mail do modo demonstração: entrega de verdade o que foi endereçado a uma pessoa e
+ * descarta o que foi endereçado aos usuários fictícios do seeder.
  *
- * Existe porque a demonstração é povoada por centenas de usuários fictícios com endereços
- * `@exemplo.com.br`, e todo fluxo que dispara e-mail (verificação de cadastro, avisos) tentaria
- * entregá-los de verdade pela Resend/SMTP — queimando cota, sujando a reputação do domínio e
- * potencialmente enviando mensagem para um endereço que exista de fato.
+ * A demonstração é povoada por centenas de contas com endereços `@exemplo.com.br` que nunca
+ * existiram. Sem este filtro, todo fluxo que dispara e-mail tentaria entregá-los pela Resend/SMTP,
+ * queimando cota e derrubando a reputação do domínio com bounces em massa.
  *
- * A troca acontece na fábrica (`email.factory.ts`), não em condicional espalhada pelos
- * consumidores: quem envia e-mail continua dependendo só da interface `EmailProvider`.
+ * Suprimir *tudo*, porém, quebrava o produto logo na primeira tela: o cadastro pelo bot exige
+ * validar o e-mail antes de liberar o login (`AuthenticationService` recusa com "Email não
+ * validado"), então um visitante que se cadastrasse nunca recebia o link e ficava travado.
+ * Filtrar por destinatário resolve os dois lados — o fluxo funciona de ponta a ponta para quem
+ * está experimentando, e nada sai para endereço inventado.
+ *
+ * Decorator, não substituto: recebe o provedor real e delega. A escolha entre Resend e SMTP
+ * continua sendo só do `EMAIL_TYPE`, e este arquivo não precisa saber qual dos dois está ativo.
  */
 export class DemoEmailProvider implements EmailProvider {
+  constructor(private readonly delegate: EmailProvider) {}
+
   async send(message: EmailMessage): Promise<EmailSendResult> {
+    if (!isSeededEmailAddress(message.to)) {
+      return this.delegate.send(message);
+    }
+
     logger.info(
       { to: message.to, subject: message.subject, provider: "demo" },
-      "E-mail suprimido pelo modo demonstração (não enviado)",
+      "E-mail suprimido: destinatário fictício do seeder da demonstração",
     );
 
     // Mantém o contrato de `EmailSendResult`, cujo `provider` é o enum dos provedores reais — o
